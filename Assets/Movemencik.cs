@@ -8,17 +8,18 @@ public class Movemencik : MonoBehaviour
     private float yaw = 0.0f;
     private float pitch = 0.0f;
     private Rigidbody rb;
-    [SerializeField] float walkSpeed = 0.0f, sensitivity = 2.0f;
-    [SerializeField] float jetpackForce = 10.0f;
-    [SerializeField] float jetpackFuelMax = 100.0f;
-    [SerializeField] float jetpackFuelRegenRate = 5.0f;
-    [SerializeField] float jetpackFuelUsageRate = 10.0f;
-    [SerializeField] float slideSpeedFactor = 1.0f;
+    [SerializeField] private float walkSpeed = 5.0f;
+    [SerializeField] private float sensitivity = 2.0f;
+    [SerializeField] private float slideSpeedFactor = 1.5f;
+    [SerializeField] private float jetpackForce = 10.0f;
+    [SerializeField] private float jetpackFuelMax = 100.0f;
+    [SerializeField] private float jetpackFuelRegenRate = 5.0f;
+    [SerializeField] private float jetpackFuelUsageRate = 10.0f;
     private float currentJetpackFuel;
     public Text jetpackFuelText;
     public Text playerSpeedText;
-
     private bool isSliding = false;
+    private bool isColliding = false; 
 
     void Start()
     {
@@ -27,21 +28,33 @@ public class Movemencik : MonoBehaviour
         currentJetpackFuel = jetpackFuelMax;
     }
 
+    void OnCollisionEnter(Collision collision)
+    {
+        isColliding = true;
+    }
+
+    void OnCollisionExit(Collision collision)
+    {
+        isColliding = false;
+    }
+
     void Update()
     {
-        if (Input.GetKey(KeyCode.Space) && Physics.Raycast(rb.transform.position, Vector3.down, 1 + 0.001f))
-            rb.velocity = new Vector3(rb.velocity.x, 5.0f, rb.velocity.z);
         Look();
         HandleJetpack();
         Slide();
+        Jump();
 
         jetpackFuelText.text = "Fuel: " + Mathf.Round(currentJetpackFuel).ToString();
         playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
     }
 
-    private void FixedUpdate()
+    void FixedUpdate()
     {
-        Movement();
+        if (!isSliding)
+        {
+            Movement();
+        }
     }
 
     void Look()
@@ -55,14 +68,19 @@ public class Movemencik : MonoBehaviour
 
     void Movement()
     {
-        if (!isSliding)
+        Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
+        Vector3 forward = Camera.main.transform.forward * axis.x;
+        Vector3 right = Camera.main.transform.right * axis.y;
+        Vector3 wishDirection = (forward + right).normalized * walkSpeed;
+        wishDirection.y = rb.velocity.y; // Maintain vertical velocity
+        rb.velocity = wishDirection;
+    }
+
+    void Jump()
+    {
+        if (Input.GetKey(KeyCode.Space) && isColliding && currentJetpackFuel > 0)
         {
-            Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
-            Vector3 forward = Camera.main.transform.forward * axis.x;
-            Vector3 right = Camera.main.transform.right * axis.y;
-            Vector3 wishDirection = (forward + right).normalized * walkSpeed;
-            wishDirection.y = rb.velocity.y; // Maintain vertical velocity
-            rb.velocity = wishDirection;
+            rb.AddForce(Vector3.up * 5.0f, ForceMode.Impulse);
         }
     }
 
@@ -71,48 +89,61 @@ public class Movemencik : MonoBehaviour
         if (Input.GetMouseButton(1) && currentJetpackFuel > 0)
         {
             rb.AddForce(Vector3.up * jetpackForce, ForceMode.Acceleration);
-            currentJetpackFuel -= Time.deltaTime * jetpackFuelUsageRate;
-            currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
+            UseJetpackFuel();
         }
 
-        if (currentJetpackFuel < jetpackFuelMax)
+        if (!Input.GetMouseButton(1) && currentJetpackFuel < jetpackFuelMax)
         {
             currentJetpackFuel += Time.deltaTime * jetpackFuelRegenRate;
             currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
         }
-
-        if (currentJetpackFuel < 0.02f)
-        {
-            currentJetpackFuel = 0;
-        }
     }
 
-    void Slide()
+    void UseJetpackFuel()
     {
-        bool isGrounded = Physics.Raycast(transform.position, Vector3.down, 0.1f);
-
-        if (Input.GetKey(KeyCode.LeftShift))
-        {
-            isSliding = true;
-            rb.drag = 0; // Zresetuj tarcie, aby nie było tarcia podczas ślizgania się
-        }
-        else
-        {
-            isSliding = false;
-            rb.drag = 1; // Ustaw standardowe tarcie, gdy nie ma ślizgania się
-        }
-
-        if (isSliding)
-        {
-            Vector3 slideDirection = rb.velocity.normalized;
-            float slideSpeed = rb.velocity.magnitude * slideSpeedFactor;
-            rb.velocity = slideDirection * slideSpeed;
-        }
+        currentJetpackFuel -= jetpackFuelUsageRate * Time.deltaTime;
+        currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
     }
+void Slide()
+{
+    if (Input.GetKey(KeyCode.LeftShift) && isColliding)
+    {
+        isSliding = true;
+        rb.drag = Mathf.Lerp(rb.drag, 0, Time.deltaTime * 5); 
+    }
+    else
+    {
+        isSliding = false;
+        rb.drag = Mathf.Lerp(rb.drag, 1, Time.deltaTime * 5); 
+    }
+
+    if (isSliding)
+    {
+        Vector3 slideDirection = rb.velocity.normalized;
+        float initialSpeed = rb.velocity.magnitude;
+        float slideSpeed = initialSpeed * slideSpeedFactor; 
+
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, Vector3.down, out hit))
+        {
+            float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
+            if (slopeFactor > 0)
+            {
+                slideSpeed *= 1 + (0.125f * (1 - slopeFactor)); 
+            }
+            else
+            {
+                slideSpeed *= 1 + (slopeFactor * 4); 
+            }
+        }
+
+        rb.velocity = slideDirection * slideSpeed; 
+    }
+}
+
 
     float GetPlayerSpeed()
     {
-        float speed = new Vector2(rb.velocity.x, rb.velocity.z).magnitude;
-        return speed;
+        return new Vector2(rb.velocity.x, rb.velocity.z).magnitude;
     }
 }
