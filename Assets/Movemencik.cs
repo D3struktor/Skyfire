@@ -13,12 +13,12 @@ public class Movemencik : MonoBehaviour
     [SerializeField] float jetpackFuelMax = 100.0f;
     [SerializeField] float jetpackFuelRegenRate = 5.0f;
     [SerializeField] float jetpackFuelUsageRate = 10.0f;
-    [SerializeField] float slideSpeedFactor = 1.0f; // Współczynnik prędkości podczas ślizgania się na ziemi
-    [SerializeField] float slideAirborneFactor = 0.95f; // Współczynnik przyspieszenia spadania w powietrzu
-    [SerializeField] float slideFrictionFactor = 5.0f; // Współczynnik zmniejszający tarcie podczas ślizgania się
-
+    [SerializeField] float slideSpeedFactor = 1.0f;
     private float currentJetpackFuel;
     public Text jetpackFuelText;
+    public Text playerSpeedText;
+
+    private bool isSliding = false;
 
     void Start()
     {
@@ -36,6 +36,7 @@ public class Movemencik : MonoBehaviour
         Slide();
 
         jetpackFuelText.text = "Fuel: " + Mathf.Round(currentJetpackFuel).ToString();
+        playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
     }
 
     private void FixedUpdate()
@@ -48,15 +49,21 @@ public class Movemencik : MonoBehaviour
         pitch -= Input.GetAxisRaw("Mouse Y") * sensitivity;
         pitch = Mathf.Clamp(pitch, -90.0f, 90.0f);
         yaw += Input.GetAxisRaw("Mouse X") * sensitivity;
-        Camera.main.transform.localRotation = Quaternion.Euler(pitch, yaw, 0);
+        transform.rotation = Quaternion.Euler(0, yaw, 0);
+        Camera.main.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
     }
 
     void Movement()
     {
-        Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal")) * walkSpeed;
-        Vector3 forward = new Vector3(-Camera.main.transform.right.z, 0.0f, Camera.main.transform.right.x);
-        Vector3 wishDirection = (forward * axis.x + Camera.main.transform.right * axis.y + Vector3.up * rb.velocity.y);
-        rb.velocity = wishDirection;
+        if (!isSliding)
+        {
+            Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
+            Vector3 forward = Camera.main.transform.forward * axis.x;
+            Vector3 right = Camera.main.transform.right * axis.y;
+            Vector3 wishDirection = (forward + right).normalized * walkSpeed;
+            wishDirection.y = rb.velocity.y; // Maintain vertical velocity
+            rb.velocity = wishDirection;
+        }
     }
 
     void HandleJetpack()
@@ -84,28 +91,28 @@ public class Movemencik : MonoBehaviour
     {
         bool isGrounded = Physics.Raycast(transform.position, Vector3.down, 0.1f);
 
-        if (isGrounded)
+        if (Input.GetKey(KeyCode.LeftShift))
         {
-            if (Input.GetKey(KeyCode.LeftShift))
-            {
-                // Zastosuj efekt ślizgania się na ziemi
-                Vector3 slideDirection = rb.velocity.normalized;
-                float slideSpeed = rb.velocity.magnitude * slideSpeedFactor;
-                rb.velocity = slideDirection * slideSpeed;
-
-                // Zmniejsz tarcie wzdłuż płaszczyzny, po której się ślizga
-                rb.AddForce(-rb.velocity.normalized * slideFrictionFactor, ForceMode.Acceleration);
-            }
-            else
-            {
-                // Gracz chodzi normalnie
-                Movement();
-            }
+            isSliding = true;
+            rb.drag = 0; // Zresetuj tarcie, aby nie było tarcia podczas ślizgania się
         }
         else
         {
-            // Jeśli gracz jest w powietrzu, przyspiesz spadanie
-            rb.velocity += Vector3.down * (1.0f - slideAirborneFactor) * Time.deltaTime;
+            isSliding = false;
+            rb.drag = 1; // Ustaw standardowe tarcie, gdy nie ma ślizgania się
         }
+
+        if (isSliding)
+        {
+            Vector3 slideDirection = rb.velocity.normalized;
+            float slideSpeed = rb.velocity.magnitude * slideSpeedFactor;
+            rb.velocity = slideDirection * slideSpeed;
+        }
+    }
+
+    float GetPlayerSpeed()
+    {
+        float speed = new Vector2(rb.velocity.x, rb.velocity.z).magnitude;
+        return speed;
     }
 }
