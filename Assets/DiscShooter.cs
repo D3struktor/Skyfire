@@ -4,7 +4,7 @@ public class DiscShooter : MonoBehaviour
 {
     public GameObject discPrefab; // Prefab dysku
     public Transform shootingPoint; // Punkt, z którego będą wystrzeliwane dyski
-    public float discSpeed = 30f; // Szybkość pocisku
+    public float discSpeed = 60f; // Szybkość pocisku
 
     void Update()
     {

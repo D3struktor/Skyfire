@@ -80,7 +80,7 @@ public class Movemencik : MonoBehaviour
     {
         if (Input.GetKey(KeyCode.Space) && isColliding && currentJetpackFuel > 0)
         {
-            rb.AddForce(Vector3.up * 5.0f, ForceMode.Impulse);
+            rb.AddForce(Vector3.up * 3.0f, ForceMode.Impulse);
         }
     }
 
@@ -142,8 +142,17 @@ void Slide()
 }
 
 
-    float GetPlayerSpeed()
+float GetPlayerSpeed()
+{
+    Vector2 horizontalSpeed = new Vector2(rb.velocity.x, rb.velocity.z);
+    if (horizontalSpeed.magnitude == 0)
     {
-        return new Vector2(rb.velocity.x, rb.velocity.z).magnitude;
+        return Mathf.Abs(rb.velocity.y);
     }
+    else
+    {
+        return horizontalSpeed.magnitude;
+    }
+}
+
 }

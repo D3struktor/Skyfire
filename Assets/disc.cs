@@ -3,7 +3,7 @@ using UnityEngine;
 public class Disc : MonoBehaviour
 {
     public GameObject explosionEffect; // Efekt eksplozji
-    public float blastRadius = 5f;
+    public float blastRadius = 15f;
     public float explosionForce = 500f;
 
     void OnCollisionEnter(Collision collision)
