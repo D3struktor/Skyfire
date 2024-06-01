@@ -17,28 +17,32 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jetpackFuelRegenRate = 5.0f;
     [SerializeField] private float jetpackFuelUsageRate = 10.0f;
     private float currentJetpackFuel;
-    public Text jetpackFuelText;
-    public Text playerSpeedText;
+    [SerializeField] private Text jetpackFuelText;
+    [SerializeField] private Text playerSpeedText;
     private bool isSliding = false;
-    private bool isColliding = false; 
+    private bool isColliding = false;
 
-    PhotonView PV;
+    private PhotonView PV;
+
     void Awake()
     {
-     rb = GetComponent<Rigidbody>();
-     PV = GetComponent<PhotonView>();
+        rb = GetComponent<Rigidbody>();
+        PV = GetComponent<PhotonView>();
     }
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         currentJetpackFuel = jetpackFuelMax;
 
-        if(!PV.IsMine)
+        if (!PV.IsMine)
         {
             Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rb);
+            jetpackFuelText.gameObject.SetActive(false);
+            playerSpeedText.gameObject.SetActive(false);
+            return;
         }
-
     }
 
     void OnCollisionEnter(Collision collision)
@@ -53,27 +57,32 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if(!PV.IsMine)
+        if (!PV.IsMine)
             return;
 
         Look();
         HandleJetpack();
         Slide();
         Jump();
-
+        UpdateUI();
+    }
+    
+    void UpdateUI()
+    {
+        // Aktualizacja UI tylko dla lokalnego gracza
         jetpackFuelText.text = "Fuel: " + Mathf.Round(currentJetpackFuel).ToString();
         playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
     }
 
     void FixedUpdate()
     {
+        if (!PV.IsMine)
+            return;
+
         if (!isSliding)
         {
             Movement();
         }
-        if(!PV.IsMine)
-            return;
-
     }
 
     void Look()
@@ -123,55 +132,56 @@ public class PlayerController : MonoBehaviour
         currentJetpackFuel -= jetpackFuelUsageRate * Time.deltaTime;
         currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
     }
+
 void Slide()
 {
     if (Input.GetKey(KeyCode.LeftShift) && isColliding)
     {
         isSliding = true;
-        rb.drag = Mathf.Lerp(rb.drag, 0, Time.deltaTime * 5); 
+        rb.drag = 1;  // Zwiększone tarcie podczas ślizgu
     }
     else
     {
         isSliding = false;
-        rb.drag = Mathf.Lerp(rb.drag, 1, Time.deltaTime * 5); 
+        rb.drag = 5;  // Przywrócenie wyższego tarcia
     }
 
     if (isSliding)
     {
-        Vector3 slideDirection = rb.velocity.normalized;
-        float initialSpeed = rb.velocity.magnitude;
-        float slideSpeed = initialSpeed * slideSpeedFactor; 
-
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit))
         {
+            Vector3 slopeDirection = Vector3.ProjectOnPlane(Vector3.down, hit.normal).normalized;
+            float initialSpeed = Mathf.Min(rb.velocity.magnitude, 10.0f);
+            float slideSpeed = initialSpeed * slideSpeedFactor;
             float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
+
             if (slopeFactor > 0)
             {
-                slideSpeed *= 1 + (0.125f * (1 - slopeFactor)); 
+                slideSpeed *= 1 + (0.05f * (1 - slopeFactor));
             }
             else
             {
-                slideSpeed *= 1 + (slopeFactor * 4); 
+                slideSpeed *= 1 + (slopeFactor * 2);
             }
+
+            slideSpeed = Mathf.Min(slideSpeed, 10.0f);  // Maksymalna prędkość ślizgu
+            rb.velocity = slopeDirection * slideSpeed;
         }
-
-        rb.velocity = slideDirection * slideSpeed; 
     }
 }
 
 
-float GetPlayerSpeed()
-{
-    Vector2 horizontalSpeed = new Vector2(rb.velocity.x, rb.velocity.z);
-    if (horizontalSpeed.magnitude == 0)
+    float GetPlayerSpeed()
     {
-        return Mathf.Abs(rb.velocity.y);
+        Vector2 horizontalSpeed = new Vector2(rb.velocity.x, rb.velocity.z);
+        if (horizontalSpeed.magnitude == 0)
+        {
+            return Mathf.Abs(rb.velocity.y);
+        }
+        else
+        {
+            return horizontalSpeed.magnitude;
+        }
     }
-    else
-    {
-        return horizontalSpeed.magnitude;
-    }
-}
-
 }
