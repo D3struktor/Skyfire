@@ -133,44 +133,46 @@ public class PlayerController : MonoBehaviour
         currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
     }
 
-void Slide()
-{
-    if (Input.GetKey(KeyCode.LeftShift) && isColliding)
+    void Slide()
     {
-        isSliding = true;
-        rb.drag = 1;  // Zwiększone tarcie podczas ślizgu
-    }
-    else
-    {
-        isSliding = false;
-        rb.drag = 5;  // Przywrócenie wyższego tarcia
-    }
-
-    if (isSliding)
-    {
-        RaycastHit hit;
-        if (Physics.Raycast(transform.position, Vector3.down, out hit))
+        if (Input.GetKey(KeyCode.LeftShift) && isColliding)
         {
-            Vector3 slopeDirection = Vector3.ProjectOnPlane(Vector3.down, hit.normal).normalized;
-            float initialSpeed = Mathf.Min(rb.velocity.magnitude, 10.0f);
-            float slideSpeed = initialSpeed * slideSpeedFactor;
-            float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
-
-            if (slopeFactor > 0)
+            if (!isSliding)
             {
-                slideSpeed *= 1 + (0.05f * (1 - slopeFactor));
-            }
-            else
-            {
-                slideSpeed *= 1 + (slopeFactor * 2);
+                // Zachowaj prędkość na początku ślizgu
+                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
             }
 
-            slideSpeed = Mathf.Min(slideSpeed, 10.0f);  // Maksymalna prędkość ślizgu
-            rb.velocity = slopeDirection * slideSpeed;
+            isSliding = true;
+            rb.drag = 0.000000001f;  // Zmniejszone tarcie podczas ślizgu
+
+            RaycastHit hit;
+            if (Physics.Raycast(transform.position, Vector3.down, out hit))
+            {
+                Vector3 slopeDirection = Vector3.ProjectOnPlane(Vector3.down, hit.normal).normalized;
+                float initialSpeed = Mathf.Max(rb.velocity.magnitude, walkSpeed);
+                float slideSpeed = initialSpeed * slideSpeedFactor;
+                float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
+
+                if (slopeFactor > 0)
+                {
+                    slideSpeed *= 1 + (0.05f * (1 - slopeFactor));
+                }
+                else
+                {
+                    slideSpeed *= 1 + (slopeFactor * 2);
+                }
+
+                slideSpeed = Mathf.Min(slideSpeed, 10.0f);  // Maksymalna prędkość ślizgu
+                rb.velocity = slopeDirection * slideSpeed;
+            }
+        }
+        else
+        {
+            isSliding = false;
+            rb.drag = 3;  // Przywrócenie wyższego tarcia
         }
     }
-}
-
 
     float GetPlayerSpeed()
     {
