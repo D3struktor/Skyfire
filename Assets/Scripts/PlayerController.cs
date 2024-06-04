@@ -12,15 +12,22 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float walkSpeed = 5.0f;
     [SerializeField] private float sensitivity = 2.0f;
     [SerializeField] private float slideSpeedFactor = 1.5f;
-    [SerializeField] private float jetpackForce = 10.0f;
+    [SerializeField] private float jetpackForceY = 30.0f; 
+    [SerializeField] private float jetpackForceX = 15.0f; 
+    [SerializeField] private float jetpackForceZ = 15.0f;
     [SerializeField] private float jetpackFuelMax = 100.0f;
     [SerializeField] private float jetpackFuelRegenRate = 5.0f;
     [SerializeField] private float jetpackFuelUsageRate = 10.0f;
+    [SerializeField] private float additionalGravity = 20.0f; 
     private float currentJetpackFuel;
     [SerializeField] private Text jetpackFuelText;
     [SerializeField] private Text playerSpeedText;
     private bool isSliding = false;
     private bool isColliding = false;
+    [SerializeField] private float groundCheckDistance = 1.1f; // Distance for ground check raycast
+    [SerializeField] private float groundOffset = 0.5f; // Safe offset from the ground
+    [SerializeField] private float skiAcceleration = 10.0f; // Additional acceleration while skiing
+    [SerializeField] private float minSkiSpeed = 5.0f; // Minimum speed while skiing
 
     private PhotonView PV;
 
@@ -69,7 +76,6 @@ public class PlayerController : MonoBehaviour
     
     void UpdateUI()
     {
-        // Aktualizacja UI tylko dla lokalnego gracza
         jetpackFuelText.text = "Fuel: " + Mathf.Round(currentJetpackFuel).ToString();
         playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
     }
@@ -96,12 +102,15 @@ public class PlayerController : MonoBehaviour
 
     void Movement()
     {
-        Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
-        Vector3 forward = Camera.main.transform.forward * axis.x;
-        Vector3 right = Camera.main.transform.right * axis.y;
-        Vector3 wishDirection = (forward + right).normalized * walkSpeed;
-        wishDirection.y = rb.velocity.y; // Maintain vertical velocity
-        rb.velocity = wishDirection;
+        if (isColliding)
+        {
+            Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
+            Vector3 forward = Camera.main.transform.forward * axis.x;
+            Vector3 right = Camera.main.transform.right * axis.y;
+            Vector3 wishDirection = (forward + right).normalized * walkSpeed;
+            wishDirection.y = rb.velocity.y; // Maintain vertical velocity when on the ground
+            rb.velocity = wishDirection;
+        }
     }
 
     void Jump()
@@ -116,11 +125,11 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetMouseButton(1) && currentJetpackFuel > 0)
         {
-            rb.AddForce(Vector3.up * jetpackForce, ForceMode.Acceleration);
+            Vector3 jetpackDirection = transform.forward * jetpackForceZ + transform.right * jetpackForceX + Vector3.up * jetpackForceY;
+            rb.AddForce(jetpackDirection, ForceMode.Acceleration);
             UseJetpackFuel();
         }
-
-        if (!Input.GetMouseButton(1) && currentJetpackFuel < jetpackFuelMax)
+        else if (currentJetpackFuel < jetpackFuelMax)
         {
             currentJetpackFuel += Time.deltaTime * jetpackFuelRegenRate;
             currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
@@ -139,38 +148,44 @@ public class PlayerController : MonoBehaviour
         {
             if (!isSliding)
             {
-                // Zachowaj prędkość na początku ślizgu
-                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+                isSliding = true;
+                rb.drag = 0f; // Remove drag while sliding
             }
 
-            isSliding = true;
-            rb.drag = 0.000000001f;  // Zmniejszone tarcie podczas ślizgu
-
             RaycastHit hit;
-            if (Physics.Raycast(transform.position, Vector3.down, out hit))
+            if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
             {
-                Vector3 slopeDirection = Vector3.ProjectOnPlane(Vector3.down, hit.normal).normalized;
-                float initialSpeed = Mathf.Max(rb.velocity.magnitude, walkSpeed);
-                float slideSpeed = initialSpeed * slideSpeedFactor;
+                // Adjust player position to follow the ground's slope
+                Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
                 float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
+                float slideSpeed = rb.velocity.magnitude;
 
                 if (slopeFactor > 0)
                 {
-                    slideSpeed *= 1 + (0.05f * (1 - slopeFactor));
+                    slideSpeed *= 1 + (0.5f * (1 - slopeFactor)); 
                 }
-                else
+                else if (slopeFactor < 0)
                 {
-                    slideSpeed *= 1 + (slopeFactor * 2);
+                    slideSpeed *= 1 - (0.5f * Mathf.Abs(slopeFactor)); 
                 }
 
-                slideSpeed = Mathf.Min(slideSpeed, 10.0f);  // Maksymalna prędkość ślizgu
+                slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
                 rb.velocity = slopeDirection * slideSpeed;
+
+                // Smoothly adjust position to stick to the ground
+                Vector3 targetPosition = new Vector3(transform.position.x, hit.point.y + groundOffset, transform.position.z);
+                transform.position = Vector3.Lerp(transform.position, targetPosition, Time.fixedDeltaTime * 10f);
+
+                // Apply additional force to maintain or increase speed while skiing
+                rb.AddForce(slopeDirection * skiAcceleration, ForceMode.Acceleration);
             }
+
+            rb.AddForce(Vector3.down * additionalGravity, ForceMode.Acceleration);
         }
         else
         {
             isSliding = false;
-            rb.drag = 3;  // Przywrócenie wyższego tarcia
+            rb.drag = 0f; // Reset drag to normal when not sliding
         }
     }
 

@@ -321,10 +321,13 @@ MonoBehaviour:
   walkSpeed: 10
   sensitivity: 2
   slideSpeedFactor: 1
-  jetpackForce: 30
+  jetpackForceY: 25
+  jetpackForceX: 0
+  jetpackForceZ: 125
   jetpackFuelMax: 20
   jetpackFuelRegenRate: 5
   jetpackFuelUsageRate: 10
+  additionalGravity: 20
   jetpackFuelText: {fileID: 0}
   playerSpeedText: {fileID: 0}
 --- !u!23 &3271456402024468476
