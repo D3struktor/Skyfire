@@ -321,15 +321,21 @@ MonoBehaviour:
   walkSpeed: 10
   sensitivity: 2
   slideSpeedFactor: 1
-  jetpackForceY: 25
+  jetpackForceY: 12
   jetpackForceX: 0
-  jetpackForceZ: 125
+  jetpackForceZ: 8
   jetpackFuelMax: 20
   jetpackFuelRegenRate: 5
   jetpackFuelUsageRate: 10
-  additionalGravity: 20
   jetpackFuelText: {fileID: 0}
   playerSpeedText: {fileID: 0}
+  groundCheckDistance: 1.1
+  skiAcceleration: 1e+10
+  minSkiSpeed: 5
+  groundDrag: 0.1
+  bounceSpeedThreshold: 10
+  bounceFactor: 0.5
+  dragTransitionTime: 0.5
 --- !u!23 &3271456402024468476
 MeshRenderer:
   m_ObjectHideFlags: 0

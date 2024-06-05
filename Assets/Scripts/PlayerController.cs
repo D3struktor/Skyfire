@@ -18,16 +18,18 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jetpackFuelMax = 100.0f;
     [SerializeField] private float jetpackFuelRegenRate = 5.0f;
     [SerializeField] private float jetpackFuelUsageRate = 10.0f;
-    [SerializeField] private float additionalGravity = 20.0f; 
     private float currentJetpackFuel;
     [SerializeField] private Text jetpackFuelText;
     [SerializeField] private Text playerSpeedText;
     private bool isSliding = false;
     private bool isColliding = false;
-    [SerializeField] private float groundCheckDistance = 1.1f; // Distance for ground check raycast
-    [SerializeField] private float groundOffset = 0.5f; // Safe offset from the ground
-    [SerializeField] private float skiAcceleration = 10.0f; // Additional acceleration while skiing
-    [SerializeField] private float minSkiSpeed = 5.0f; // Minimum speed while skiing
+    [SerializeField] private float groundCheckDistance = 1.1f;
+    [SerializeField] private float skiAcceleration = 10.0f;
+    [SerializeField] private float minSkiSpeed = 5.0f;
+    [SerializeField] private float groundDrag = 1f;
+    [SerializeField] private float bounceSpeedThreshold = 10f;
+    [SerializeField] private float bounceFactor = 0.5f;
+    [SerializeField] private float dragTransitionTime = 0.5f;
 
     private PhotonView PV;
 
@@ -89,6 +91,13 @@ public class PlayerController : MonoBehaviour
         {
             Movement();
         }
+
+        if (isSliding)
+        {
+            ApplySlidingPhysics();
+        }
+
+        HandleJetpack();
     }
 
     void Look()
@@ -151,41 +160,70 @@ public class PlayerController : MonoBehaviour
                 isSliding = true;
                 rb.drag = 0f; // Remove drag while sliding
             }
-
-            RaycastHit hit;
-            if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
-            {
-                // Adjust player position to follow the ground's slope
-                Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
-                float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
-                float slideSpeed = rb.velocity.magnitude;
-
-                if (slopeFactor > 0)
-                {
-                    slideSpeed *= 1 + (0.5f * (1 - slopeFactor)); 
-                }
-                else if (slopeFactor < 0)
-                {
-                    slideSpeed *= 1 - (0.5f * Mathf.Abs(slopeFactor)); 
-                }
-
-                slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
-                rb.velocity = slopeDirection * slideSpeed;
-
-                // Smoothly adjust position to stick to the ground
-                Vector3 targetPosition = new Vector3(transform.position.x, hit.point.y + groundOffset, transform.position.z);
-                transform.position = Vector3.Lerp(transform.position, targetPosition, Time.fixedDeltaTime * 10f);
-
-                // Apply additional force to maintain or increase speed while skiing
-                rb.AddForce(slopeDirection * skiAcceleration, ForceMode.Acceleration);
-            }
-
-            rb.AddForce(Vector3.down * additionalGravity, ForceMode.Acceleration);
         }
         else
         {
-            isSliding = false;
-            rb.drag = 0f; // Reset drag to normal when not sliding
+            if (isSliding)
+            {
+                StartCoroutine(StopSlidingAfterDelay(0.5f)); // Delay stopping slide by 0.5 seconds
+            }
+        }
+    }
+
+    IEnumerator StopSlidingAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        isSliding = false;
+        StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Smoothly transition drag
+                
+        // Apply bouncing logic
+        if (GetPlayerSpeed() > bounceSpeedThreshold)
+        {
+            rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y * -bounceFactor, rb.velocity.z);
+        }
+        else
+        {
+            rb.velocity = new Vector3(rb.velocity.x * 0.5f, rb.velocity.y, rb.velocity.z * 0.5f);
+        }
+    }
+
+    IEnumerator TransitionDrag(float startDrag, float endDrag, float duration)
+    {
+        float elapsedTime = 0f;
+        while (elapsedTime < duration)
+        {
+            rb.drag = Mathf.Lerp(startDrag, endDrag, elapsedTime / duration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+        rb.drag = endDrag;
+    }
+
+    void ApplySlidingPhysics()
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
+        {
+            // Adjust player position to follow the ground's slope
+            Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
+            float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
+            float slideSpeed = rb.velocity.magnitude;
+
+            if (slopeFactor > 0)
+            {
+                slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor)); 
+            }
+            else if (slopeFactor < 0)
+            {
+                slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
+            }
+
+            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
+            rb.velocity = slopeDirection * slideSpeed;
+
+            // Apply additional force to maintain or increase speed while skiing
+            rb.AddForce(slopeDirection * skiAcceleration, ForceMode.Acceleration);
         }
     }
 
