@@ -26,7 +26,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float groundCheckDistance = 1.1f;
     [SerializeField] private float skiAcceleration = 10.0f;
     [SerializeField] private float minSkiSpeed = 5.0f;
-    [SerializeField] private float groundDrag = 1f;
+    [SerializeField] private float groundDrag = 0.1f;
+    [SerializeField] private float endDrag = 0.1f;
     [SerializeField] private float bounceSpeedThreshold = 10f;
     [SerializeField] private float bounceFactor = 0.5f;
     [SerializeField] private float dragTransitionTime = 0.5f;
@@ -175,6 +176,7 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(delay);
 
         isSliding = false;
+        rb.drag = endDrag;
         StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Smoothly transition drag
                 
         // Apply bouncing logic
@@ -197,7 +199,7 @@ public class PlayerController : MonoBehaviour
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-        rb.drag = endDrag;
+        
     }
 
     void ApplySlidingPhysics()

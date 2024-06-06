@@ -333,6 +333,7 @@ MonoBehaviour:
   skiAcceleration: 1e+10
   minSkiSpeed: 5
   groundDrag: 0.1
+  endDrag: 0.1
   bounceSpeedThreshold: 10
   bounceFactor: 0.5
   dragTransitionTime: 0.5
