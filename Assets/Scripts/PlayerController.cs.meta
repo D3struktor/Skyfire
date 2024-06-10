@@ -3,7 +3,11 @@ guid: 9699e5c88e19e16459d2604bf8ef6a14
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - jetpackFuelText: {instanceID: 0}
+  - playerSpeedText: {instanceID: 0}
+  - primaryWeaponPrefab: {fileID: 4377076630716582445, guid: 24e20de55414b9143a9f6c41313d9561, type: 3}
+  - grenadeLauncherPrefab: {fileID: 7344188573886574711, guid: 02930c34840b71645ae9e5f4480c870b, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

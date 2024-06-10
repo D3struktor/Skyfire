@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Photon.Pun;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviourPunCallbacks
 {
     private float yaw = 0.0f;
     private float pitch = 0.0f;
@@ -32,6 +32,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float bounceFactor = 0.5f;
     [SerializeField] private float dragTransitionTime = 0.5f;
 
+    public GameObject primaryWeaponPrefab;  // Prefab broni głównej
+    public GameObject grenadeLauncherPrefab;  // Prefab granatnika
+    private GameObject currentWeapon;
+    private DiscShooter discShooter;
+    private GrenadeLauncher grenadeLauncher;
+    private int weaponSlot = 1;
+
     private PhotonView PV;
 
     void Awake()
@@ -53,16 +60,8 @@ public class PlayerController : MonoBehaviour
             playerSpeedText.gameObject.SetActive(false);
             return;
         }
-    }
 
-    void OnCollisionEnter(Collision collision)
-    {
-        isColliding = true;
-    }
-
-    void OnCollisionExit(Collision collision)
-    {
-        isColliding = false;
+        EquipWeapon(weaponSlot); // Wyposaż domyślną broń (DiscShooter)
     }
 
     void Update()
@@ -75,12 +74,81 @@ public class PlayerController : MonoBehaviour
         Slide();
         Jump();
         UpdateUI();
+        HandleWeaponSwitch();
     }
-    
+
+    void HandleWeaponSwitch()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            weaponSlot = 1;
+            EquipWeapon(weaponSlot);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            weaponSlot = 2;
+            EquipWeapon(weaponSlot);
+        }
+    }
+
+    void EquipWeapon(int slot)
+    {
+        if (currentWeapon != null)
+        {
+            if (currentWeapon.GetComponent<DiscShooter>() != null)
+            {
+                currentWeapon.GetComponent<DiscShooter>().SetActiveWeapon(false);
+            }
+            else if (currentWeapon.GetComponent<GrenadeLauncher>() != null)
+            {
+                currentWeapon.GetComponent<GrenadeLauncher>().SetActiveWeapon(false);
+            }
+            PhotonNetwork.Destroy(currentWeapon); // Zniszcz aktualną broń w sieci
+        }
+
+        if (slot == 1)
+        {
+            currentWeapon = PhotonNetwork.Instantiate(primaryWeaponPrefab.name, transform.position, Quaternion.identity);
+            discShooter = currentWeapon.GetComponent<DiscShooter>();
+            if (discShooter != null)
+            {
+                discShooter.SetActiveWeapon(true);
+            }
+        }
+        else if (slot == 2)
+        {
+            currentWeapon = PhotonNetwork.Instantiate(grenadeLauncherPrefab.name, transform.position, Quaternion.identity);
+            grenadeLauncher = currentWeapon.GetComponent<GrenadeLauncher>();
+            if (grenadeLauncher != null)
+            {
+                grenadeLauncher.SetActiveWeapon(true);
+            }
+        }
+
+        // Ustaw broń jako dziecko kamery i zresetuj jej lokalną pozycję i rotację
+        Transform cameraTransform = transform.Find("Camera");
+        if (cameraTransform != null)
+        {
+            currentWeapon.transform.SetParent(cameraTransform);
+            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f); // Dostosuj w razie potrzeby
+            currentWeapon.transform.localRotation = Quaternion.identity; // Zresetuj rotację
+        }
+        else
+        {
+            Debug.LogError("Nie znaleziono transformacji kamery. Upewnij się, że kamera jest dzieckiem PlayerController.");
+        }
+    }
+
     void UpdateUI()
     {
-        jetpackFuelText.text = "Fuel: " + Mathf.Round(currentJetpackFuel).ToString();
-        playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
+        if (jetpackFuelText != null)
+        {
+            jetpackFuelText.text = "Fuel: " + Mathf.Round(currentJetpackFuel).ToString();
+        }
+        if (playerSpeedText != null)
+        {
+            playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
+        }
     }
 
     void FixedUpdate()
@@ -88,11 +156,7 @@ public class PlayerController : MonoBehaviour
         if (!PV.IsMine)
             return;
 
-        if (!isSliding)
-        {
-            Movement();
-        }
-
+        Movement();
         if (isSliding)
         {
             ApplySlidingPhysics();
@@ -118,7 +182,7 @@ public class PlayerController : MonoBehaviour
             Vector3 forward = Camera.main.transform.forward * axis.x;
             Vector3 right = Camera.main.transform.right * axis.y;
             Vector3 wishDirection = (forward + right).normalized * walkSpeed;
-            wishDirection.y = rb.velocity.y; // Maintain vertical velocity when on the ground
+            wishDirection.y = rb.velocity.y; // Zachowaj pionową prędkość na ziemi
             rb.velocity = wishDirection;
         }
     }
@@ -159,14 +223,14 @@ public class PlayerController : MonoBehaviour
             if (!isSliding)
             {
                 isSliding = true;
-                rb.drag = 0f; // Remove drag while sliding
+                rb.drag = 0f; // Usuń opór podczas ślizgu
             }
         }
         else
         {
             if (isSliding)
             {
-                StartCoroutine(StopSlidingAfterDelay(0.5f)); // Delay stopping slide by 0.5 seconds
+                StartCoroutine(StopSlidingAfterDelay(0.5f)); // Opóźnienie zatrzymania ślizgu o 0.5 sekundy
             }
         }
     }
@@ -177,9 +241,9 @@ public class PlayerController : MonoBehaviour
 
         isSliding = false;
         rb.drag = endDrag;
-        StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Smoothly transition drag
+        StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Płynnie przejść opór
                 
-        // Apply bouncing logic
+        // Logika odbijania
         if (GetPlayerSpeed() > bounceSpeedThreshold)
         {
             rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y * -bounceFactor, rb.velocity.z);
@@ -199,7 +263,6 @@ public class PlayerController : MonoBehaviour
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-        
     }
 
     void ApplySlidingPhysics()
@@ -207,7 +270,7 @@ public class PlayerController : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
         {
-            // Adjust player position to follow the ground's slope
+            // Dostosuj pozycję gracza do nachylenia ziemi
             Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
             float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
             float slideSpeed = rb.velocity.magnitude;
@@ -221,10 +284,10 @@ public class PlayerController : MonoBehaviour
                 slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
             }
 
-            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
+            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Zapewnij minimalną prędkość
             rb.velocity = slopeDirection * slideSpeed;
 
-            // Apply additional force to maintain or increase speed while skiing
+            // Zastosuj dodatkową siłę, aby utrzymać lub zwiększyć prędkość podczas jazdy na nartach
             rb.AddForce(slopeDirection * skiAcceleration, ForceMode.Acceleration);
         }
     }
