@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Photon.Pun;
 
-public class PlayerController : MonoBehaviourPunCallbacks
+public class PlayerController : MonoBehaviour
 {
     private float yaw = 0.0f;
     private float pitch = 0.0f;
@@ -12,8 +12,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private float walkSpeed = 5.0f;
     [SerializeField] private float sensitivity = 2.0f;
     [SerializeField] private float slideSpeedFactor = 1.5f;
-    [SerializeField] private float jetpackForceY = 30.0f; 
-    [SerializeField] private float jetpackForceX = 15.0f; 
+    [SerializeField] private float jetpackForceY = 30.0f;
+    [SerializeField] private float jetpackForceX = 15.0f;
     [SerializeField] private float jetpackForceZ = 15.0f;
     [SerializeField] private float jetpackFuelMax = 100.0f;
     [SerializeField] private float jetpackFuelRegenRate = 5.0f;
@@ -24,12 +24,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private bool isSliding = false;
     private bool isColliding = false;
     [SerializeField] private float groundCheckDistance = 1.1f;
-    [SerializeField] private float skiAcceleration = 10.0f;
-    [SerializeField] private float minSkiSpeed = 5.0f;
+    [SerializeField] private float skiAcceleration = 15.0f; // Zwiększono wartość przyspieszenia
+    [SerializeField] private float minSkiSpeed = 7.5f; // Zwiększono minimalną prędkość zjazdu
     [SerializeField] private float groundDrag = 0.1f;
+    [SerializeField] private float airDrag = 0.01f;
     [SerializeField] private float endDrag = 0.1f;
-    [SerializeField] private float bounceSpeedThreshold = 10f;
-    [SerializeField] private float bounceFactor = 0.5f;
     [SerializeField] private float dragTransitionTime = 0.5f;
 
     public GameObject primaryWeaponPrefab;  // Prefab broni głównej
@@ -156,7 +155,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (!PV.IsMine)
             return;
 
-        Movement();
+        if (!isSliding)
+        {
+            Movement();
+        }
+
         if (isSliding)
         {
             ApplySlidingPhysics();
@@ -242,16 +245,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
         isSliding = false;
         rb.drag = endDrag;
         StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Płynnie przejść opór
-                
-        // Logika odbijania
-        if (GetPlayerSpeed() > bounceSpeedThreshold)
-        {
-            rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y * -bounceFactor, rb.velocity.z);
-        }
-        else
-        {
-            rb.velocity = new Vector3(rb.velocity.x * 0.5f, rb.velocity.y, rb.velocity.z * 0.5f);
-        }
     }
 
     IEnumerator TransitionDrag(float startDrag, float endDrag, float duration)
@@ -285,7 +278,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             }
 
             slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Zapewnij minimalną prędkość
-            rb.velocity = slopeDirection * slideSpeed;
+            rb.velocity = slopeDirection * slideSpeed * 1.5f; // Zwiększ prędkość zjazdu 1,5 raza
 
             // Zastosuj dodatkową siłę, aby utrzymać lub zwiększyć prędkość podczas jazdy na nartach
             rb.AddForce(slopeDirection * skiAcceleration, ForceMode.Acceleration);
@@ -303,5 +296,17 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             return horizontalSpeed.magnitude;
         }
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        isColliding = true;
+        rb.drag = groundDrag; // Ustaw drag na groundDrag przy kolizji z ziemią
+    }
+
+    void OnCollisionExit(Collision collision)
+    {
+        isColliding = false;
+        rb.drag = airDrag; // Ustaw drag na airDrag przy opuszczeniu kolizji z ziemią
     }
 }

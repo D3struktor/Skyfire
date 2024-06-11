@@ -167,12 +167,13 @@ MonoBehaviour:
   skiAcceleration: 1e+10
   minSkiSpeed: 5
   groundDrag: 0.1
+  airDrag: 0.01
   endDrag: 0.1
   bounceSpeedThreshold: 10
   bounceFactor: 0.5
   dragTransitionTime: 0.5
-  primaryWeaponPrefab: {fileID: 4377076630716582445, guid: 24e20de55414b9143a9f6c41313d9561, type: 3}
-  grenadeLauncherPrefab: {fileID: 7344188573886574711, guid: 02930c34840b71645ae9e5f4480c870b, type: 3}
+  primaryWeaponPrefab: {fileID: 887638712416274772, guid: 2c762efac44f16f4aa5184d5766f074f, type: 3}
+  grenadeLauncherPrefab: {fileID: 6887392381205261040, guid: 3d8c82d357db5c543af356506c81db94, type: 3}
 --- !u!23 &85265003257965570
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -237,9 +238,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
-  m_Height: 2.1484182
+  m_Height: 2.0351157
   m_Direction: 1
-  m_Center: {x: 0, y: -0.074209094, z: 0}
+  m_Center: {x: 0, y: -0.017557781, z: 0}
 --- !u!54 &6157084091109305163
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -325,5 +326,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 2, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 0.16303, z: 1}
+  m_Center: {x: 0, y: -0.9318263, z: 0}

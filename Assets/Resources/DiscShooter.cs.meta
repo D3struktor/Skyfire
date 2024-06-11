@@ -1,2 +1,13 @@
 fileFormatVersion: 2
 guid: c1735aabd567cd241bf7243e3f6a1ae9
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - discPrefab: {fileID: 3678946588746919792, guid: ae7bf2642bda8c44982ac02c4e4f5732, type: 3}
+  - shootingPoint: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

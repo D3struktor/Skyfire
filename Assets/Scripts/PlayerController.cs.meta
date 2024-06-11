@@ -6,8 +6,8 @@ MonoImporter:
   defaultReferences:
   - jetpackFuelText: {instanceID: 0}
   - playerSpeedText: {instanceID: 0}
-  - primaryWeaponPrefab: {fileID: 4377076630716582445, guid: 24e20de55414b9143a9f6c41313d9561, type: 3}
-  - grenadeLauncherPrefab: {fileID: 7344188573886574711, guid: 02930c34840b71645ae9e5f4480c870b, type: 3}
+  - primaryWeaponPrefab: {fileID: 887638712416274772, guid: 2c762efac44f16f4aa5184d5766f074f, type: 3}
+  - grenadeLauncherPrefab: {fileID: 6887392381205261040, guid: 3d8c82d357db5c543af356506c81db94, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

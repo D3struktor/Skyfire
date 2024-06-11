@@ -5,7 +5,10 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
 {
     public GameObject grenadePrefab; // Prefab for the grenade
     public Transform shootingPoint; // The point from which grenades are shot
-    public float grenadeSpeed = 20f; // Speed of the grenade
+    public float grenadeSpeed = 20f; // Initial speed of the grenade
+    public float grenadeGravity = 9.81f; // Gravity applied to the grenade
+    public float grenadeDrag = 1f; // Opór powietrza granatu
+    public float grenadeAngularDrag = 5f; // Rotacyjny opór powietrza granatu
 
     private bool isActiveWeapon = false;
 
@@ -13,11 +16,8 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
     {
         if (!isActiveWeapon) return;
 
-        Debug.Log("GrenadeLauncher is active");
-
         if (Input.GetButtonDown("Fire1"))
         {
-            Debug.Log("Fire1 button pressed");
             ShootGrenade();
         }
     }
@@ -25,13 +25,10 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
     public void SetActiveWeapon(bool active)
     {
         isActiveWeapon = active;
-        Debug.Log("SetActiveWeapon called with value: " + active);
     }
 
     void ShootGrenade()
     {
-        Debug.Log("ShootGrenade called");
-
         if (grenadePrefab == null || shootingPoint == null)
         {
             Debug.LogError("Grenade prefab or shooting point is not assigned.");
@@ -39,11 +36,19 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
         }
 
         GameObject grenade = PhotonNetwork.Instantiate(grenadePrefab.name, shootingPoint.position, shootingPoint.rotation);
+
         Rigidbody rb = grenade.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.velocity = shootingPoint.forward * grenadeSpeed;
-            Debug.Log("Grenade instantiated and velocity set");
+            rb.useGravity = true;
+            rb.mass = 1f; // Adjust mass as needed
+            rb.drag = grenadeDrag; // Apply drag
+            rb.angularDrag = grenadeAngularDrag; // Apply angular drag
+        }
+        else
+        {
+            Debug.LogError("Rigidbody component not found on grenade prefab.");
         }
     }
 }

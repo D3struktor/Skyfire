@@ -35,7 +35,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.403, y: 0, z: 2.37}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -125,8 +125,8 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3678946588746919792}
   serializedVersion: 4
-  m_Mass: 1
-  m_Drag: 0
+  m_Mass: 50
+  m_Drag: 5
   m_AngularDrag: 0
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
@@ -139,7 +139,7 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 0
+  m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
@@ -4882,7 +4882,9 @@ MonoBehaviour:
   explosionEffect: {fileID: 7819775807870019735, guid: f916833a9285b1244b9a2a6ef531b2a5, type: 3}
   blastRadius: 5
   explosionForce: 700
-  explosionDelay: 2
+  explosionDelay: 4
+  collisionExplosionDelay: 3
+  speedThreshold: 100
 --- !u!199 &-4623785939023121887
 ParticleSystemRenderer:
   serializedVersion: 6
