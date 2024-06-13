@@ -134,10 +134,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   grenadePrefab: {fileID: 3678946588746919792, guid: 4d6346f552b633043a343c4d03f5fa1d, type: 3}
   shootingPoint: {fileID: 2434285912294249829}
-  grenadeSpeed: 80
+  grenadeSpeed: 100
   grenadeGravity: 9.81
   grenadeDrag: 1
-  grenadeAngularDrag: 5
+  grenadeAngularDrag: 0
 --- !u!114 &-3149084861772172437
 MonoBehaviour:
   m_ObjectHideFlags: 0

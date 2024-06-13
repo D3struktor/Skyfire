@@ -30,18 +30,18 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
 
     void OnCollisionEnter(Collision collision)
     {
-        if (photonView.IsMine)
-        {
-            // Trigger the explosion on all clients
-            photonView.RPC("RPC_Explode", RpcTarget.All);
-        }
+        // Trigger the explosion on all clients
+        photonView.RPC("RPC_Explode", RpcTarget.All);
     }
 
     [PunRPC]
     void RPC_Explode()
     {
         // Create explosion effect
-        Instantiate(explosionEffect, transform.position, Quaternion.identity);
+        GameObject explosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
+
+        // Destroy the explosion effect after 2 seconds
+        Destroy(explosion, 2f);
 
         // Apply explosion force to nearby objects
         Collider[] colliders = Physics.OverlapSphere(transform.position, blastRadius);
@@ -58,8 +58,14 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
             }
         }
 
-        // Destroy the disc on all clients
-        PhotonNetwork.Destroy(gameObject);
+        // Destroy the disc locally on all clients
+        Destroy(gameObject);
+
+        // Only the owner should try to destroy the object over the network
+        if (photonView.IsMine)
+        {
+            PhotonNetwork.Destroy(gameObject);
+        }
     }
 
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)

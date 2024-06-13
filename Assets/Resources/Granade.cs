@@ -3,7 +3,7 @@ using Photon.Pun;
 
 public class Grenade : MonoBehaviourPunCallbacks
 {
-    public GameObject explosionEffect; // Prefab efektu eksplozji
+    public GameObject explosionEffect; // Efekt eksplozji
     public float blastRadius = 5f; // Promień wybuchu
     public float explosionForce = 700f; // Siła wybuchu
     public float explosionDelay = 5f; // Opóźnienie przed wybuchem granatu, jeśli nic nie dotknął
@@ -60,19 +60,20 @@ public class Grenade : MonoBehaviourPunCallbacks
         {
             hasExploded = true;
             Debug.Log("Grenade exploded.");
-            LocalExplode();
-            if (photonView.IsMine)
-            {
-                PhotonNetwork.Destroy(gameObject);
-            }
+            photonView.RPC("RPC_Explode", RpcTarget.All);
         }
     }
 
-    void LocalExplode()
+    [PunRPC]
+    void RPC_Explode()
     {
-        Instantiate(explosionEffect, transform.position, Quaternion.identity);
-        Debug.Log("Explosion effect instantiated.");
+        // Tworzymy efekt eksplozji w miejscu zderzenia
+        GameObject explosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
 
+        // Usuwamy efekt eksplozji po 2 sekundach
+        Destroy(explosion, 2f);
+
+        // Aplikujemy siłę eksplozji do obiektów w pobliżu
         Collider[] colliders = Physics.OverlapSphere(transform.position, blastRadius);
         foreach (var nearbyObject in colliders)
         {
@@ -81,16 +82,10 @@ public class Grenade : MonoBehaviourPunCallbacks
             {
                 Vector3 explosionDirection = (nearbyObject.transform.position - transform.position).normalized;
                 rb.AddExplosionForce(explosionForce, transform.position, blastRadius);
-                Debug.Log("Explosion force applied to " + nearbyObject.name);
             }
-
-            // Apply damage to objects within the blast radius
-            // Możesz mieć komponent Health lub podobny, aby zastosować obrażenia
-            // Health health = nearbyObject.GetComponent<Health>();
-            // if (health != null)
-            // {
-            //     health.TakeDamage(damageAmount);
-            // }
         }
+
+        // Zniszcz ten granat na wszystkich klientach lokalnie
+        Destroy(gameObject);
     }
 }

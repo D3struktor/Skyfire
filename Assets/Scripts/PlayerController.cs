@@ -19,20 +19,25 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jetpackFuelRegenRate = 5.0f;
     [SerializeField] private float jetpackFuelUsageRate = 10.0f;
     private float currentJetpackFuel;
-    [SerializeField] private Text jetpackFuelText;
+    private bool canUseJetpack = true;
+    [SerializeField] private Image jetpackFuelImage; // Image for jetpack fuel bar
+    [SerializeField] GameObject ui;
     [SerializeField] private Text playerSpeedText;
+    [SerializeField] private Image speedImage; // Image for speed bar
     private bool isSliding = false;
     private bool isColliding = false;
     [SerializeField] private float groundCheckDistance = 1.1f;
-    [SerializeField] private float skiAcceleration = 15.0f; // Zwiększono wartość przyspieszenia
-    [SerializeField] private float minSkiSpeed = 7.5f; // Zwiększono minimalną prędkość zjazdu
+    [SerializeField] private float skiAcceleration = 20.0f; // Increased acceleration value
+    [SerializeField] private float minSkiSpeed = 10.0f; // Increased minimum ski speed
     [SerializeField] private float groundDrag = 0.1f;
     [SerializeField] private float airDrag = 0.01f;
+    [SerializeField] private float slidingDrag = 0.01f; // Very low drag during sliding
     [SerializeField] private float endDrag = 0.1f;
     [SerializeField] private float dragTransitionTime = 0.5f;
+    [SerializeField] private float maxSpeed = 200f; // Maximum speed for the speed bar and player speed cap
 
-    public GameObject primaryWeaponPrefab;  // Prefab broni głównej
-    public GameObject grenadeLauncherPrefab;  // Prefab granatnika
+    public GameObject primaryWeaponPrefab;  // Primary weapon prefab
+    public GameObject grenadeLauncherPrefab;  // Grenade launcher prefab
     private GameObject currentWeapon;
     private DiscShooter discShooter;
     private GrenadeLauncher grenadeLauncher;
@@ -55,12 +60,14 @@ public class PlayerController : MonoBehaviour
         {
             Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rb);
-            jetpackFuelText.gameObject.SetActive(false);
+            Destroy(ui);
+            jetpackFuelImage.gameObject.SetActive(false);
             playerSpeedText.gameObject.SetActive(false);
+            speedImage.gameObject.SetActive(false);
             return;
         }
 
-        EquipWeapon(weaponSlot); // Wyposaż domyślną broń (DiscShooter)
+        EquipWeapon(weaponSlot); // Equip the default weapon (DiscShooter)
     }
 
     void Update()
@@ -102,7 +109,7 @@ public class PlayerController : MonoBehaviour
             {
                 currentWeapon.GetComponent<GrenadeLauncher>().SetActiveWeapon(false);
             }
-            PhotonNetwork.Destroy(currentWeapon); // Zniszcz aktualną broń w sieci
+            PhotonNetwork.Destroy(currentWeapon); // Destroy the current weapon in the network
         }
 
         if (slot == 1)
@@ -124,29 +131,33 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // Ustaw broń jako dziecko kamery i zresetuj jej lokalną pozycję i rotację
+        // Set the weapon as a child of the camera and reset its local position and rotation
         Transform cameraTransform = transform.Find("Camera");
         if (cameraTransform != null)
         {
             currentWeapon.transform.SetParent(cameraTransform);
-            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f); // Dostosuj w razie potrzeby
-            currentWeapon.transform.localRotation = Quaternion.identity; // Zresetuj rotację
+            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f); // Adjust as needed
+            currentWeapon.transform.localRotation = Quaternion.identity; // Reset rotation
         }
         else
         {
-            Debug.LogError("Nie znaleziono transformacji kamery. Upewnij się, że kamera jest dzieckiem PlayerController.");
+            Debug.LogError("Camera transform not found. Make sure the camera is a child of the PlayerController.");
         }
     }
 
     void UpdateUI()
     {
-        if (jetpackFuelText != null)
+        if (jetpackFuelImage != null)
         {
-            jetpackFuelText.text = "Fuel: " + Mathf.Round(currentJetpackFuel).ToString();
+            jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax; // Update jetpack fuel bar
         }
         if (playerSpeedText != null)
         {
             playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
+        }
+        if (speedImage != null)
+        {
+            speedImage.fillAmount = GetPlayerSpeed() / maxSpeed; // Update speed bar
         }
     }
 
@@ -166,6 +177,10 @@ public class PlayerController : MonoBehaviour
         }
 
         HandleJetpack();
+        CapSpeed();
+
+        // Apply additional gravity force
+        rb.AddForce(Vector3.down * 20f); // Adjust the value as needed
     }
 
     void Look()
@@ -185,7 +200,7 @@ public class PlayerController : MonoBehaviour
             Vector3 forward = Camera.main.transform.forward * axis.x;
             Vector3 right = Camera.main.transform.right * axis.y;
             Vector3 wishDirection = (forward + right).normalized * walkSpeed;
-            wishDirection.y = rb.velocity.y; // Zachowaj pionową prędkość na ziemi
+            wishDirection.y = rb.velocity.y; // Maintain vertical velocity on the ground
             rb.velocity = wishDirection;
         }
     }
@@ -200,22 +215,38 @@ public class PlayerController : MonoBehaviour
 
     void HandleJetpack()
     {
-        if (Input.GetMouseButton(1) && currentJetpackFuel > 0)
+        if (canUseJetpack && currentJetpackFuel > 0 && Input.GetMouseButton(1))
         {
             Vector3 jetpackDirection = transform.forward * jetpackForceZ + transform.right * jetpackForceX + Vector3.up * jetpackForceY;
             rb.AddForce(jetpackDirection, ForceMode.Acceleration);
             UseJetpackFuel();
         }
-        else if (currentJetpackFuel < jetpackFuelMax)
+
+        if (currentJetpackFuel <= 0)
         {
-            currentJetpackFuel += Time.deltaTime * jetpackFuelRegenRate;
-            currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
+            canUseJetpack = false;
+        }
+
+        if (!canUseJetpack && currentJetpackFuel / jetpackFuelMax >= 0.1f)
+        {
+            canUseJetpack = true;
+        }
+
+        if (!Input.GetMouseButton(1) && currentJetpackFuel < jetpackFuelMax)
+        {
+            RegenerateJetpackFuel();
         }
     }
 
     void UseJetpackFuel()
     {
         currentJetpackFuel -= jetpackFuelUsageRate * Time.deltaTime;
+        currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
+    }
+
+    void RegenerateJetpackFuel()
+    {
+        currentJetpackFuel += Time.deltaTime * jetpackFuelRegenRate;
         currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
     }
 
@@ -226,14 +257,14 @@ public class PlayerController : MonoBehaviour
             if (!isSliding)
             {
                 isSliding = true;
-                rb.drag = 0f; // Usuń opór podczas ślizgu
+                rb.drag = slidingDrag; // Set drag to low value during sliding
             }
         }
         else
         {
             if (isSliding)
             {
-                StartCoroutine(StopSlidingAfterDelay(0.5f)); // Opóźnienie zatrzymania ślizgu o 0.5 sekundy
+                StartCoroutine(StopSlidingAfterDelay(0.5f)); // Delay stopping slide by 0.5 seconds
             }
         }
     }
@@ -244,7 +275,7 @@ public class PlayerController : MonoBehaviour
 
         isSliding = false;
         rb.drag = endDrag;
-        StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Płynnie przejść opór
+        StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Smoothly transition drag
     }
 
     IEnumerator TransitionDrag(float startDrag, float endDrag, float duration)
@@ -263,7 +294,7 @@ public class PlayerController : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
         {
-            // Dostosuj pozycję gracza do nachylenia ziemi
+            // Adjust player position to follow the ground slope
             Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
             float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
             float slideSpeed = rb.velocity.magnitude;
@@ -277,11 +308,19 @@ public class PlayerController : MonoBehaviour
                 slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
             }
 
-            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Zapewnij minimalną prędkość
-            rb.velocity = slopeDirection * slideSpeed * 1.5f; // Zwiększ prędkość zjazdu 1,5 raza
+            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
+            rb.velocity = slopeDirection * slideSpeed * 1.5f; // Increase sliding speed by 1.5 times
 
-            // Zastosuj dodatkową siłę, aby utrzymać lub zwiększyć prędkość podczas jazdy na nartach
+            // Apply additional force to maintain or increase speed while skiing
             rb.AddForce(slopeDirection * skiAcceleration, ForceMode.Acceleration);
+        }
+    }
+
+    void CapSpeed()
+    {
+        if (rb.velocity.magnitude > maxSpeed)
+        {
+            rb.velocity = rb.velocity.normalized * maxSpeed;
         }
     }
 
@@ -301,12 +340,22 @@ public class PlayerController : MonoBehaviour
     void OnCollisionEnter(Collision collision)
     {
         isColliding = true;
-        rb.drag = groundDrag; // Ustaw drag na groundDrag przy kolizji z ziemią
+        rb.drag = groundDrag; // Set drag to groundDrag on collision with ground
     }
 
     void OnCollisionExit(Collision collision)
     {
         isColliding = false;
-        rb.drag = airDrag; // Ustaw drag na airDrag przy opuszczeniu kolizji z ziemią
+        rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
+    }
+
+    [PunRPC]
+    void RPC_UpdateJetpackFuel(float fuel)
+    {
+        currentJetpackFuel = fuel;
+        if (jetpackFuelImage != null)
+        {
+            jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
+        }
     }
 }
