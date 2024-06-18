@@ -42,6 +42,9 @@ MonoBehaviour:
   - RPC_Explode
   - RPC_UpdateJetpackFuel
   - RPC_SetVisibility
+  - RPC_SyncWeapon
+  - RPC_SyncWeaponVectors3
+  - RPC_SyncWeaponPositionRotation
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

@@ -7,8 +7,8 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
     public Transform shootingPoint; // The point from which grenades are shot
     public float grenadeSpeed = 20f; // Initial speed of the grenade
     public float grenadeGravity = 9.81f; // Gravity applied to the grenade
-    public float grenadeDrag = 1f; // Opór powietrza granatu
-    public float grenadeAngularDrag = 5f; // Rotacyjny opór powietrza granatu
+    public float grenadeDrag = 1f; // Drag for the grenade
+    public float grenadeAngularDrag = 5f; // Angular drag for the grenade
 
     private bool isActiveWeapon = false;
 

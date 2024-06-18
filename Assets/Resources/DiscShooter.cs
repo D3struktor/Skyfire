@@ -3,9 +3,9 @@ using Photon.Pun;
 
 public class DiscShooter : MonoBehaviourPunCallbacks
 {
-    public GameObject discPrefab; // Prefab dysku
-    public Transform shootingPoint; // Punkt, z którego będą wystrzeliwane dyski
-    public float discSpeed = 60f; // Szybkość pocisku
+    public GameObject discPrefab; // Prefab for the disc
+    public Transform shootingPoint; // Point from which discs are shot
+    public float discSpeed = 60f; // Disc speed
 
     private bool isActiveWeapon = false;
 

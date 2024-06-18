@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Photon.Pun;
+using Photon.Realtime;
+using ExitGames.Client.Photon;  // Required for Hashtable
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviourPunCallbacks
 {
     private float yaw = 0.0f;
     private float pitch = 0.0f;
@@ -44,11 +46,13 @@ public class PlayerController : MonoBehaviour
     private int weaponSlot = 1;
 
     private PhotonView PV;
+    private Camera playerCamera;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         PV = GetComponent<PhotonView>();
+        playerCamera = GetComponentInChildren<Camera>();
     }
 
     void Start()
@@ -67,7 +71,15 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        EquipWeapon(weaponSlot); // Equip the default weapon (DiscShooter)
+        // Initialize weapon based on current player properties
+        if (PV.Owner.CustomProperties.TryGetValue("itemIndex", out object itemIndex))
+        {
+            EquipWeapon((int)itemIndex);
+        }
+        else
+        {
+            EquipWeapon(weaponSlot); // Equip default weapon if no property is found
+        }
     }
 
     void Update()
@@ -83,54 +95,57 @@ public class PlayerController : MonoBehaviour
         HandleWeaponSwitch();
     }
 
-void HandleWeaponSwitch()
-{
-    if (Input.GetKeyDown(KeyCode.Alpha1))
+    void Look()
     {
-        weaponSlot = 1;
-        EquipWeapon(weaponSlot);
-    }
-    if (Input.GetKeyDown(KeyCode.Alpha2))
-    {
-        weaponSlot = 2;
-        EquipWeapon(weaponSlot);
+        pitch -= Input.GetAxisRaw("Mouse Y") * sensitivity;
+        pitch = Mathf.Clamp(pitch, -90.0f, 90.0f);
+        yaw += Input.GetAxisRaw("Mouse X") * sensitivity;
+        transform.rotation = Quaternion.Euler(0, yaw, 0);
+        playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
     }
 
-    float scroll = Input.GetAxis("Mouse ScrollWheel");
-    if (scroll != 0)
+    void HandleWeaponSwitch()
     {
-        weaponSlot -= (int)Mathf.Sign(scroll);
-        if (weaponSlot < 1)
-        {
-            weaponSlot = 2; // Assuming you have 2 weapon slots
-        }
-        else if (weaponSlot > 2)
+        if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             weaponSlot = 1;
+            EquipWeapon(weaponSlot);
+            UpdateWeaponProperty(weaponSlot);
         }
-        EquipWeapon(weaponSlot);
-    }
-}
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            weaponSlot = 2;
+            EquipWeapon(weaponSlot);
+            UpdateWeaponProperty(weaponSlot);
+        }
 
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (scroll != 0)
+        {
+            weaponSlot -= (int)Mathf.Sign(scroll);
+            if (weaponSlot < 1)
+            {
+                weaponSlot = 2; // Assuming you have 2 weapon slots
+            }
+            else if (weaponSlot > 2)
+            {
+                weaponSlot = 1;
+            }
+            EquipWeapon(weaponSlot);
+            UpdateWeaponProperty(weaponSlot);
+        }
+    }
 
     void EquipWeapon(int slot)
     {
         if (currentWeapon != null)
         {
-            if (currentWeapon.GetComponent<DiscShooter>() != null)
-            {
-                currentWeapon.GetComponent<DiscShooter>().SetActiveWeapon(false);
-            }
-            else if (currentWeapon.GetComponent<GrenadeLauncher>() != null)
-            {
-                currentWeapon.GetComponent<GrenadeLauncher>().SetActiveWeapon(false);
-            }
-            PhotonNetwork.Destroy(currentWeapon); // Destroy the current weapon in the network
+            PhotonNetwork.Destroy(currentWeapon);
         }
 
         if (slot == 1)
         {
-            currentWeapon = PhotonNetwork.Instantiate(primaryWeaponPrefab.name, transform.position, Quaternion.identity);
+            currentWeapon = PhotonNetwork.Instantiate(primaryWeaponPrefab.name, Vector3.zero, Quaternion.identity);
             discShooter = currentWeapon.GetComponent<DiscShooter>();
             if (discShooter != null)
             {
@@ -139,7 +154,7 @@ void HandleWeaponSwitch()
         }
         else if (slot == 2)
         {
-            currentWeapon = PhotonNetwork.Instantiate(grenadeLauncherPrefab.name, transform.position, Quaternion.identity);
+            currentWeapon = PhotonNetwork.Instantiate(grenadeLauncherPrefab.name, Vector3.zero, Quaternion.identity);
             grenadeLauncher = currentWeapon.GetComponent<GrenadeLauncher>();
             if (grenadeLauncher != null)
             {
@@ -147,17 +162,34 @@ void HandleWeaponSwitch()
             }
         }
 
-        // Set the weapon as a child of the camera and reset its local position and rotation
-        Transform cameraTransform = transform.Find("Camera");
-        if (cameraTransform != null)
+        if (currentWeapon != null)
         {
-            currentWeapon.transform.SetParent(cameraTransform);
-            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f); // Adjust as needed
-            currentWeapon.transform.localRotation = Quaternion.identity; // Reset rotation
+            AttachWeaponToPlayer();
         }
         else
         {
-            Debug.LogError("Camera transform not found. Make sure the camera is a child of the PlayerController.");
+            Debug.LogError("Failed to instantiate weapon. Make sure the weapon prefabs are correctly set up.");
+        }
+    }
+
+    void AttachWeaponToPlayer()
+    {
+        if (currentWeapon != null)
+        {
+            // Attach weapon to the player's camera so it follows the view
+            currentWeapon.transform.SetParent(playerCamera.transform);
+            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f); // Adjust as needed
+            currentWeapon.transform.localRotation = Quaternion.identity;
+        }
+    }
+
+    void UpdateWeaponProperty(int slot)
+    {
+        if (PV.IsMine)
+        {
+            ExitGames.Client.Photon.Hashtable hash = new ExitGames.Client.Photon.Hashtable();
+            hash.Add("itemIndex", slot);
+            PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
         }
     }
 
@@ -196,16 +228,7 @@ void HandleWeaponSwitch()
         CapSpeed();
 
         // Apply additional gravity force
-        rb.AddForce(Vector3.down * 20f); // Adjust the value as needed
-    }
-
-    void Look()
-    {
-        pitch -= Input.GetAxisRaw("Mouse Y") * sensitivity;
-        pitch = Mathf.Clamp(pitch, -90.0f, 90.0f);
-        yaw += Input.GetAxisRaw("Mouse X") * sensitivity;
-        transform.rotation = Quaternion.Euler(0, yaw, 0);
-        Camera.main.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
+        rb.AddForce(Vector3.down * 50f); // Adjust the value as needed
     }
 
     void Movement()
@@ -273,7 +296,7 @@ void HandleWeaponSwitch()
             if (!isSliding)
             {
                 isSliding = true;
-                rb.drag = slidingDrag; // Set drag to low value during sliding
+                rb.drag = 0f; // Set drag to low value during sliding
             }
         }
         else
@@ -305,32 +328,40 @@ void HandleWeaponSwitch()
         }
     }
 
-    void ApplySlidingPhysics()
+void ApplySlidingPhysics()
+{
+    RaycastHit hit;
+    if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
     {
-        RaycastHit hit;
-        if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
+        Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
+        float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
+        float slideSpeed = rb.velocity.magnitude;
+
+        // Debugging slope direction and factor
+        Debug.Log("Slope Direction: " + slopeDirection);
+        Debug.Log("Slope Factor: " + slopeFactor);
+
+        if (slopeFactor > 0)
         {
-            // Adjust player position to follow the ground slope
-            Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
-            float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
-            float slideSpeed = rb.velocity.magnitude;
-
-            if (slopeFactor > 0)
-            {
-                slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor)); 
-            }
-            else if (slopeFactor < 0)
-            {
-                slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
-            }
-
-            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
-            rb.velocity = slopeDirection * slideSpeed * 1.5f; // Increase sliding speed by 1.5 times
-
-            // Apply additional force to maintain or increase speed while skiing
-            rb.AddForce(slopeDirection * skiAcceleration, ForceMode.Acceleration);
+            slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor)); 
         }
+        else if (slopeFactor < 0)
+        {
+            slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
+        }
+
+        slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
+        rb.velocity = slopeDirection * slideSpeed * 1.5f; // Increase sliding speed by 1.5 times
+
+        // Apply additional force to maintain or increase speed while skiing
+        Vector3 appliedForce = slopeDirection * skiAcceleration;
+        rb.AddForce(appliedForce, ForceMode.Acceleration);
+
+        // Debugging applied force
+        Debug.Log("Applied Force: " + appliedForce);
     }
+}
+
 
     void CapSpeed()
     {
@@ -363,6 +394,14 @@ void HandleWeaponSwitch()
     {
         isColliding = false;
         rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
+    }
+
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
+    {
+        if (changedProps.ContainsKey("itemIndex") && !PV.IsMine && targetPlayer == PV.Owner)
+        {
+            EquipWeapon((int)changedProps["itemIndex"]);
+        }
     }
 
     [PunRPC]

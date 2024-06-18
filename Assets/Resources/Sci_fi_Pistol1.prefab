@@ -44,7 +44,7 @@ GameObject:
   - component: {fileID: 864988165853306998}
   - component: {fileID: 7409748169785816294}
   - component: {fileID: 1571081760806941681}
-  - component: {fileID: -2870383666069484317}
+  - component: {fileID: 5587442779329116970}
   m_Layer: 0
   m_Name: Sci_fi_Pistol1
   m_TagString: Untagged
@@ -134,7 +134,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   discPrefab: {fileID: 3678946588746919792, guid: ae7bf2642bda8c44982ac02c4e4f5732, type: 3}
   shootingPoint: {fileID: 8949653290496763778}
-  discSpeed: 120
+  discSpeed: 250
 --- !u!114 &1571081760806941681
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -152,13 +152,13 @@ MonoBehaviour:
   prefixField: -1
   Synchronization: 3
   OwnershipTransfer: 0
-  observableSearch: 2
+  observableSearch: 0
   ObservedComponents:
-  - {fileID: -2870383666069484317}
+  - {fileID: 5587442779329116970}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
---- !u!114 &-2870383666069484317
+--- !u!114 &5587442779329116970
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
