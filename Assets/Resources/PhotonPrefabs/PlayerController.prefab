@@ -623,21 +623,21 @@ MonoBehaviour:
   walkSpeed: 15
   sensitivity: 2
   slideSpeedFactor: 10
-  jetpackForceY: 10
+  jetpackForceY: 8
   jetpackForceX: 0
-  jetpackForceZ: 6
-  jetpackFuelMax: 15
-  jetpackFuelRegenRate: 2
-  jetpackFuelUsageRate: 10
+  jetpackForceZ: 3.5
+  jetpackFuelMax: 150
+  jetpackFuelRegenRate: 20
+  jetpackFuelUsageRate: 25
   jetpackFuelImage: {fileID: 7154005466795292452}
   ui: {fileID: 777493580960644483}
   playerSpeedText: {fileID: 7466355902331747557}
   speedImage: {fileID: 638150575947084372}
   groundCheckDistance: 1.1
   skiAcceleration: 1.000109e+10
-  minSkiSpeed: 10
+  minSkiSpeed: 25
   groundDrag: 0.1
-  airDrag: 0.01
+  airDrag: 0.1
   slidingDrag: 0.01
   endDrag: 0.1
   dragTransitionTime: 0.5

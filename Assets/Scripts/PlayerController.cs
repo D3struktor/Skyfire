@@ -83,19 +83,35 @@ public class PlayerController : MonoBehaviour
         HandleWeaponSwitch();
     }
 
-    void HandleWeaponSwitch()
+void HandleWeaponSwitch()
+{
+    if (Input.GetKeyDown(KeyCode.Alpha1))
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1))
+        weaponSlot = 1;
+        EquipWeapon(weaponSlot);
+    }
+    if (Input.GetKeyDown(KeyCode.Alpha2))
+    {
+        weaponSlot = 2;
+        EquipWeapon(weaponSlot);
+    }
+
+    float scroll = Input.GetAxis("Mouse ScrollWheel");
+    if (scroll != 0)
+    {
+        weaponSlot -= (int)Mathf.Sign(scroll);
+        if (weaponSlot < 1)
+        {
+            weaponSlot = 2; // Assuming you have 2 weapon slots
+        }
+        else if (weaponSlot > 2)
         {
             weaponSlot = 1;
-            EquipWeapon(weaponSlot);
         }
-        if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            weaponSlot = 2;
-            EquipWeapon(weaponSlot);
-        }
+        EquipWeapon(weaponSlot);
     }
+}
+
 
     void EquipWeapon(int slot)
     {
