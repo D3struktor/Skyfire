@@ -9,22 +9,30 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
     public float grenadeGravity = 9.81f; // Gravity applied to the grenade
     public float grenadeDrag = 1f; // Drag for the grenade
     public float grenadeAngularDrag = 5f; // Angular drag for the grenade
+    public float fireCooldown = 0.7f; // Cooldown time between shots
 
     private bool isActiveWeapon = false;
+    private float lastShotTime = 0f; // Time when the last shot was fired
 
     void Update()
     {
         if (!isActiveWeapon) return;
 
-        if (Input.GetButtonDown("Fire1"))
+        if (Input.GetButtonDown("Fire1") && Time.time - lastShotTime >= fireCooldown)
         {
             ShootGrenade();
+            lastShotTime = Time.time; // Update the last shot time
         }
     }
 
     public void SetActiveWeapon(bool active)
     {
         isActiveWeapon = active;
+    }
+
+    public void SetLastShotTime(float time)
+    {
+        lastShotTime = time;
     }
 
     void ShootGrenade()

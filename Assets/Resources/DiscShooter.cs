@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
 
@@ -6,18 +8,21 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     public GameObject discPrefab; // Prefab for the disc
     public Transform shootingPoint; // Point from which discs are shot
     public float discSpeed = 60f; // Disc speed
+    public float fireCooldown = 0.7f; // Cooldown time between shots
 
     private bool isActiveWeapon = false;
+    private float lastShotTime = 0f; // Time when the last shot was fired
 
     void Update()
     {
         if (!isActiveWeapon) return;
 
-        if (Input.GetButtonDown("Fire1"))
+        if (Input.GetButtonDown("Fire1") && Time.time - lastShotTime >= fireCooldown)
         {
             if (PhotonNetwork.InRoom)
             {
                 ShootDisc();
+                lastShotTime = Time.time; // Update the last shot time
             }
             else
             {
@@ -30,6 +35,11 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     public void SetActiveWeapon(bool active)
     {
         isActiveWeapon = active;
+    }
+
+    public void SetLastShotTime(float time)
+    {
+        lastShotTime = time;
     }
 
     void ShootDisc()

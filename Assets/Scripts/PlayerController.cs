@@ -26,6 +26,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] GameObject ui;
     [SerializeField] private Text playerSpeedText;
     [SerializeField] private Image speedImage; // Image for speed bar
+    [SerializeField] private Image healthbarImage; // Image for health bar
     private bool isSliding = false;
     private bool isColliding = false;
     [SerializeField] private float groundCheckDistance = 1.1f;
@@ -48,11 +49,20 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private PhotonView PV;
     private Camera playerCamera;
 
+    const float maxHealth = 100f;
+    float currentHealth = maxHealth;
+
+    PlayerManager playerManager;
+
+    private float lastShotTime = 0f; // Time when the last shot was fired
+    private float fireCooldown = 0.7f; // Cooldown time between shots
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         PV = GetComponent<PhotonView>();
         playerCamera = GetComponentInChildren<Camera>();
+        playerManager = PhotonView.Find((int)PV.InstantiationData[0]).GetComponent<PlayerManager>();
     }
 
     void Start()
@@ -68,6 +78,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             jetpackFuelImage.gameObject.SetActive(false);
             playerSpeedText.gameObject.SetActive(false);
             speedImage.gameObject.SetActive(false);
+            healthbarImage.gameObject.SetActive(false); // Hide health bar for other players
             return;
         }
 
@@ -150,6 +161,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             if (discShooter != null)
             {
                 discShooter.SetActiveWeapon(true);
+                discShooter.SetLastShotTime(lastShotTime); // Set last shot time
             }
         }
         else if (slot == 2)
@@ -159,6 +171,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             if (grenadeLauncher != null)
             {
                 grenadeLauncher.SetActiveWeapon(true);
+                grenadeLauncher.SetLastShotTime(lastShotTime); // Set last shot time
             }
         }
 
@@ -206,6 +219,10 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (speedImage != null)
         {
             speedImage.fillAmount = GetPlayerSpeed() / maxSpeed; // Update speed bar
+        }
+        if (healthbarImage != null)
+        {
+            healthbarImage.fillAmount = currentHealth / maxHealth; // Update health bar
         }
     }
 
@@ -328,40 +345,39 @@ public class PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-void ApplySlidingPhysics()
-{
-    RaycastHit hit;
-    if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
+    void ApplySlidingPhysics()
     {
-        Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
-        float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
-        float slideSpeed = rb.velocity.magnitude;
-
-        // Debugging slope direction and factor
-        Debug.Log("Slope Direction: " + slopeDirection);
-        Debug.Log("Slope Factor: " + slopeFactor);
-
-        if (slopeFactor > 0)
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
         {
-            slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor)); 
+            Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
+            float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
+            float slideSpeed = rb.velocity.magnitude;
+
+            // Debugging slope direction and factor
+            Debug.Log("Slope Direction: " + slopeDirection);
+            Debug.Log("Slope Factor: " + slopeFactor);
+
+            if (slopeFactor > 0)
+            {
+                slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor)); 
+            }
+            else if (slopeFactor < 0)
+            {
+                slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
+            }
+
+            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
+            rb.velocity = slopeDirection * slideSpeed * 1.5f; // Increase sliding speed by 1.5 times
+
+            // Apply additional force to maintain or increase speed while skiing
+            Vector3 appliedForce = slopeDirection * skiAcceleration;
+            rb.AddForce(appliedForce, ForceMode.Acceleration);
+
+            // Debugging applied force
+            Debug.Log("Applied Force: " + appliedForce);
         }
-        else if (slopeFactor < 0)
-        {
-            slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
-        }
-
-        slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
-        rb.velocity = slopeDirection * slideSpeed * 1.5f; // Increase sliding speed by 1.5 times
-
-        // Apply additional force to maintain or increase speed while skiing
-        Vector3 appliedForce = slopeDirection * skiAcceleration;
-        rb.AddForce(appliedForce, ForceMode.Acceleration);
-
-        // Debugging applied force
-        Debug.Log("Applied Force: " + appliedForce);
     }
-}
-
 
     void CapSpeed()
     {
@@ -386,14 +402,20 @@ void ApplySlidingPhysics()
 
     void OnCollisionEnter(Collision collision)
     {
-        isColliding = true;
-        rb.drag = groundDrag; // Set drag to groundDrag on collision with ground
+        if (rb != null) // Check if rb is still valid
+        {
+            isColliding = true;
+            rb.drag = groundDrag; // Set drag to groundDrag on collision with ground
+        }
     }
 
     void OnCollisionExit(Collision collision)
     {
-        isColliding = false;
-        rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
+        if (rb != null) // Check if rb is still valid
+        {
+            isColliding = false;
+            rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
+        }
     }
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
@@ -412,5 +434,31 @@ void ApplySlidingPhysics()
         {
             jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
         }
+    }
+
+    [PunRPC]
+    public void RPC_TakeDamage(float damage)
+    {
+        if (!photonView.IsMine) return;
+
+        Debug.Log($"Player {photonView.Owner.NickName} took {damage} damage."); // Add debug log
+
+        currentHealth -= damage;
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+
+        // Update health UI here
+        if (healthbarImage != null)
+        {
+            healthbarImage.fillAmount = currentHealth / maxHealth;
+        }
+    }
+
+    void Die()
+    {
+        playerManager.Die();
+        Debug.Log("Player died."); // Add debug log
     }
 }

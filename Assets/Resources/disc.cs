@@ -3,7 +3,7 @@ using Photon.Pun;
 
 public class Disc : MonoBehaviourPunCallbacks, IPunObservable
 {
-    public GameObject explosionEffect; // Efekt eksplozji
+    public GameObject explosionEffect; // Explosion effect
     public float blastRadius = 15f;
     public float explosionForce = 500f;
 
@@ -11,6 +11,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     private Quaternion networkedRotation;
     private float distance;
     private float angle;
+    private bool hasExploded = false; // To ensure explosion happens only once
 
     void Start()
     {
@@ -30,6 +31,9 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
 
     void OnCollisionEnter(Collision collision)
     {
+        if (hasExploded) return; // Prevent multiple explosions
+        hasExploded = true;
+
         // Trigger the explosion on all clients
         photonView.RPC("RPC_Explode", RpcTarget.All);
     }
@@ -55,6 +59,14 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
                 rb.AddExplosionForce(explosionForce, transform.position, blastRadius);
                 // Optional: Apply additional force in the direction of the explosion
                 rb.AddForce(explosionDirection * explosionForce);
+
+                // Apply damage to player if applicable
+                PlayerController player = nearbyObject.GetComponent<PlayerController>();
+                if (player != null)
+                {
+                    float damage = CalculateDamage(nearbyObject.transform.position);
+                    player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage);
+                }
             }
         }
 
@@ -66,6 +78,13 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
         {
             PhotonNetwork.Destroy(gameObject);
         }
+    }
+
+    float CalculateDamage(Vector3 targetPosition)
+    {
+        float explosionDistance = Vector3.Distance(transform.position, targetPosition);
+        float damage = Mathf.Clamp(100f * (1 - explosionDistance / blastRadius), 1f, 100f);
+        return damage;
     }
 
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)

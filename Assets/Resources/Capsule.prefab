@@ -156,8 +156,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   explosionEffect: {fileID: 443653445314069269, guid: 7e3e8e2f6ecdbb04a982af0a14f2d887, type: 3}
-  blastRadius: 15
-  explosionForce: 5000
+  blastRadius: 10
+  explosionForce: 3000
+  maxDamage: 80
+  minDamage: 1
 --- !u!198 &-5459505131060456056
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -4977,6 +4979,7 @@ MonoBehaviour:
   observableSearch: 2
   ObservedComponents:
   - {fileID: 1425421641249161587}
+  - {fileID: 4455583888837830225}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
