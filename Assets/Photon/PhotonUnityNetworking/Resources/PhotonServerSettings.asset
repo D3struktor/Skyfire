@@ -46,6 +46,7 @@ MonoBehaviour:
   - RPC_SyncWeaponVectors3
   - RPC_SyncWeaponPositionRotation
   - RPC_TakeDamage
+  - RPC_StartMatch
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

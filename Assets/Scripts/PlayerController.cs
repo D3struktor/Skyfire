@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UI;  // Add this for Unity UI components
+using TMPro;  // Add this for TextMesh Pro
 using Photon.Pun;
 using Photon.Realtime;
-using ExitGames.Client.Photon;  // Required for Hashtable
+using ExitGames.Client.Photon;
 
 public class PlayerController : MonoBehaviourPunCallbacks
 {
@@ -22,6 +23,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private float jetpackFuelUsageRate = 10.0f;
     private float currentJetpackFuel;
     private bool canUseJetpack = true;
+    [SerializeField] private TMP_Text timerText; // Text for timer
     [SerializeField] private Image jetpackFuelImage; // Image for jetpack fuel bar
     [SerializeField] GameObject ui;
     [SerializeField] private Text playerSpeedText;
@@ -54,9 +56,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     PlayerManager playerManager;
 
-    private float lastShotTime = 0f; // Time when the last shot was fired
-    private float fireCooldown = 0.7f; // Cooldown time between shots
-
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -67,19 +66,30 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        currentJetpackFuel = jetpackFuelMax;
-
         if (!PV.IsMine)
         {
             Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rb);
             Destroy(ui);
-            jetpackFuelImage.gameObject.SetActive(false);
+            timerText.gameObject.SetActive(false);
             playerSpeedText.gameObject.SetActive(false);
             speedImage.gameObject.SetActive(false);
             healthbarImage.gameObject.SetActive(false); // Hide health bar for other players
             return;
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        currentJetpackFuel = jetpackFuelMax;
+
+        // Find TimerManager and set the timer text
+        if (TimerManager.Instance != null)
+        {
+            TimerManager.Instance.SetTimerText(timerText);
+            Debug.Log("TimerText set in PlayerController.");
+        }
+        else
+        {
+            Debug.LogError("TimerManager instance is null in PlayerController.");
         }
 
         // Initialize weapon based on current player properties
@@ -161,7 +171,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
             if (discShooter != null)
             {
                 discShooter.SetActiveWeapon(true);
-                discShooter.SetLastShotTime(lastShotTime); // Set last shot time
             }
         }
         else if (slot == 2)
@@ -171,7 +180,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
             if (grenadeLauncher != null)
             {
                 grenadeLauncher.SetActiveWeapon(true);
-                grenadeLauncher.SetLastShotTime(lastShotTime); // Set last shot time
             }
         }
 
