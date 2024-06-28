@@ -13,6 +13,9 @@ public class PlayerManager : MonoBehaviour
 
     GameObject controller;
 
+    int kills;
+    int deaths;
+
     void Awake()
     {
         PV = GetComponent<PhotonView>();
@@ -28,8 +31,11 @@ public class PlayerManager : MonoBehaviour
 
     public void CreateController()
     {
-        Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
-        controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { PV.ViewID });
+        if (controller == null)
+        {
+            Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
+            controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { PV.ViewID });
+        }
     }
 
     public void Die()
@@ -37,8 +43,15 @@ public class PlayerManager : MonoBehaviour
         if (controller != null)
         {
             PhotonNetwork.Destroy(controller);
+            controller = null;
+            deaths++;
+
+            Hashtable hash = new Hashtable();
+            hash.Add("deaths", deaths);
+            PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+
+            StartCoroutine(RespawnAfterDelay(2f));
         }
-        StartCoroutine(RespawnAfterDelay(2f));
     }
 
     private IEnumerator RespawnAfterDelay(float delay)
@@ -49,7 +62,17 @@ public class PlayerManager : MonoBehaviour
 
     public void GetKill()
     {
-        Debug.Log("Kill");
+        PV.RPC(nameof(RPC_GetKill), PV.Owner);
+    }
+
+    [PunRPC]
+    void RPC_GetKill()
+    {
+        kills++;
+
+        Hashtable hash = new Hashtable();
+        hash.Add("kills", kills);
+        PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
     }
 
     public static PlayerManager Find(Player player)

@@ -138,6 +138,7 @@ MonoBehaviour:
   grenadeGravity: 30000
   grenadeDrag: 0.1
   grenadeAngularDrag: 0
+  fireCooldown: 0.7
 --- !u!114 &-3149084861772172437
 MonoBehaviour:
   m_ObjectHideFlags: 0

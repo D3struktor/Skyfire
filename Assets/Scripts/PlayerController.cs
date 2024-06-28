@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;  // Add this for Unity UI components
-using TMPro;  // Add this for TextMesh Pro
+using UnityEngine.UI;
+using TMPro;
 using Photon.Pun;
 using Photon.Realtime;
 using ExitGames.Client.Photon;
@@ -23,26 +23,26 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private float jetpackFuelUsageRate = 10.0f;
     private float currentJetpackFuel;
     private bool canUseJetpack = true;
-    [SerializeField] private TMP_Text timerText; // Text for timer
-    [SerializeField] private Image jetpackFuelImage; // Image for jetpack fuel bar
-    [SerializeField] GameObject ui;
+    [SerializeField] private TMP_Text timerText;
+    [SerializeField] private Image jetpackFuelImage;
+    [SerializeField] private Image speedImage;
+    [SerializeField] private Image healthbarImage;
     [SerializeField] private Text playerSpeedText;
-    [SerializeField] private Image speedImage; // Image for speed bar
-    [SerializeField] private Image healthbarImage; // Image for health bar
+    [SerializeField] private GameObject ui;
     private bool isSliding = false;
     private bool isColliding = false;
     [SerializeField] private float groundCheckDistance = 1.1f;
-    [SerializeField] private float skiAcceleration = 20.0f; // Increased acceleration value
-    [SerializeField] private float minSkiSpeed = 10.0f; // Increased minimum ski speed
+    [SerializeField] private float skiAcceleration = 20.0f;
+    [SerializeField] private float minSkiSpeed = 10.0f;
     [SerializeField] private float groundDrag = 0.1f;
     [SerializeField] private float airDrag = 0.01f;
-    [SerializeField] private float slidingDrag = 0.01f; // Very low drag during sliding
+    [SerializeField] private float slidingDrag = 0.01f;
     [SerializeField] private float endDrag = 0.1f;
     [SerializeField] private float dragTransitionTime = 0.5f;
-    [SerializeField] private float maxSpeed = 200f; // Maximum speed for the speed bar and player speed cap
+    [SerializeField] private float maxSpeed = 200f;
 
-    public GameObject primaryWeaponPrefab;  // Primary weapon prefab
-    public GameObject grenadeLauncherPrefab;  // Grenade launcher prefab
+    public GameObject primaryWeaponPrefab;
+    public GameObject grenadeLauncherPrefab;
     private GameObject currentWeapon;
     private DiscShooter discShooter;
     private GrenadeLauncher grenadeLauncher;
@@ -70,37 +70,29 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rb);
-            Destroy(ui);
-            timerText.gameObject.SetActive(false);
-            playerSpeedText.gameObject.SetActive(false);
-            speedImage.gameObject.SetActive(false);
-            healthbarImage.gameObject.SetActive(false); // Hide health bar for other players
+            ui.SetActive(false); // Deactivate UI for other players
             return;
         }
 
         Cursor.lockState = CursorLockMode.Locked;
         currentJetpackFuel = jetpackFuelMax;
 
-        // Find TimerManager and set the timer text
         if (TimerManager.Instance != null)
         {
             TimerManager.Instance.SetTimerText(timerText);
-            Debug.Log("TimerText set in PlayerController.");
-        }
-        else
-        {
-            Debug.LogError("TimerManager instance is null in PlayerController.");
         }
 
-        // Initialize weapon based on current player properties
         if (PV.Owner.CustomProperties.TryGetValue("itemIndex", out object itemIndex))
         {
             EquipWeapon((int)itemIndex);
         }
         else
         {
-            EquipWeapon(weaponSlot); // Equip default weapon if no property is found
+            EquipWeapon(weaponSlot);
         }
+
+        ui.SetActive(true); // Activate UI for the local player
+        UpdateUI();
     }
 
     void Update()
@@ -146,7 +138,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             weaponSlot -= (int)Mathf.Sign(scroll);
             if (weaponSlot < 1)
             {
-                weaponSlot = 2; // Assuming you have 2 weapon slots
+                weaponSlot = 2;
             }
             else if (weaponSlot > 2)
             {
@@ -166,7 +158,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         if (slot == 1)
         {
-            currentWeapon = PhotonNetwork.Instantiate(primaryWeaponPrefab.name, Vector3.zero, Quaternion.identity);
+            currentWeapon = PhotonNetwork.Instantiate(primaryWeaponPrefab.name, Vector3.zero, Quaternion.identity, 0, new object[] { PV.ViewID });
             discShooter = currentWeapon.GetComponent<DiscShooter>();
             if (discShooter != null)
             {
@@ -175,7 +167,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         }
         else if (slot == 2)
         {
-            currentWeapon = PhotonNetwork.Instantiate(grenadeLauncherPrefab.name, Vector3.zero, Quaternion.identity);
+            currentWeapon = PhotonNetwork.Instantiate(grenadeLauncherPrefab.name, Vector3.zero, Quaternion.identity, 0, new object[] { PV.ViewID });
             grenadeLauncher = currentWeapon.GetComponent<GrenadeLauncher>();
             if (grenadeLauncher != null)
             {
@@ -187,19 +179,14 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             AttachWeaponToPlayer();
         }
-        else
-        {
-            Debug.LogError("Failed to instantiate weapon. Make sure the weapon prefabs are correctly set up.");
-        }
     }
 
     void AttachWeaponToPlayer()
     {
         if (currentWeapon != null)
         {
-            // Attach weapon to the player's camera so it follows the view
             currentWeapon.transform.SetParent(playerCamera.transform);
-            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f); // Adjust as needed
+            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f);
             currentWeapon.transform.localRotation = Quaternion.identity;
         }
     }
@@ -216,21 +203,24 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void UpdateUI()
     {
-        if (jetpackFuelImage != null)
+        if (PV.IsMine)
         {
-            jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax; // Update jetpack fuel bar
-        }
-        if (playerSpeedText != null)
-        {
-            playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
-        }
-        if (speedImage != null)
-        {
-            speedImage.fillAmount = GetPlayerSpeed() / maxSpeed; // Update speed bar
-        }
-        if (healthbarImage != null)
-        {
-            healthbarImage.fillAmount = currentHealth / maxHealth; // Update health bar
+            if (jetpackFuelImage != null)
+            {
+                jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
+            }
+            if (playerSpeedText != null)
+            {
+                playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
+            }
+            if (speedImage != null)
+            {
+                speedImage.fillAmount = GetPlayerSpeed() / maxSpeed;
+            }
+            if (healthbarImage != null)
+            {
+                healthbarImage.fillAmount = currentHealth / maxHealth;
+            }
         }
     }
 
@@ -252,8 +242,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         HandleJetpack();
         CapSpeed();
 
-        // Apply additional gravity force
-        rb.AddForce(Vector3.down * 50f); // Adjust the value as needed
+        rb.AddForce(Vector3.down * 50f);
     }
 
     void Movement()
@@ -264,7 +253,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Vector3 forward = Camera.main.transform.forward * axis.x;
             Vector3 right = Camera.main.transform.right * axis.y;
             Vector3 wishDirection = (forward + right).normalized * walkSpeed;
-            wishDirection.y = rb.velocity.y; // Maintain vertical velocity on the ground
+            wishDirection.y = rb.velocity.y;
             rb.velocity = wishDirection;
         }
     }
@@ -321,14 +310,14 @@ public class PlayerController : MonoBehaviourPunCallbacks
             if (!isSliding)
             {
                 isSliding = true;
-                rb.drag = 0f; // Set drag to low value during sliding
+                rb.drag = 0f;
             }
         }
         else
         {
             if (isSliding)
             {
-                StartCoroutine(StopSlidingAfterDelay(0.5f)); // Delay stopping slide by 0.5 seconds
+                StartCoroutine(StopSlidingAfterDelay(0.5f));
             }
         }
     }
@@ -339,7 +328,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         isSliding = false;
         rb.drag = endDrag;
-        StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Smoothly transition drag
+        StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime));
     }
 
     IEnumerator TransitionDrag(float startDrag, float endDrag, float duration)
@@ -362,28 +351,20 @@ public class PlayerController : MonoBehaviourPunCallbacks
             float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
             float slideSpeed = rb.velocity.magnitude;
 
-            // Debugging slope direction and factor
-            Debug.Log("Slope Direction: " + slopeDirection);
-            Debug.Log("Slope Factor: " + slopeFactor);
-
             if (slopeFactor > 0)
             {
-                slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor)); 
+                slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor));
             }
             else if (slopeFactor < 0)
             {
-                slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
+                slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor));
             }
 
-            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
-            rb.velocity = slopeDirection * slideSpeed * 1.5f; // Increase sliding speed by 1.5 times
+            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed);
+            rb.velocity = slopeDirection * slideSpeed * 1.5f;
 
-            // Apply additional force to maintain or increase speed while skiing
             Vector3 appliedForce = slopeDirection * skiAcceleration;
             rb.AddForce(appliedForce, ForceMode.Acceleration);
-
-            // Debugging applied force
-            Debug.Log("Applied Force: " + appliedForce);
         }
     }
 
@@ -410,63 +391,61 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void OnCollisionEnter(Collision collision)
     {
-        if (rb != null) // Check if rb is still valid
+        if (rb != null)
         {
             isColliding = true;
-            rb.drag = groundDrag; // Set drag to groundDrag on collision with ground
+            rb.drag = groundDrag;
         }
     }
 
     void OnCollisionExit(Collision collision)
     {
-        if (rb != null) // Check if rb is still valid
+        if (rb != null)
         {
             isColliding = false;
-            rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
+            rb.drag = airDrag;
         }
     }
 
-    public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
-    {
-        if (changedProps.ContainsKey("itemIndex") && !PV.IsMine && targetPlayer == PV.Owner)
-        {
-            EquipWeapon((int)changedProps["itemIndex"]);
-        }
-    }
 
     [PunRPC]
     void RPC_UpdateJetpackFuel(float fuel)
     {
         currentJetpackFuel = fuel;
-        if (jetpackFuelImage != null)
+        if (PV.IsMine && jetpackFuelImage != null) // Ensure only local player updates fuel UI
         {
             jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
         }
     }
 
-    [PunRPC]
-    public void RPC_TakeDamage(float damage)
+    public void TakeDamage(float damage)
     {
-        if (!photonView.IsMine) return;
+        PV.RPC(nameof(RPC_TakeDamage), PV.Owner, damage);
+    }
 
-        Debug.Log($"Player {photonView.Owner.NickName} took {damage} damage."); // Add debug log
-
+    [PunRPC]
+    void RPC_TakeDamage(float damage, PhotonMessageInfo info)
+    {
         currentHealth -= damage;
+
+        if (PV.IsMine && healthbarImage != null) // Ensure only local player updates healthbar UI
+        {
+            healthbarImage.fillAmount = currentHealth / maxHealth;
+        }
+
         if (currentHealth <= 0)
         {
             Die();
-        }
-
-        // Update health UI here
-        if (healthbarImage != null)
-        {
-            healthbarImage.fillAmount = currentHealth / maxHealth;
+            PlayerManager.Find(info.Sender).GetKill();
         }
     }
 
     void Die()
     {
-        playerManager.Die();
-        Debug.Log("Player died."); // Add debug log
+        if (PV.IsMine)
+        {
+            playerManager.Die();
+            Debug.Log("Player died.");
+        }
     }
 }

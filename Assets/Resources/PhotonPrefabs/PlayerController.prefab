@@ -1071,6 +1071,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7954690473015542086}
     m_Modifications:
+    - target: {fileID: 1258875759346618231, guid: 90c7df6b2e3d51641a43d0f229ec208c, type: 3}
+      propertyPath: m_text
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 3425156115364148188, guid: 90c7df6b2e3d51641a43d0f229ec208c, type: 3}
       propertyPath: m_Name
       value: timerText
