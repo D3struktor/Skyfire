@@ -61,20 +61,23 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
     public void RecordDeath(Player killer)
     {
-        if (PV.IsMine && isAlive)
+        Debug.Log("pljer died");
+        if (PV.IsMine)
         {
             deaths++;
-            Hashtable hash = new Hashtable();
+            Hashtable hash = new Hashtable();            
             hash.Add("deaths", deaths);
             PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
             Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} died. Total deaths: {deaths}.");
-
-            if (killer != null && killer != PhotonNetwork.LocalPlayer)
+            Debug.Log("ADD KJILLLER"+killer);
+            Debug.Log("ADD k,urwa"+PhotonNetwork.LocalPlayer);
+            if (killer != null)
             {
                 PlayerManager killerPM = Find(killer);
                 if (killerPM != null)
                 {
-                    killerPM.PV.RPC(nameof(AddKill), RpcTarget.All);
+                    Debug.Log("ADD KJILLLER");
+                    killerPM.PV.RPC(nameof(AddKill), killerPM.PV.Owner);
                 }
             }
 

@@ -444,7 +444,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         PV.RPC(nameof(RPC_TakeDamage), PV.Owner, damage);
     }
     [PunRPC]
-    public void RPC_TakeDamage(float damage, PhotonMessageInfo info)
+    public void RPC_TakeDamage(float damage, Player killer, PhotonMessageInfo info)
     {
         currentHealth -= damage;
         if (currentHealth <= 0)
@@ -453,7 +453,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Die();
 
             // Record the death for the local player and attribute the kill to the correct player
-            playerManager.RecordDeath(info.Sender);
+            Debug.Log("OPIS SLENDER"+killer);
+            playerManager.RecordDeath(killer);
         }
 
         // Update health UI here

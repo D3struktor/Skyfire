@@ -1,5 +1,6 @@
 using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime;
 
 public class Disc : MonoBehaviourPunCallbacks, IPunObservable
 {
@@ -13,10 +14,23 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     private float angle;
     private bool hasExploded = false; // To ensure explosion happens only once
 
+    private Player owner; 
+
     void Start()
     {
         networkedPosition = transform.position;
         networkedRotation = transform.rotation;
+                // Get the PhotonView component
+        PhotonView photonView = GetComponent<PhotonView>();
+
+        // Get the owner of the projectile
+         owner = photonView.Owner;
+                    Debug.Log("Projectile created by player: " + owner.NickName);
+    }
+
+    public void OnPhotonInstantiate(PhotonMessageInfo info)
+    {
+      Debug.Log("Shooter = "+ info.Sender);
     }
 
     void Update()
@@ -65,7 +79,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
                 if (player != null)
                 {
                     float damage = CalculateDamage(nearbyObject.transform.position);
-                    player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage);
+                    player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, owner);
                 }
             }
         }
