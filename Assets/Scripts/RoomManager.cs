@@ -46,15 +46,14 @@ public class RoomManager : MonoBehaviourPunCallbacks
 
     void LoadRandomScene()
     {
-        // Use Random.Range with proper inclusive and exclusive range to ensure 1 or 2 is chosen
         int randomSceneIndex = Random.Range(1, 3); // Random.Range with 1 inclusive and 3 exclusive, so it picks 1 or 2
-        Debug.Log($"Generated random scene index: {randomSceneIndex}");
+        Debug.Log("Loading random scene with index: " + randomSceneIndex);
         PhotonNetwork.LoadLevel(randomSceneIndex);
     }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
     {
-        Debug.Log($"Scene loaded: {scene.name} with index: {scene.buildIndex}");
+        Debug.Log("Scene loaded: " + scene.name + " with index: " + scene.buildIndex);
         if (scene.buildIndex == 1 || scene.buildIndex == 2)
         {
             PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerManager"), Vector3.zero, Quaternion.identity);

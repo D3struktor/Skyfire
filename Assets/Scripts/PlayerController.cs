@@ -2,10 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using Photon.Pun;
 using Photon.Realtime;
-using ExitGames.Client.Photon;
+using ExitGames.Client.Photon;  // Required for Hashtable
 
 public class PlayerController : MonoBehaviourPunCallbacks
 {
@@ -23,26 +22,25 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private float jetpackFuelUsageRate = 10.0f;
     private float currentJetpackFuel;
     private bool canUseJetpack = true;
-    [SerializeField] private TMP_Text timerText;
-    [SerializeField] private Image jetpackFuelImage;
-    [SerializeField] private Image speedImage;
-    [SerializeField] private Image healthbarImage;
+    [SerializeField] private Image jetpackFuelImage; // Image for jetpack fuel bar
+    [SerializeField] GameObject ui;
     [SerializeField] private Text playerSpeedText;
-    [SerializeField] private GameObject ui;
+    [SerializeField] private Image speedImage; // Image for speed bar
+    [SerializeField] private Image healthbarImage; // Image for health bar
     private bool isSliding = false;
     private bool isColliding = false;
-    [SerializeField] private float groundCheckDistance = 1.1f;
-    [SerializeField] private float skiAcceleration = 20.0f;
-    [SerializeField] private float minSkiSpeed = 10.0f;
+    [SerializeField] private float groundCheckDistance = 100.1f;
+    [SerializeField] private float skiAcceleration = 20.0f; // Increased acceleration value
+    [SerializeField] private float minSkiSpeed = 10.0f; // Increased minimum ski speed
     [SerializeField] private float groundDrag = 0.1f;
     [SerializeField] private float airDrag = 0.01f;
-    [SerializeField] private float slidingDrag = 0.01f;
+    [SerializeField] private float slidingDrag = 0.01f; // Very low drag during sliding
     [SerializeField] private float endDrag = 0.1f;
     [SerializeField] private float dragTransitionTime = 0.5f;
-    [SerializeField] private float maxSpeed = 200f;
+    [SerializeField] private float maxSpeed = 200f; // Maximum speed for the speed bar and player speed cap
 
-    public GameObject primaryWeaponPrefab;
-    public GameObject grenadeLauncherPrefab;
+    public GameObject primaryWeaponPrefab;  // Primary weapon prefab
+    public GameObject grenadeLauncherPrefab;  // Grenade launcher prefab
     private GameObject currentWeapon;
     private DiscShooter discShooter;
     private GrenadeLauncher grenadeLauncher;
@@ -56,6 +54,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     PlayerManager playerManager;
 
+    private float lastShotTime = 0f; // Time when the last shot was fired
+    private float fireCooldown = 0.7f; // Cooldown time between shots
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -66,33 +67,30 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void Start()
     {
+        Cursor.lockState = CursorLockMode.Locked;
+        currentJetpackFuel = jetpackFuelMax;
+
         if (!PV.IsMine)
         {
             Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rb);
-            ui.SetActive(false); // Deactivate UI for other players
+            Destroy(ui);
+            jetpackFuelImage.gameObject.SetActive(false);
+            playerSpeedText.gameObject.SetActive(false);
+            speedImage.gameObject.SetActive(false);
+            healthbarImage.gameObject.SetActive(false); // Hide health bar for other players
             return;
         }
 
-        Cursor.lockState = CursorLockMode.Locked;
-        currentJetpackFuel = jetpackFuelMax;
-
-        if (TimerManager.Instance != null)
-        {
-            TimerManager.Instance.SetTimerText(timerText);
-        }
-
+        // Initialize weapon based on current player properties
         if (PV.Owner.CustomProperties.TryGetValue("itemIndex", out object itemIndex))
         {
             EquipWeapon((int)itemIndex);
         }
         else
         {
-            EquipWeapon(weaponSlot);
+            EquipWeapon(weaponSlot); // Equip default weapon if no property is found
         }
-
-        ui.SetActive(true); // Activate UI for the local player
-        UpdateUI();
     }
 
     void Update()
@@ -138,7 +136,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             weaponSlot -= (int)Mathf.Sign(scroll);
             if (weaponSlot < 1)
             {
-                weaponSlot = 2;
+                weaponSlot = 2; // Assuming you have 2 weapon slots
             }
             else if (weaponSlot > 2)
             {
@@ -158,20 +156,22 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         if (slot == 1)
         {
-            currentWeapon = PhotonNetwork.Instantiate(primaryWeaponPrefab.name, Vector3.zero, Quaternion.identity, 0, new object[] { PV.ViewID });
+            currentWeapon = PhotonNetwork.Instantiate(primaryWeaponPrefab.name, Vector3.zero, Quaternion.identity);
             discShooter = currentWeapon.GetComponent<DiscShooter>();
             if (discShooter != null)
             {
                 discShooter.SetActiveWeapon(true);
+                discShooter.SetLastShotTime(lastShotTime); // Set last shot time
             }
         }
         else if (slot == 2)
         {
-            currentWeapon = PhotonNetwork.Instantiate(grenadeLauncherPrefab.name, Vector3.zero, Quaternion.identity, 0, new object[] { PV.ViewID });
+            currentWeapon = PhotonNetwork.Instantiate(grenadeLauncherPrefab.name, Vector3.zero, Quaternion.identity);
             grenadeLauncher = currentWeapon.GetComponent<GrenadeLauncher>();
             if (grenadeLauncher != null)
             {
                 grenadeLauncher.SetActiveWeapon(true);
+                grenadeLauncher.SetLastShotTime(lastShotTime); // Set last shot time
             }
         }
 
@@ -179,14 +179,19 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             AttachWeaponToPlayer();
         }
+        else
+        {
+            Debug.LogError("Failed to instantiate weapon. Make sure the weapon prefabs are correctly set up.");
+        }
     }
 
     void AttachWeaponToPlayer()
     {
         if (currentWeapon != null)
         {
+            // Attach weapon to the player's camera so it follows the view
             currentWeapon.transform.SetParent(playerCamera.transform);
-            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f);
+            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f); // Adjust as needed
             currentWeapon.transform.localRotation = Quaternion.identity;
         }
     }
@@ -203,24 +208,21 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void UpdateUI()
     {
-        if (PV.IsMine)
+        if (jetpackFuelImage != null)
         {
-            if (jetpackFuelImage != null)
-            {
-                jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
-            }
-            if (playerSpeedText != null)
-            {
-                playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
-            }
-            if (speedImage != null)
-            {
-                speedImage.fillAmount = GetPlayerSpeed() / maxSpeed;
-            }
-            if (healthbarImage != null)
-            {
-                healthbarImage.fillAmount = currentHealth / maxHealth;
-            }
+            jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax; // Update jetpack fuel bar
+        }
+        if (playerSpeedText != null)
+        {
+            playerSpeedText.text = "Speed: " + Mathf.Round(GetPlayerSpeed()).ToString();
+        }
+        if (speedImage != null)
+        {
+            speedImage.fillAmount = GetPlayerSpeed() / maxSpeed; // Update speed bar
+        }
+        if (healthbarImage != null)
+        {
+            healthbarImage.fillAmount = currentHealth / maxHealth; // Update health bar
         }
     }
 
@@ -242,7 +244,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
         HandleJetpack();
         CapSpeed();
 
-        rb.AddForce(Vector3.down * 50f);
+        // Apply additional gravity force
+        rb.AddForce(Vector3.down * 50f); // Adjust the value as needed
     }
 
     void Movement()
@@ -253,7 +256,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Vector3 forward = Camera.main.transform.forward * axis.x;
             Vector3 right = Camera.main.transform.right * axis.y;
             Vector3 wishDirection = (forward + right).normalized * walkSpeed;
-            wishDirection.y = rb.velocity.y;
+            wishDirection.y = rb.velocity.y; // Maintain vertical velocity on the ground
             rb.velocity = wishDirection;
         }
     }
@@ -307,17 +310,17 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         if (Input.GetKey(KeyCode.LeftShift) && isColliding)
         {
-            if (!isSliding)
-            {
+            // if (!isSliding)
+            // {
                 isSliding = true;
-                rb.drag = 0f;
-            }
+                rb.drag = 0f; // Set drag to low value during sliding
+            // }
         }
         else
         {
             if (isSliding)
             {
-                StartCoroutine(StopSlidingAfterDelay(0.5f));
+                StartCoroutine(StopSlidingAfterDelay(0.5f)); // Delay stopping slide by 0.5 seconds
             }
         }
     }
@@ -328,7 +331,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         isSliding = false;
         rb.drag = endDrag;
-        StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime));
+        StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Smoothly transition drag
     }
 
     IEnumerator TransitionDrag(float startDrag, float endDrag, float duration)
@@ -344,27 +347,37 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void ApplySlidingPhysics()
     {
+        Debug.Log("Apply Slide !");
+        
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
         {
-            Vector3 slopeDirection = Vector3.ProjectOnPlane(transform.forward, hit.normal).normalized;
-            float slopeFactor = Vector3.Dot(hit.normal, Vector3.up);
-            float slideSpeed = rb.velocity.magnitude;
+            Vector3 slopeDirection = Vector3.ProjectOnPlane(rb.velocity, hit.normal).normalized;
+            float slopeFactor = Vector3.Dot(hit.normal, transform.up);
+            float slideSpeed = 1;//rb.velocity.magnitude; // ???
+
+            // Debugging slope direction and factor
+            Debug.Log("Slope Direction: " + slopeDirection);
+            Debug.Log("Slope Factor: " + slopeFactor);
 
             if (slopeFactor > 0)
             {
-                slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor));
+                slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor)); 
             }
             else if (slopeFactor < 0)
             {
-                slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor));
+                slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
             }
 
-            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed);
-            rb.velocity = slopeDirection * slideSpeed * 1.5f;
+            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
+            rb.AddForce( slopeDirection * slideSpeed * 1.5f, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
 
+            // Apply additional force to maintain or increase speed while skiing
             Vector3 appliedForce = slopeDirection * skiAcceleration;
             rb.AddForce(appliedForce, ForceMode.Acceleration);
+
+            // Debugging applied force
+            Debug.Log("Applied Force: " + appliedForce);
         }
     }
 
@@ -391,58 +404,68 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void OnCollisionEnter(Collision collision)
     {
-        if (rb != null)
+        Debug.Log("Player colistion.");
+        isColliding = true;
+        if (rb != null) // Check if rb is still valid
         {
-            isColliding = true;
-            rb.drag = groundDrag;
+            rb.drag = groundDrag; // Set drag to groundDrag on collision with ground
         }
     }
 
     void OnCollisionExit(Collision collision)
     {
-        if (rb != null)
+        isColliding = false;
+        if (rb != null) // Check if rb is still valid
         {
             isColliding = false;
-            rb.drag = airDrag;
+            rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
         }
     }
 
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
+    {
+        if (changedProps.ContainsKey("itemIndex") && !PV.IsMine && targetPlayer == PV.Owner)
+        {
+            EquipWeapon((int)changedProps["itemIndex"]);
+        }
+    }
 
     [PunRPC]
     void RPC_UpdateJetpackFuel(float fuel)
     {
         currentJetpackFuel = fuel;
-        if (PV.IsMine && jetpackFuelImage != null) // Ensure only local player updates fuel UI
+        if (jetpackFuelImage != null)
         {
             jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
         }
     }
-
     public void TakeDamage(float damage)
     {
         PV.RPC(nameof(RPC_TakeDamage), PV.Owner, damage);
     }
-
     [PunRPC]
-    void RPC_TakeDamage(float damage, PhotonMessageInfo info)
+    public void RPC_TakeDamage(float damage, PhotonMessageInfo info)
     {
         currentHealth -= damage;
-
-        if (PV.IsMine && healthbarImage != null) // Ensure only local player updates healthbar UI
-        {
-            healthbarImage.fillAmount = currentHealth / maxHealth;
-        }
-
         if (currentHealth <= 0)
         {
+            // Call Die first to handle destruction and respawning
             Die();
-            PlayerManager.Find(info.Sender).GetKill();
+
+            // Record the death for the local player and attribute the kill to the correct player
+            playerManager.RecordDeath(info.Sender);
+        }
+
+        // Update health UI here
+        if (healthbarImage != null)
+        {
+            healthbarImage.fillAmount = currentHealth / maxHealth;
         }
     }
 
     void Die()
     {
-        if (PV.IsMine)
+        if (playerManager != null)
         {
             playerManager.Die();
             Debug.Log("Player died.");
