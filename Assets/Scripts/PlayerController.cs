@@ -347,7 +347,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void ApplySlidingPhysics()
     {
-        Debug.Log("Apply Slide !");
+        // Debug.Log("Apply Slide !");
         
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
@@ -357,8 +357,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
             float slideSpeed = 1;//rb.velocity.magnitude; // ???
 
             // Debugging slope direction and factor
-            Debug.Log("Slope Direction: " + slopeDirection);
-            Debug.Log("Slope Factor: " + slopeFactor);
+            // Debug.Log("Slope Direction: " + slopeDirection);
+            // Debug.Log("Slope Factor: " + slopeFactor);
 
             if (slopeFactor > 0)
             {
@@ -370,14 +370,14 @@ public class PlayerController : MonoBehaviourPunCallbacks
             }
 
             slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
-            rb.AddForce( slopeDirection * slideSpeed * 1.5f, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
+            rb.AddForce( slopeDirection * slideSpeed, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
 
             // Apply additional force to maintain or increase speed while skiing
             Vector3 appliedForce = slopeDirection * skiAcceleration;
             rb.AddForce(appliedForce, ForceMode.Acceleration);
 
             // Debugging applied force
-            Debug.Log("Applied Force: " + appliedForce);
+            // Debug.Log("Applied Force: " + appliedForce);
         }
     }
 
@@ -404,7 +404,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void OnCollisionEnter(Collision collision)
     {
-        Debug.Log("Player colistion.");
+        // Debug.Log("Player colistion.");
         isColliding = true;
         if (rb != null) // Check if rb is still valid
         {

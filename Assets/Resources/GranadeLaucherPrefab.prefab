@@ -136,9 +136,9 @@ MonoBehaviour:
   shootingPoint: {fileID: 2434285912294249829}
   grenadeSpeed: 120
   grenadeGravity: 30000
-  grenadeDrag: 0.1
+  grenadeDrag: 0.15
   grenadeAngularDrag: 0
-  fireCooldown: 0.7
+  fireCooldown: 1
 --- !u!114 &-3149084861772172437
 MonoBehaviour:
   m_ObjectHideFlags: 0

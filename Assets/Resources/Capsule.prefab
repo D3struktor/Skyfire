@@ -156,7 +156,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   explosionEffect: {fileID: 443653445314069269, guid: 7e3e8e2f6ecdbb04a982af0a14f2d887, type: 3}
-  blastRadius: 10
+  blastRadius: 12
   explosionForce: 3000
 --- !u!198 &-5459505131060456056
 ParticleSystem:
