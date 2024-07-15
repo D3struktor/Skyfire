@@ -18,27 +18,25 @@ public class CrosshairController : MonoBehaviour
 
     void Update()
     {
-            UpdateCrosshair();
+        UpdateCrosshair();
     }
 
     void UpdateCrosshair()
     {
-        
         if (chaingun == null)
         {
             crosshairImage.enabled = false; // Ukryj celownik, jeśli chaingun nie jest wyekwipowany
+            
             return;
         }
 
         crosshairImage.enabled = true;
-        
+     
+
         float heatRatio = chaingun.GetComponent<CoolingSystem>().currentHeat / chaingun.GetComponent<CoolingSystem>().maxHeat;
         float currentSpread = Mathf.Lerp(minSpread, maxSpread, heatRatio);
 
         crosshairRectTransform.sizeDelta = new Vector2(currentSpread, currentSpread);
-
-        // Debugowanie currentHeat
-        Debug.Log("Current Heat in CrosshairController: " + chaingun.GetComponent<CoolingSystem>().currentHeat);
     }
 
     public void SetChaingun(Chaingun newChaingun)

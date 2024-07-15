@@ -7,6 +7,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     public GameObject explosionEffect; // Explosion effect
     public float blastRadius = 15f;
     public float explosionForce = 500f;
+    public float maxDamage = 100f; // Maksymalne obrażenia
 
     private Vector3 networkedPosition;
     private Quaternion networkedRotation;
@@ -20,17 +21,18 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     {
         networkedPosition = transform.position;
         networkedRotation = transform.rotation;
-                // Get the PhotonView component
+        
+        // Get the PhotonView component
         PhotonView photonView = GetComponent<PhotonView>();
 
         // Get the owner of the projectile
-         owner = photonView.Owner;
-                    Debug.Log("Projectile created by player: " + owner.NickName);
+        owner = photonView.Owner;
+        Debug.Log("Projectile created by player: " + owner.NickName);
     }
 
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
-      Debug.Log("Shooter = "+ info.Sender);
+        Debug.Log("Shooter = " + info.Sender);
     }
 
     void Update()
@@ -97,7 +99,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     float CalculateDamage(Vector3 targetPosition)
     {
         float explosionDistance = Vector3.Distance(transform.position, targetPosition);
-        float damage = Mathf.Clamp(100f * (1 - explosionDistance / blastRadius), 1f, 100f);
+        float damage = Mathf.Clamp(maxDamage * (1 - explosionDistance / blastRadius), 1f, maxDamage);
         return damage;
     }
 

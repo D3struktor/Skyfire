@@ -4885,6 +4885,7 @@ MonoBehaviour:
   explosionDelay: 4
   collisionExplosionDelay: 1.5
   speedThreshold: 100
+  maxDamage: 80
 --- !u!199 &-4623785939023121887
 ParticleSystemRenderer:
   serializedVersion: 6

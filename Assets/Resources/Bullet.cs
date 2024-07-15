@@ -1,32 +1,43 @@
 using UnityEngine;
 using Photon.Pun;
-using System.Collections;
 
 public class Bullet : MonoBehaviourPunCallbacks
 {
-    public GameObject blackDotPrefab; // Prefabrykat czarnej kropki
+    public float damage = 10f; // Obrażenia zadawane przez pocisk
 
     void OnCollisionEnter(Collision collision)
     {
+        Debug.Log("OnCollisionEnter triggered"); // Debug na początek kolizji
+
         if (photonView.IsMine)
         {
-            // Instantiate a black dot at the collision point
-            ContactPoint contact = collision.contacts[0];
-            Vector3 hitPoint = contact.point;
-            Quaternion hitRotation = Quaternion.FromToRotation(Vector3.up, contact.normal);
-            GameObject blackDot = PhotonNetwork.Instantiate(blackDotPrefab.name, hitPoint, hitRotation);
+            Debug.Log("PhotonView is mine"); // Debug sprawdzający, czy PhotonView jest mój
 
-            // Destroy the black dot after 3 seconds
-            StartCoroutine(DestroyAfterTime(blackDot, 3f));
+            // Debugowanie, aby sprawdzić, czy pocisk uderzył w coś
+            Debug.Log("Bullet hit: " + collision.collider.name);
+
+            // Sprawdzenie, czy gracz ma komponent PlayerController
+            PlayerController player = collision.collider.GetComponent<PlayerController>();
+            if (player != null)
+            {
+                // Debugowanie, aby sprawdzić, czy znaleziono gracza
+                Debug.Log("Player hit: " + player.name);
+                player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, PhotonNetwork.LocalPlayer);
+            }
+            else
+            {
+                // Debugowanie, gdy nie znaleziono komponentu PlayerController
+                Debug.Log("No PlayerController found on hit object: " + collision.collider.name);
+            }
 
             // Destroy the bullet
             PhotonNetwork.Destroy(gameObject);
+            Debug.Log("Bullet destroyed");
         }
-    }
-
-    private IEnumerator DestroyAfterTime(GameObject obj, float time)
-    {
-        yield return new WaitForSeconds(time);
-        PhotonNetwork.Destroy(obj);
+        else
+        {
+            // Debugowanie, gdy PhotonView nie jest mój
+            Debug.Log("PhotonView is not mine");
+        }
     }
 }

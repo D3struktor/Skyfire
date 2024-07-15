@@ -1,5 +1,6 @@
 using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime;
 
 public class Grenade : MonoBehaviourPunCallbacks
 {
@@ -9,15 +10,24 @@ public class Grenade : MonoBehaviourPunCallbacks
     public float explosionDelay = 5f; // Opóźnienie przed wybuchem granatu, jeśli nic nie dotknął
     public float collisionExplosionDelay = 3f; // Opóźnienie przed wybuchem granatu po kolizji
     public float speedThreshold = 100f; // Prędkość granatu, powyżej której wybucha natychmiast
+    public float maxDamage = 100f; // Maksymalne obrażenia granatu
 
     private bool hasExploded = false; // Flaga, aby upewnić się, że wybuch jest synchronizowany tylko raz
     private float timeSinceLaunch;
+    private Player owner; 
 
     void Start()
     {
         Debug.Log("Grenade instantiated, will explode in " + explosionDelay + " seconds if nothing happens.");
         timeSinceLaunch = Time.time;
         Invoke("Explode", explosionDelay); // Ustawienie wybuchu po 5 sekundach
+
+        // Get the PhotonView component
+        PhotonView photonView = GetComponent<PhotonView>();
+
+        // Get the owner of the grenade
+        owner = photonView.Owner;
+        Debug.Log("Grenade created by player: " + owner.NickName);
     }
 
     void OnCollisionEnter(Collision collision)
@@ -83,9 +93,24 @@ public class Grenade : MonoBehaviourPunCallbacks
                 Vector3 explosionDirection = (nearbyObject.transform.position - transform.position).normalized;
                 rb.AddExplosionForce(explosionForce, transform.position, blastRadius);
             }
+
+            // Apply damage to player if applicable
+            PlayerController player = nearbyObject.GetComponent<PlayerController>();
+            if (player != null)
+            {
+                float damage = CalculateDamage(nearbyObject.transform.position);
+                player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, owner);
+            }
         }
 
         // Zniszcz ten granat na wszystkich klientach lokalnie
         Destroy(gameObject);
+    }
+
+    float CalculateDamage(Vector3 targetPosition)
+    {
+        float explosionDistance = Vector3.Distance(transform.position, targetPosition);
+        float damage = Mathf.Clamp(maxDamage * (1 - explosionDistance / blastRadius), 1f, maxDamage);
+        return damage;
     }
 }

@@ -89,8 +89,8 @@ MonoBehaviour:
   bulletSpeed: 1000
   rotatingPart: {fileID: 1640279596211062971}
   rotationSpeed: 1000
-  maxSpread: 3
-  minSpread: 0
+  maxSpread: 0.3
+  minSpread: 0.1
 --- !u!114 &-2429760637116632227
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -103,11 +103,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3a4c7d4e40745b41accc80350ec18d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  coolingRate: 15
-  heatingRate: 10
-  maxHeat: 80
-  currentHeat: 0
-  movementCoolingBonus: 2
+  maxHeat: 150
+  heatIncreaseRate: 10
+  coolRate: 8
+  movementCoolingMultiplier: 3
 --- !u!33 &874423976312550836
 MeshFilter:
   m_ObjectHideFlags: 0

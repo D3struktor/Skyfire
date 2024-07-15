@@ -11,8 +11,8 @@ public class Chaingun : MonoBehaviourPunCallbacks
     public GameObject rotatingPart; // Obiekt rotujący
     public float rotationSpeed = 1000f; // Prędkość rotacji obiektu
 
-    public float maxSpread = 5f; // Maksymalny rozrzut
-    public float minSpread = 1f; // Minimalny rozrzut
+    public float maxSpread = 0.5f; // Maksymalny rozrzut, zmniejszony dla większej precyzji
+    public float minSpread = 0.1f; // Minimalny rozrzut, zmniejszony dla większej precyzji
 
     private float nextTimeToFire = 0f;
     private CoolingSystem coolingSystem;
@@ -39,31 +39,19 @@ public class Chaingun : MonoBehaviourPunCallbacks
                     nextTimeToFire = Time.time + fireRate;
                     Shoot();
                     coolingSystem.IncreaseHeat();
-                    // Dodatkowy wzrost ciepła
-                    coolingSystem.currentHeat += 10f; // Dodane ręcznie zwiększenie ciepła
                 }
             }
             RotateBarrel();
         }
-
-        // Debugowanie currentHeat
-        Debug.Log("Current Heat: " + coolingSystem.currentHeat);
     }
 
     void Shoot()
-    {
-        photonView.RPC("RPC_Shoot", RpcTarget.All, firePoint.position, firePoint.rotation);
-        lastShotTime = Time.time; // Zaktualizuj czas ostatniego strzału
-    }
-
-    [PunRPC]
-    void RPC_Shoot(Vector3 firePosition, Quaternion fireRotation)
     {
         if (muzzleFlash != null)
         {
             muzzleFlash.Play();
         }
-        GameObject bullet = Instantiate(bulletPrefab, firePosition, fireRotation);
+        GameObject bullet = PhotonNetwork.Instantiate(bulletPrefab.name, firePoint.position, firePoint.rotation);
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         Vector3 spread = firePoint.forward + new Vector3(Random.Range(-GetSpread(), GetSpread()), Random.Range(-GetSpread(), GetSpread()), 0);
         rb.velocity = spread * bulletSpeed;
@@ -84,6 +72,7 @@ public class Chaingun : MonoBehaviourPunCallbacks
         }
     }
 
+    // Dodanie brakujących metod
     public void SetActiveWeapon(bool isActive)
     {
         gameObject.SetActive(isActive);

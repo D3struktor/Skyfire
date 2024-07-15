@@ -162,11 +162,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         if (currentWeapon != null)
         {
-            // Save the heat value if chaingun is being replaced
-            if (chaingun != null)
-            {
-                storedHeat = chaingun.GetHeat();
-            }
             PhotonNetwork.Destroy(currentWeapon);
         }
 
@@ -179,6 +174,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
                 discShooter.SetActiveWeapon(true);
                 discShooter.SetLastShotTime(lastShotTime); // Set last shot time
             }
+            if (crosshairController != null)
+            {
+                crosshairController.SetChaingun(null); // Disable crosshair
+                Debug.Log("Primary weapon equipped, crosshair disabled");
+            }
         }
         else if (slot == 2)
         {
@@ -189,6 +189,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
                 grenadeLauncher.SetActiveWeapon(true);
                 grenadeLauncher.SetLastShotTime(lastShotTime); // Set last shot time
             }
+            if (crosshairController != null)
+            {
+                crosshairController.SetChaingun(null); // Disable crosshair
+                Debug.Log("Grenade launcher equipped, crosshair disabled");
+            }
         }
         else if (slot == 3)
         {
@@ -198,21 +203,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
             {
                 chaingun.SetActiveWeapon(true);
                 chaingun.SetLastShotTime(lastShotTime); // Set last shot time
-
-                // Restore the heat value to chaingun
-                chaingun.SetHeat(storedHeat);
-
+                chaingun.SetHeat(storedHeat); // Ustawienie przechowywanej wartości ciepła
                 if (crosshairController != null)
                 {
-                    crosshairController.SetChaingun(chaingun);
+                    crosshairController.SetChaingun(chaingun); // Enable crosshair
                 }
-            }
-        }
-        else
-        {
-            if (crosshairController != null)
-            {
-                crosshairController.SetChaingun(null);
             }
         }
 
@@ -351,8 +346,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         if (Input.GetKey(KeyCode.LeftShift) && isColliding)
         {
-            isSliding = true;
-            rb.drag = 0f; // Set drag to low value during sliding
+            // if (!isSliding)
+            // {
+                isSliding = true;
+                rb.drag = 0f; // Set drag to low value during sliding
+            // }
         }
         else
         {
@@ -385,12 +383,18 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void ApplySlidingPhysics()
     {
+        // Debug.Log("Apply Slide !");
+        
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
         {
             Vector3 slopeDirection = Vector3.ProjectOnPlane(rb.velocity, hit.normal).normalized;
             float slopeFactor = Vector3.Dot(hit.normal, transform.up);
-            float slideSpeed = 1;
+            float slideSpeed = 1;//rb.velocity.magnitude; // ???
+
+            // Debugging slope direction and factor
+            // Debug.Log("Slope Direction: " + slopeDirection);
+            // Debug.Log("Slope Factor: " + slopeFactor);
 
             if (slopeFactor > 0)
             {
@@ -402,11 +406,14 @@ public class PlayerController : MonoBehaviourPunCallbacks
             }
 
             slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
-            rb.AddForce(slopeDirection * slideSpeed, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
+            rb.AddForce( slopeDirection * slideSpeed, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
 
             // Apply additional force to maintain or increase speed while skiing
             Vector3 appliedForce = slopeDirection * skiAcceleration;
             rb.AddForce(appliedForce, ForceMode.Acceleration);
+
+            // Debugging applied force
+            // Debug.Log("Applied Force: " + appliedForce);
         }
     }
 
@@ -421,11 +428,19 @@ public class PlayerController : MonoBehaviourPunCallbacks
     public float GetPlayerSpeed()
     {
         Vector2 horizontalSpeed = new Vector2(rb.velocity.x, rb.velocity.z);
-        return horizontalSpeed.magnitude;
+        if (horizontalSpeed.magnitude == 0)
+        {
+            return Mathf.Abs(rb.velocity.y);
+        }
+        else
+        {
+            return horizontalSpeed.magnitude;
+        }
     }
 
     void OnCollisionEnter(Collision collision)
     {
+        // Debug.Log("Player colistion.");
         isColliding = true;
         if (rb != null) // Check if rb is still valid
         {
@@ -438,6 +453,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         isColliding = false;
         if (rb != null) // Check if rb is still valid
         {
+            isColliding = false;
             rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
         }
     }

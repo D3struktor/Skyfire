@@ -126,7 +126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea6c03fccffa412419a61d6a40bd36cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blackDotPrefab: {fileID: 369021945271624023, guid: bddc30eef6c4fa24d96f914a220d5401, type: 3}
+  damage: 10
 --- !u!54 &-5891721077308311092
 Rigidbody:
   m_ObjectHideFlags: 0
