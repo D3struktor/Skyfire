@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Photon.Pun;
@@ -41,9 +40,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     public GameObject primaryWeaponPrefab;  // Primary weapon prefab
     public GameObject grenadeLauncherPrefab;  // Grenade launcher prefab
+    public GameObject chaingunPrefab;  // Chaingun prefab
     private GameObject currentWeapon;
     private DiscShooter discShooter;
     private GrenadeLauncher grenadeLauncher;
+    private Chaingun chaingun; // Reference to the Chaingun script
     private int weaponSlot = 1;
 
     private PhotonView PV;
@@ -53,9 +54,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
     float currentHealth = maxHealth;
 
     PlayerManager playerManager;
+    private CrosshairController crosshairController; // Referencja do CrosshairController
 
     private float lastShotTime = 0f; // Time when the last shot was fired
     private float fireCooldown = 0.7f; // Cooldown time between shots
+
+    private float storedHeat = 0f; // Przechowywana wartość ciepła
 
     void Awake()
     {
@@ -63,6 +67,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         PV = GetComponent<PhotonView>();
         playerCamera = GetComponentInChildren<Camera>();
         playerManager = PhotonView.Find((int)PV.InstantiationData[0]).GetComponent<PlayerManager>();
+        crosshairController = FindObjectOfType<CrosshairController>(); // Znajdź CrosshairController w scenie
     }
 
     void Start()
@@ -129,6 +134,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
             EquipWeapon(weaponSlot);
             UpdateWeaponProperty(weaponSlot);
         }
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            weaponSlot = 3;
+            EquipWeapon(weaponSlot);
+            UpdateWeaponProperty(weaponSlot);
+        }
 
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (scroll != 0)
@@ -136,9 +147,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
             weaponSlot -= (int)Mathf.Sign(scroll);
             if (weaponSlot < 1)
             {
-                weaponSlot = 2; // Assuming you have 2 weapon slots
+                weaponSlot = 3; // Assuming you have 3 weapon slots
             }
-            else if (weaponSlot > 2)
+            else if (weaponSlot > 3)
             {
                 weaponSlot = 1;
             }
@@ -151,6 +162,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         if (currentWeapon != null)
         {
+            // Save the heat value if chaingun is being replaced
+            if (chaingun != null)
+            {
+                storedHeat = chaingun.GetHeat();
+            }
             PhotonNetwork.Destroy(currentWeapon);
         }
 
@@ -172,6 +188,31 @@ public class PlayerController : MonoBehaviourPunCallbacks
             {
                 grenadeLauncher.SetActiveWeapon(true);
                 grenadeLauncher.SetLastShotTime(lastShotTime); // Set last shot time
+            }
+        }
+        else if (slot == 3)
+        {
+            currentWeapon = PhotonNetwork.Instantiate(chaingunPrefab.name, Vector3.zero, Quaternion.identity);
+            chaingun = currentWeapon.GetComponent<Chaingun>();
+            if (chaingun != null)
+            {
+                chaingun.SetActiveWeapon(true);
+                chaingun.SetLastShotTime(lastShotTime); // Set last shot time
+
+                // Restore the heat value to chaingun
+                chaingun.SetHeat(storedHeat);
+
+                if (crosshairController != null)
+                {
+                    crosshairController.SetChaingun(chaingun);
+                }
+            }
+        }
+        else
+        {
+            if (crosshairController != null)
+            {
+                crosshairController.SetChaingun(null);
             }
         }
 
@@ -310,11 +351,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         if (Input.GetKey(KeyCode.LeftShift) && isColliding)
         {
-            // if (!isSliding)
-            // {
-                isSliding = true;
-                rb.drag = 0f; // Set drag to low value during sliding
-            // }
+            isSliding = true;
+            rb.drag = 0f; // Set drag to low value during sliding
         }
         else
         {
@@ -347,18 +385,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void ApplySlidingPhysics()
     {
-        // Debug.Log("Apply Slide !");
-        
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
         {
             Vector3 slopeDirection = Vector3.ProjectOnPlane(rb.velocity, hit.normal).normalized;
             float slopeFactor = Vector3.Dot(hit.normal, transform.up);
-            float slideSpeed = 1;//rb.velocity.magnitude; // ???
-
-            // Debugging slope direction and factor
-            // Debug.Log("Slope Direction: " + slopeDirection);
-            // Debug.Log("Slope Factor: " + slopeFactor);
+            float slideSpeed = 1;
 
             if (slopeFactor > 0)
             {
@@ -370,14 +402,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
             }
 
             slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
-            rb.AddForce( slopeDirection * slideSpeed, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
+            rb.AddForce(slopeDirection * slideSpeed, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
 
             // Apply additional force to maintain or increase speed while skiing
             Vector3 appliedForce = slopeDirection * skiAcceleration;
             rb.AddForce(appliedForce, ForceMode.Acceleration);
-
-            // Debugging applied force
-            // Debug.Log("Applied Force: " + appliedForce);
         }
     }
 
@@ -389,22 +418,14 @@ public class PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    float GetPlayerSpeed()
+    public float GetPlayerSpeed()
     {
         Vector2 horizontalSpeed = new Vector2(rb.velocity.x, rb.velocity.z);
-        if (horizontalSpeed.magnitude == 0)
-        {
-            return Mathf.Abs(rb.velocity.y);
-        }
-        else
-        {
-            return horizontalSpeed.magnitude;
-        }
+        return horizontalSpeed.magnitude;
     }
 
     void OnCollisionEnter(Collision collision)
     {
-        // Debug.Log("Player colistion.");
         isColliding = true;
         if (rb != null) // Check if rb is still valid
         {
@@ -417,7 +438,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
         isColliding = false;
         if (rb != null) // Check if rb is still valid
         {
-            isColliding = false;
             rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
         }
     }
@@ -439,10 +459,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
             jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
         }
     }
+
     public void TakeDamage(float damage)
     {
         PV.RPC(nameof(RPC_TakeDamage), PV.Owner, damage);
     }
+
     [PunRPC]
     public void RPC_TakeDamage(float damage, Player killer, PhotonMessageInfo info)
     {
@@ -453,7 +475,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Die();
 
             // Record the death for the local player and attribute the kill to the correct player
-            Debug.Log("OPIS SLENDER"+killer);
             playerManager.RecordDeath(killer);
         }
 
