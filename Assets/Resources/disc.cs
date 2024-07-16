@@ -8,6 +8,9 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     public float blastRadius = 15f;
     public float explosionForce = 500f;
     public float maxDamage = 100f; // Maksymalne obrażenia
+    public AudioClip explosionSound; // Dźwięk eksplozji
+    public float soundMaxDistance = 200f; // Maksymalna odległość słyszalności dźwięku
+    public float soundFullVolumeDistance = 100f; // Odległość, przy której dźwięk jest w 100% głośności
 
     private Vector3 networkedPosition;
     private Quaternion networkedRotation;
@@ -15,13 +18,13 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     private float angle;
     private bool hasExploded = false; // To ensure explosion happens only once
 
-    private Player owner; 
+    private Player owner;
 
     void Start()
     {
         networkedPosition = transform.position;
         networkedRotation = transform.rotation;
-        
+
         // Get the PhotonView component
         PhotonView photonView = GetComponent<PhotonView>();
 
@@ -63,6 +66,9 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
         // Destroy the explosion effect after 2 seconds
         Destroy(explosion, 2f);
 
+        // Play explosion sound
+        PlayExplosionSound();
+
         // Apply explosion force to nearby objects
         Collider[] colliders = Physics.OverlapSphere(transform.position, blastRadius);
         foreach (var nearbyObject in colliders)
@@ -93,6 +99,28 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
         if (photonView.IsMine)
         {
             PhotonNetwork.Destroy(gameObject);
+        }
+    }
+
+    void PlayExplosionSound()
+    {
+        if (explosionSound != null)
+        {
+            GameObject soundObject = new GameObject("ExplosionSound");
+            AudioSource audioSource = soundObject.AddComponent<AudioSource>();
+            audioSource.clip = explosionSound;
+            audioSource.spatialBlend = 1.0f; // Ensure the sound is 3D
+            audioSource.maxDistance = soundMaxDistance;
+            audioSource.rolloffMode = AudioRolloffMode.Linear;
+            audioSource.transform.position = transform.position;
+            audioSource.Play();
+
+            // Destroy the sound object after the clip finishes playing
+            Destroy(soundObject, explosionSound.length);
+        }
+        else
+        {
+            Debug.LogError("Explosion sound not assigned.");
         }
     }
 

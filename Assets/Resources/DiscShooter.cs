@@ -9,9 +9,20 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     public Transform shootingPoint; // Point from which discs are shot
     public float discSpeed = 60f; // Disc speed
     public float fireCooldown = 0.7f; // Cooldown time between shots
+    public AudioClip shootSound; // Sound clip to play when shooting
 
     private bool isActiveWeapon = false;
     private float lastShotTime = 0f; // Time when the last shot was fired
+    private AudioSource audioSource;
+
+    void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+    }
 
     void Update()
     {
@@ -60,6 +71,20 @@ public class DiscShooter : MonoBehaviourPunCallbacks
         else
         {
             Debug.LogError("Rigidbody component not found on disc prefab.");
+        }
+
+        PlayShootSound();
+    }
+
+    void PlayShootSound()
+    {
+        if (audioSource != null && shootSound != null)
+        {
+            audioSource.PlayOneShot(shootSound);
+        }
+        else
+        {
+            Debug.LogError("AudioSource or shootSound not assigned.");
         }
     }
 }

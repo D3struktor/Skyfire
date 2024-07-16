@@ -89,8 +89,8 @@ MonoBehaviour:
   bulletSpeed: 1000
   rotatingPart: {fileID: 1640279596211062971}
   rotationSpeed: 1000
-  maxSpread: 0.3
-  minSpread: 0.1
+  maxSpread: 0.1
+  minSpread: 0
 --- !u!114 &-2429760637116632227
 MonoBehaviour:
   m_ObjectHideFlags: 0
