@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 6730453993134840396}
   - component: {fileID: 8439997844938966242}
   - component: {fileID: 5379180120573130739}
+  - component: {fileID: -2363255980850260977}
   - component: {fileID: -5891721077308311092}
   - component: {fileID: -5459505131060456056}
-  - component: {fileID: -2363255980850260977}
   - component: {fileID: -4623785939023121887}
   - component: {fileID: 4455583888837830225}
   - component: {fileID: 1905040000972845582}
@@ -117,6 +117,30 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-2363255980850260977
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3678946588746919792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a53843b3118eb9e42be640726bfab12a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  explosionEffect: {fileID: 7819775807870019735, guid: f916833a9285b1244b9a2a6ef531b2a5, type: 3}
+  blastRadius: 15
+  explosionForce: 1200
+  explosionDelay: 4
+  collisionExplosionDelay: 1.5
+  speedThreshold: 100
+  maxDamage: 80
+  explosionSound: {fileID: 8300000, guid: 573b34f3927d254498187674b6f6246e, type: 3}
+  bounceSound: {fileID: 8300000, guid: 563fdef6c5127104cac10d48ab107284, type: 3}
+  explosionSoundRange: 350
+  bounceSoundRange: 200
+  minDistance: 100
 --- !u!54 &-5891721077308311092
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -4867,25 +4891,6 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
---- !u!114 &-2363255980850260977
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3678946588746919792}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a53843b3118eb9e42be640726bfab12a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  explosionEffect: {fileID: 7819775807870019735, guid: f916833a9285b1244b9a2a6ef531b2a5, type: 3}
-  blastRadius: 15
-  explosionForce: 1200
-  explosionDelay: 4
-  collisionExplosionDelay: 1.5
-  speedThreshold: 100
-  maxDamage: 80
 --- !u!199 &-4623785939023121887
 ParticleSystemRenderer:
   serializedVersion: 6

@@ -10,9 +10,20 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
     public float grenadeDrag = 1f; // Drag for the grenade
     public float grenadeAngularDrag = 5f; // Angular drag for the grenade
     public float fireCooldown = 0.7f; // Cooldown time between shots
+    public AudioClip shootSound; // Sound clip to play when shooting
 
     private bool isActiveWeapon = false;
     private float lastShotTime = 0f; // Time when the last shot was fired
+    private AudioSource audioSource;
+
+    void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+    }
 
     void Update()
     {
@@ -57,6 +68,20 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
         else
         {
             Debug.LogError("Rigidbody component not found on grenade prefab.");
+        }
+
+        PlayShootSound();
+    }
+
+    void PlayShootSound()
+    {
+        if (audioSource != null && shootSound != null)
+        {
+            audioSource.PlayOneShot(shootSound);
+        }
+        else
+        {
+            Debug.LogError("AudioSource or shootSound not assigned.");
         }
     }
 }

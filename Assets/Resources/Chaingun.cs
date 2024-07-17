@@ -16,12 +16,21 @@ public class Chaingun : MonoBehaviourPunCallbacks
 
     private float nextTimeToFire = 0f;
     private CoolingSystem coolingSystem;
+    private AudioSource audioSource; // Dodajemy AudioSource
+    public AudioClip shootSound; // Dodajemy pole dla klipu dźwiękowego
 
     private float lastShotTime; // Zmienna przechowująca czas ostatniego strzału
+    private bool isActiveWeapon = false; // Flaga aktywności broni
 
     void Start()
     {
         coolingSystem = GetComponent<CoolingSystem>();
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
         if (muzzleFlash == null)
         {
             Debug.LogError("Muzzle flash particle system is not assigned.");
@@ -30,6 +39,8 @@ public class Chaingun : MonoBehaviourPunCallbacks
 
     void Update()
     {
+        if (!isActiveWeapon) return;
+
         if (photonView.IsMine && Input.GetButton("Fire1"))
         {
             if (Time.time >= nextTimeToFire)
@@ -51,6 +62,11 @@ public class Chaingun : MonoBehaviourPunCallbacks
         {
             muzzleFlash.Play();
         }
+        if (audioSource != null && shootSound != null)
+        {
+            audioSource.PlayOneShot(shootSound);
+        }
+
         GameObject bullet = PhotonNetwork.Instantiate(bulletPrefab.name, firePoint.position, firePoint.rotation);
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         Vector3 spread = firePoint.forward + new Vector3(Random.Range(-GetSpread(), GetSpread()), Random.Range(-GetSpread(), GetSpread()), 0);
@@ -75,7 +91,7 @@ public class Chaingun : MonoBehaviourPunCallbacks
     // Dodanie brakujących metod
     public void SetActiveWeapon(bool isActive)
     {
-        gameObject.SetActive(isActive);
+        isActiveWeapon = isActive;
     }
 
     public void SetLastShotTime(float time)

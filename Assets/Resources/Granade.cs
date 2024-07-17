@@ -11,10 +11,16 @@ public class Grenade : MonoBehaviourPunCallbacks
     public float collisionExplosionDelay = 3f; // Opóźnienie przed wybuchem granatu po kolizji
     public float speedThreshold = 100f; // Prędkość granatu, powyżej której wybucha natychmiast
     public float maxDamage = 100f; // Maksymalne obrażenia granatu
+    public AudioClip explosionSound; // Dźwięk eksplozji
+    public AudioClip bounceSound; // Dźwięk odbicia
+
+    public float explosionSoundRange = 20f; // Zasięg słyszalności dźwięku eksplozji
+    public float bounceSoundRange = 10f; // Zasięg słyszalności dźwięku odbicia
+    public float minDistance = 1f; // Minimalna odległość dla pełnej głośności
 
     private bool hasExploded = false; // Flaga, aby upewnić się, że wybuch jest synchronizowany tylko raz
     private float timeSinceLaunch;
-    private Player owner; 
+    private Player owner;
 
     void Start()
     {
@@ -32,6 +38,8 @@ public class Grenade : MonoBehaviourPunCallbacks
 
     void OnCollisionEnter(Collision collision)
     {
+        PlayBounceSound();
+
         Debug.Log("Grenade collided with " + collision.gameObject.name + " at time: " + (Time.time - timeSinceLaunch) + " seconds.");
         if (!hasExploded)
         {
@@ -83,6 +91,9 @@ public class Grenade : MonoBehaviourPunCallbacks
         // Usuwamy efekt eksplozji po 2 sekundach
         Destroy(explosion, 2f);
 
+        // Odtwarzamy dźwięk eksplozji
+        PlayExplosionSound();
+
         // Aplikujemy siłę eksplozji do obiektów w pobliżu
         Collider[] colliders = Physics.OverlapSphere(transform.position, blastRadius);
         foreach (var nearbyObject in colliders)
@@ -105,6 +116,50 @@ public class Grenade : MonoBehaviourPunCallbacks
 
         // Zniszcz ten granat na wszystkich klientach lokalnie
         Destroy(gameObject);
+    }
+
+    void PlayExplosionSound()
+    {
+        if (explosionSound != null)
+        {
+            GameObject soundObject = new GameObject("ExplosionSound");
+            soundObject.transform.position = transform.position; // Ustawienie pozycji obiektu dźwiękowego
+            AudioSource audioSource = soundObject.AddComponent<AudioSource>();
+            audioSource.clip = explosionSound;
+            audioSource.spatialBlend = 1.0f; // Ensure the sound is 3D
+            audioSource.maxDistance = explosionSoundRange; // Ustawienie zasięgu słyszalności
+            audioSource.minDistance = minDistance; // Ustawienie minimalnej odległości dla pełnej głośności
+            audioSource.Play();
+
+            // Destroy the sound object after the clip finishes playing
+            Destroy(soundObject, explosionSound.length);
+        }
+        else
+        {
+            Debug.LogError("Explosion sound not assigned.");
+        }
+    }
+
+    void PlayBounceSound()
+    {
+        if (bounceSound != null)
+        {
+            GameObject bounceSoundObject = new GameObject("BounceSound");
+            bounceSoundObject.transform.position = transform.position; // Ustawienie pozycji obiektu dźwiękowego
+            AudioSource bounceAudioSource = bounceSoundObject.AddComponent<AudioSource>();
+            bounceAudioSource.clip = bounceSound;
+            bounceAudioSource.spatialBlend = 1.0f; // Ensure the sound is 3D
+            bounceAudioSource.maxDistance = bounceSoundRange; // Ustawienie zasięgu słyszalności
+            bounceAudioSource.minDistance = minDistance; // Ustawienie minimalnej odległości dla pełnej głośności
+            bounceAudioSource.Play();
+
+            // Destroy the sound object after the clip finishes playing
+            Destroy(bounceSoundObject, bounceSound.length);
+        }
+        else
+        {
+            Debug.LogError("Bounce sound not assigned.");
+        }
     }
 
     float CalculateDamage(Vector3 targetPosition)
