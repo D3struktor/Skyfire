@@ -924,6 +924,8 @@ MonoBehaviour:
   primaryWeaponPrefab: {fileID: 887638712416274772, guid: 2c762efac44f16f4aa5184d5766f074f, type: 3}
   grenadeLauncherPrefab: {fileID: 6887392381205261040, guid: 3d8c82d357db5c543af356506c81db94, type: 3}
   chaingunPrefab: {fileID: 2062645146687671931}
+  randomColor: {r: 0, g: 0, b: 0, a: 0}
+  playerRenderer: {fileID: 0}
 --- !u!23 &85265003257965570
 MeshRenderer:
   m_ObjectHideFlags: 0

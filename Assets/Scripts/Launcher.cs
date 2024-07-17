@@ -17,6 +17,7 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] Transform playerListContent;
 	[SerializeField] GameObject PlayerListItemPrefab;
     [SerializeField] GameObject startGameButton;
+    [SerializeField] GameObject startGameTDMButton;
 
     void Awake()
     {
@@ -27,6 +28,8 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         Debug.Log("Connecting to Master");
         PhotonNetwork.ConnectUsingSettings();
+                Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     public override void OnConnectedToMaster()  
@@ -71,10 +74,12 @@ public class Launcher : MonoBehaviourPunCallbacks
                 Instantiate(PlayerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().SetUp(players[i]);
             }
             startGameButton.SetActive(PhotonNetwork.IsMasterClient);
+            startGameTDMButton.SetActive(PhotonNetwork.IsMasterClient);
     }
     	public override void OnMasterClientSwitched(Player newMasterClient)
 	{
 		startGameButton.SetActive(PhotonNetwork.IsMasterClient);
+        startGameTDMButton.SetActive(PhotonNetwork.IsMasterClient);
 	}
     public override void OnCreateRoomFailed(short returnCode, string message)
     {
@@ -82,8 +87,14 @@ public class Launcher : MonoBehaviourPunCallbacks
     }
     	public void StartGame()
 	{
+        PlayerPrefs.SetString("GameMode", "DM");
 		PhotonNetwork.LoadLevel(1);
+	}	public void StartGameTDM()
+	{
+        PlayerPrefs.SetString("GameMode", "TDM");
+		PhotonNetwork.LoadLevel(2);
 	}
+    
     public void LeaveRoom()
     {
         PhotonNetwork.LeaveRoom();

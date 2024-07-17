@@ -50,6 +50,9 @@ MonoBehaviour:
   - AddKill
   - RPC_StartMatch
   - RPC_Shoot
+  - StartTDM
+  - SetPlayerColor
+  - RPC_SetPlayerColor
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

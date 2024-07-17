@@ -9,16 +9,19 @@ public class RoomManager : MonoBehaviourPunCallbacks
 {
     public static RoomManager Instance;
 
-    void Awake()
+void Awake()
     {
-        if (Instance)
+        if (Instance != null && Instance != this)
         {
+            Debug.LogWarning("Duplicate RoomManager found and destroyed.");
             Destroy(gameObject);
             return;
         }
-        DontDestroyOnLoad(gameObject);
         Instance = this;
+        DontDestroyOnLoad(gameObject);
+        Debug.Log("RoomManager instance set and marked as DontDestroyOnLoad.");
     }
+
 
     public override void OnEnable()
     {

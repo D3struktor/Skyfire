@@ -60,6 +60,10 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private float fireCooldown = 0.7f; // Cooldown time between shots
 
     private float storedHeat = 0f; // Przechowywana wartość ciepła
+    private bool isMovementEnabled = true;
+
+    public Color randomColor;
+    public Renderer playerRenderer;
 
     void Awake()
     {
@@ -74,6 +78,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         Cursor.lockState = CursorLockMode.Locked;
         currentJetpackFuel = jetpackFuelMax;
+
+        playerRenderer = GetComponent<Renderer>();
+        playerRenderer.material.color = randomColor;
 
         if (!PV.IsMine)
         {
@@ -96,10 +103,14 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             EquipWeapon(weaponSlot); // Equip default weapon if no property is found
         }
+
     }
 
     void Update()
     {
+        if (isMovementEnabled)
+        {
+
         if (!PV.IsMine)
             return;
 
@@ -109,6 +120,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         Jump();
         UpdateUI();
         HandleWeaponSwitch();
+        }
     }
 
     void Look()
@@ -263,7 +275,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
     }
 
     void FixedUpdate()
-    {
+    {if (isMovementEnabled)
+        {
         if (!PV.IsMine)
             return;
 
@@ -282,6 +295,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         // Apply additional gravity force
         rb.AddForce(Vector3.down * 50f); // Adjust the value as needed
+        }
     }
 
     void Movement()
@@ -509,4 +523,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Debug.Log("Player died.");
         }
     }
+    
+    public void EnableMovement(bool enable)
+    {
+        isMovementEnabled = enable;
+    }
+    
 }
+
+
