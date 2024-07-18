@@ -904,7 +904,7 @@ MonoBehaviour:
   jetpackForceY: 12
   jetpackForceX: 0
   jetpackForceZ: 5
-  jetpackFuelMax: 150
+  jetpackFuelMax: 180
   jetpackFuelRegenRate: 30
   jetpackFuelUsageRate: 60
   jetpackFuelImage: {fileID: 7154005466795292452}
