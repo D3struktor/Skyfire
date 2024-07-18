@@ -19,51 +19,54 @@ public class TDMManager : MonoBehaviourPunCallbacks
         }
     }
 
-    public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
-    {
-        base.OnPlayerPropertiesUpdate(targetPlayer, changedProps);
-
-        if (changedProps.ContainsKey("Team"))
-        {
-            UpdateTeamCounts();
-        }
-    }
 
     public bool AssignTeam()
     {
-        if (PhotonNetwork.IsMasterClient)
+
+        redTeamCount = 0;
+        blueTeamCount = 0;
+
+        foreach (Player player in PhotonNetwork.PlayerList)
         {
-            UpdateTeamCounts();
-
-            bool isRedTeam;
-            if (redTeamCount == blueTeamCount)
+            if (player.CustomProperties.ContainsKey("Team"))
             {
-                isRedTeam = Random.Range(0, 2) == 0;
+                string playerTeam = player.CustomProperties["Team"] as string;
+                if (playerTeam == "Red")
+                {
+                    redTeamCount++;
+                }
+                else if (playerTeam == "Blue")
+                {
+                    blueTeamCount++;
+                }
             }
-            else
-            {
-                isRedTeam = redTeamCount < blueTeamCount;
-            }
-
-            string assignedTeam = isRedTeam ? "Red" : "Blue";
-            PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable { { "Team", assignedTeam } });
-
-            photonView.RPC("RPC_UpdateTeamCounts", RpcTarget.AllBuffered);
-
-            Debug.Log(isRedTeam ? "TEAM RED." : "TEAM BLUE.");
-            Debug.Log($"Red Team Count: {redTeamCount}, Blue Team Count: {blueTeamCount}");
-            Debug.Log($"Przypisano: {assignedTeam} <========");
-            return isRedTeam;
         }
+
+        // UpdateTeamCounts();
+
+        bool isRedTeam;
+        if (redTeamCount == blueTeamCount)
+        {
+            isRedTeam = Random.Range(0, 2) == 0;
+        }
+        else
+        {
+            isRedTeam = redTeamCount < blueTeamCount;
+        }
+
+        string assignedTeam = isRedTeam ? "Red" : "Blue";
+        PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable { { "Team", assignedTeam } });
+
+
+        Debug.Log(isRedTeam ? "TEAM RED." : "TEAM BLUE.");
+        Debug.Log($"Red Team Count: {redTeamCount}, Blue Team Count: {blueTeamCount}");
+        Debug.Log($"Przypisano: {assignedTeam} <========");
+        return isRedTeam;
+        
 
         return false;
     }
 
-    [PunRPC]
-    private void RPC_UpdateTeamCounts()
-    {
-        UpdateTeamCounts();
-    }
 
     private void UpdateTeamCounts()
     {
