@@ -11,7 +11,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 {
     PhotonView PV;
 
-    public GameObject controller;
+    GameObject controller;
     int kills;
     int deaths;
     bool isAlive = true;
@@ -31,26 +31,24 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
     void Start()
     {
-        if (PV.IsMine)
+        if (PV.IsMine) 
         {
-            CreateController();
+
+
+            Debug.Log("PlayerManager: Start called for local player " + PhotonNetwork.NickName);
 
             if (PlayerPrefs.GetString("GameMode") == "TDM")
             {
+                Debug.Log("PlayerManager: GameMode is TDM");
                 StartTDMForAllPlayers();
             }
+            else
+            {
+                Debug.Log("PlayerManager: GameMode is not TDM, creating controller");
+                
+                CreateController();
+            }
 
-            // AssignRandomColor();
-        }
-    }
-
-    public void AssignRandomColor()
-    {
-        if (PV.IsMine)
-        {
-            color = new Color(Random.value, Random.value, Random.value);
-            controller.GetComponent<PlayerController>().randomColor = color;
-            PV.RPC("RPC_SetPlayerColor", RpcTarget.AllBuffered, PV.Owner, color.r, color.g, color.b);
         }
     }
 
@@ -62,27 +60,29 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
         controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { PV.ViewID });
 
-        // Ustaw kolor gracza
-        Color cccc = Color.red;
-        controller.GetComponent<PhotonView>().RPC("SetPlayerColor", RpcTarget.AllBuffered, 1.0f, 0.0f, 0.0f);
-        controller.GetComponent<PlayerController>().playerRenderer.material.color = cccc;
-        controller.GetComponent<PlayerController>().randomColor = cccc;
-
         // Set the color from TDMManager if in TDM mode
         if (PlayerPrefs.GetString("GameMode") == "TDM")
         {
             TDMManager tdmManager = FindObjectOfType<TDMManager>();
             if (tdmManager != null)
             {
-                color = tdmManager.GetTeamColor();
-                controller.GetComponent<PlayerController>().randomColor = color;
-                PV.RPC("RPC_SetPlayerColor", RpcTarget.AllBuffered, PV.Owner, color.r, color.g, color.b);
+                Debug.Log("PlayerManager: TDMManager found.");
+
+                // color = Color.red;
+                if (isRed == -1)
+                    Debug.Log("PlayerManager: O CHUJ NIE DZIALA.");
+
+                controller.GetComponent<PhotonView>().RPC("SetPlayerColor", RpcTarget.AllBuffered, color.r, color.g, color.b);
+            }
+            else
+            {
+                Debug.LogError("PlayerManager: TDMManager not found.");
             }
         }
         else
         {
-            controller.GetComponent<PlayerController>().randomColor = color;
-            PV.RPC("RPC_SetPlayerColor", RpcTarget.AllBuffered, PV.Owner, color.r, color.g, color.b);
+            color = new Color(Random.value, Random.value, Random.value);
+            controller.GetComponent<PhotonView>().RPC("SetPlayerColor", RpcTarget.AllBuffered, color.r, color.g, color.b);
         }
     }
 
@@ -191,37 +191,31 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             }
 
             Debug.Log("Set color = " + color);
-            controller.GetComponent<PlayerController>().randomColor = color;
-            PV.RPC("RPC_SetPlayerColor", RpcTarget.AllBuffered, PV.Owner, color.r, color.g, color.b);
         }
         else
         {
             Debug.LogError("TDMManager not found in the scene.");
+            color = Color.green;
         }
 
-        controller.GetComponent<Renderer>().material.color = color;
-    }
-
-    [PunRPC]
-    public void RPC_SetPlayerColor(Player p, float r, float g, float b)
-    {
-        color = new Color(r, g, b);
-        Debug.Log("SET PLAYER COLORITO WORKING, SET COLOR " + color + " for player " + p);
-        PlayerManager player = Find(p);
-
-        player.color = color;
-        if (player.controller != null)
+        if (PV.IsMine)
         {
-            player.controller.GetComponent<PlayerController>().randomColor = color;
-            player.controller.GetComponent<Renderer>().material.color = color;
+            CreateController();
         }
+
+        this.controller.GetComponent<PhotonView>().RPC("SetPlayerColor", RpcTarget.AllBuffered, color.r, color.g, color.b);
     }
 
     void StartTDMForAllPlayers()
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            photonView.RPC("StartTDM", RpcTarget.All);
+            photonView.RPC("StartTDM", RpcTarget.AllBuffered);
+        }
+        else
+        {
+            // CreateController();
+            StartTDM();
         }
     }
 }

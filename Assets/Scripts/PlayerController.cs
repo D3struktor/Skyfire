@@ -65,6 +65,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
     public Color randomColor;
     public Renderer playerRenderer;
 
+    [SerializeField] private AudioClip slideSound;
+    private AudioSource audioSource;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -72,6 +75,13 @@ public class PlayerController : MonoBehaviourPunCallbacks
         playerCamera = GetComponentInChildren<Camera>();
         playerManager = PhotonView.Find((int)PV.InstantiationData[0]).GetComponent<PlayerManager>();
         crosshairController = FindObjectOfType<CrosshairController>(); // Znajdź CrosshairController w scenie
+
+        // Initialize AudioSource
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
     }
 
     void Start()
@@ -92,6 +102,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
             speedImage.gameObject.SetActive(false);
             healthbarImage.gameObject.SetActive(false); // Hide health bar for other players
             return;
+        }
+        if (photonView.IsMine)
+        {
+            Debug.Log("PlayerController: Setting player color for local player.");
+            // photonView.RPC("SetPlayerColor", RpcTarget.AllBuffered, Random.value, Random.value, Random.value);
         }
 
         // Initialize weapon based on current player properties
@@ -360,11 +375,19 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         if (Input.GetKey(KeyCode.LeftShift) && isColliding)
         {
-            // if (!isSliding)
-            // {
+            if (!isSliding)
+            {
                 isSliding = true;
                 rb.drag = 0f; // Set drag to low value during sliding
-            // }
+                
+                // Play sliding sound
+                if (slideSound != null && audioSource != null)
+                {
+                    audioSource.clip = slideSound;
+                    audioSource.loop = true; // Loop the sliding sound
+                    audioSource.Play();
+                }
+            }
         }
         else
         {
@@ -382,6 +405,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
         isSliding = false;
         rb.drag = endDrag;
         StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Smoothly transition drag
+        
+        // Stop sliding sound
+        if (audioSource != null && audioSource.isPlaying)
+        {
+            audioSource.Stop();
+        }
     }
 
     IEnumerator TransitionDrag(float startDrag, float endDrag, float duration)
@@ -528,7 +557,13 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         isMovementEnabled = enable;
     }
+    [PunRPC]
+    public void SetPlayerColor(float r, float g, float b)
+    {
+        Color newColor = new Color(r, g, b);
+        playerRenderer.material.color = newColor;
+        randomColor = newColor;
+        Debug.Log("PlayerController: Set player color to " + newColor);
+    }
     
 }
-
-
