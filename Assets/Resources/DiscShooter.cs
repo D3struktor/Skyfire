@@ -10,9 +10,11 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     public float discSpeed = 60f; // Disc speed
     public float fireCooldown = 0.7f; // Cooldown time between shots
     public AudioClip shootSound; // Sound clip to play when shooting
+    public float weaponSwitchDelay = 1f; // Delay after switching weapon
 
     private bool isActiveWeapon = false;
     private float lastShotTime = 0f; // Time when the last shot was fired
+    private float lastWeaponSwitchTime = 0f; // Time when the weapon was last switched
     private AudioSource audioSource;
 
     void Start()
@@ -28,7 +30,9 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     {
         if (!isActiveWeapon) return;
 
-        if (Input.GetButtonDown("Fire1") && Time.time - lastShotTime >= fireCooldown)
+        if (Time.time < lastWeaponSwitchTime + weaponSwitchDelay) return;
+
+        if (Input.GetButtonDown("Fire1") && Time.time >= lastShotTime + fireCooldown)
         {
             if (PhotonNetwork.InRoom)
             {
@@ -40,12 +44,21 @@ public class DiscShooter : MonoBehaviourPunCallbacks
                 Debug.LogError("Cannot instantiate before the client joined/created a room.");
             }
         }
+
         Debug.DrawRay(shootingPoint.position, shootingPoint.forward * 10, Color.red);
     }
 
     public void SetActiveWeapon(bool active)
     {
-        isActiveWeapon = active;
+        if (active)
+        {
+            isActiveWeapon = true;
+            lastWeaponSwitchTime = Time.time;
+        }
+        else
+        {
+            isActiveWeapon = false;
+        }
     }
 
     public void SetLastShotTime(float time)
@@ -78,7 +91,7 @@ public class DiscShooter : MonoBehaviourPunCallbacks
 
     void PlayShootSound()
     {
-        if (audioSource != null && shootSound != null)
+        if (shootSound != null)
         {
             audioSource.PlayOneShot(shootSound);
         }

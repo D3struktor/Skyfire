@@ -11,9 +11,11 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
     public float grenadeAngularDrag = 5f; // Angular drag for the grenade
     public float fireCooldown = 0.7f; // Cooldown time between shots
     public AudioClip shootSound; // Sound clip to play when shooting
+    public float weaponSwitchDelay = 0.5f; // Delay after switching weapon
 
     private bool isActiveWeapon = false;
     private float lastShotTime = 0f; // Time when the last shot was fired
+    private float lastWeaponSwitchTime = 0f; // Time when the weapon was last switched
     private AudioSource audioSource;
 
     void Start()
@@ -29,7 +31,9 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
     {
         if (!isActiveWeapon) return;
 
-        if (Input.GetButtonDown("Fire1") && Time.time - lastShotTime >= fireCooldown)
+        if (Time.time < lastWeaponSwitchTime + weaponSwitchDelay) return;
+
+        if (Input.GetButtonDown("Fire1") && Time.time >= lastShotTime + fireCooldown)
         {
             ShootGrenade();
             lastShotTime = Time.time; // Update the last shot time
@@ -38,7 +42,15 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
 
     public void SetActiveWeapon(bool active)
     {
-        isActiveWeapon = active;
+        if (active)
+        {
+            isActiveWeapon = true;
+            lastWeaponSwitchTime = Time.time;
+        }
+        else
+        {
+            isActiveWeapon = false;
+        }
     }
 
     public void SetLastShotTime(float time)

@@ -76,21 +76,30 @@ public class TimerManager : MonoBehaviourPunCallbacks
         }
     }
 
-    void FindTimerText()
+void FindTimerText()
+{
+    if (timerText == null)
     {
-        if (timerText == null)
+        GameObject timerTextObject = GameObject.Find("TimerText"); // Zmień "TimerText" na dokładną nazwę obiektu w scenie
+        if (timerTextObject != null)
         {
-            timerText = FindObjectOfType<TMP_Text>();
-            if (timerText == null)
-            {
-                Debug.LogWarning("Timer Text not found!");
-            }
-            else
+            timerText = timerTextObject.GetComponent<TMP_Text>();
+            if (timerText != null)
             {
                 Debug.Log("Timer Text found: " + timerText.name);
             }
+            else
+            {
+                Debug.LogWarning("TMP_Text component not found on the object!");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Timer Text object not found!");
         }
     }
+}
+
 
     void EndMatch()
     {
