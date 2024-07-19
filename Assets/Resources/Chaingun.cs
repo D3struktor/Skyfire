@@ -21,6 +21,7 @@ public class Chaingun : MonoBehaviourPunCallbacks
 
     private float lastShotTime; // Zmienna przechowująca czas ostatniego strzału
     private bool isActiveWeapon = false; // Flaga aktywności broni
+    private float weaponSwitchTime; // Czas, kiedy broń została wybrana
 
     void Start()
     {
@@ -43,7 +44,7 @@ public class Chaingun : MonoBehaviourPunCallbacks
 
         if (photonView.IsMine && Input.GetButton("Fire1"))
         {
-            if (Time.time >= nextTimeToFire)
+            if (Time.time >= nextTimeToFire && Time.time >= weaponSwitchTime + 0.1f)
             {
                 if (coolingSystem.currentHeat < coolingSystem.maxHeat)
                 {
@@ -88,10 +89,13 @@ public class Chaingun : MonoBehaviourPunCallbacks
         }
     }
 
-    // Dodanie brakujących metod
     public void SetActiveWeapon(bool isActive)
     {
         isActiveWeapon = isActive;
+        if (isActive)
+        {
+            weaponSwitchTime = Time.time; // Zapisujemy czas, kiedy broń została wybrana
+        }
     }
 
     public void SetLastShotTime(float time)

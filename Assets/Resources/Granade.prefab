@@ -131,7 +131,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   explosionEffect: {fileID: 7819775807870019735, guid: f916833a9285b1244b9a2a6ef531b2a5, type: 3}
   blastRadius: 15
-  explosionForce: 1200
+  explosionForce: 3000
   explosionDelay: 4
   collisionExplosionDelay: 1.5
   speedThreshold: 100
