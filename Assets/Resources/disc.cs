@@ -65,6 +65,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
 
         // Create explosion effect
         GameObject explosion = Instantiate(explosionEffect, explosionPosition, Quaternion.identity);
+        explosion.transform.localScale = new Vector3(2, 2, 2);
 
         // Destroy the explosion effect after 2 seconds
         Destroy(explosion, 2f);
@@ -90,7 +91,14 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
                 if (player != null)
                 {
                     float damage = CalculateDamage(nearbyObject.transform.position, explosionPosition);
+                    if (player.photonView.Owner == owner)
+                    {
+                        damage *= 0.3f; // Reduce damage by 30% for the owner
+                    }
                     player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, owner);
+
+                    // Apply force to the player
+                    player.GetComponent<Rigidbody>().AddForce(explosionDirection * explosionForce * 2, ForceMode.Impulse);
                 }
             }
         }

@@ -96,6 +96,7 @@ public class Grenade : MonoBehaviourPunCallbacks
     {
         // Tworzymy efekt eksplozji w miejscu zderzenia
         GameObject explosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
+        explosion.transform.localScale = new Vector3(2f, 2f, 2f); // Set the scale to 2,2,2
 
         // Usuwamy efekt eksplozji po 2 sekundach
         Destroy(explosion, 2f);
