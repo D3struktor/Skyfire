@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 9210547919002098264}
   - component: {fileID: 5558684118475697956}
   - component: {fileID: 2787566851744011046}
+  - component: {fileID: 8804980584807086782}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -153,6 +154,15 @@ MonoBehaviour:
   m_BeforeTransparentBundles: []
   m_BeforeStackBundles: []
   m_AfterStackBundles: []
+--- !u!45 &8804980584807086782
+Skybox:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397987462403757845}
+  m_Enabled: 1
+  m_CustomSkybox: {fileID: 2100000, guid: 20af154a376043b45a05fa323b5818a9, type: 2}
 --- !u!1 &410833749712471921
 GameObject:
   m_ObjectHideFlags: 0
@@ -1180,6 +1190,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: CHAINGUN
       objectReference: {fileID: 0}
+    - target: {fileID: 887638712416274772, guid: ed019cc4dfa95b846925511083d14c0f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 890287631944524716, guid: ed019cc4dfa95b846925511083d14c0f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.635
@@ -1234,7 +1248,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2621965075084371213, guid: ed019cc4dfa95b846925511083d14c0f, type: 3}
       propertyPath: maxSpread
-      value: 0.05
+      value: 0.03
       objectReference: {fileID: 0}
     - target: {fileID: 2621965075084371213, guid: ed019cc4dfa95b846925511083d14c0f, type: 3}
       propertyPath: minSpread
@@ -1405,6 +1419,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Sci_fi_Pistol1
       objectReference: {fileID: 0}
+    - target: {fileID: 887638712416274772, guid: 2c762efac44f16f4aa5184d5766f074f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 890287631944524716, guid: 2c762efac44f16f4aa5184d5766f074f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.18
@@ -1506,6 +1524,10 @@ PrefabInstance:
     - target: {fileID: 6887392381205261040, guid: 3d8c82d357db5c543af356506c81db94, type: 3}
       propertyPath: m_Name
       value: GranadeLaucherPrefab
+      objectReference: {fileID: 0}
+    - target: {fileID: 6887392381205261040, guid: 3d8c82d357db5c543af356506c81db94, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

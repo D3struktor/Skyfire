@@ -73,7 +73,7 @@ public class TextureVisibility : MonoBehaviour
 
         if (distance <= visibilityDistance)
         {
-            targetAlpha = 0.2f; // Fully visible
+            targetAlpha = 0.4f; // Fully visible
         }
         else
         {

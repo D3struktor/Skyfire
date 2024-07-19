@@ -53,15 +53,18 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
         if (hasExploded) return; // Prevent multiple explosions
         hasExploded = true;
 
-        // Trigger the explosion on all clients
-        photonView.RPC("RPC_Explode", RpcTarget.All);
+        // Trigger the explosion on all clients at the exact collision point
+        photonView.RPC("RPC_Explode", RpcTarget.All, collision.contacts[0].point);
     }
 
     [PunRPC]
-    void RPC_Explode()
+    void RPC_Explode(Vector3 explosionPosition)
     {
+        // Move the disc to the explosion position for consistent visuals
+        transform.position = explosionPosition;
+
         // Create explosion effect
-        GameObject explosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
+        GameObject explosion = Instantiate(explosionEffect, explosionPosition, Quaternion.identity);
 
         // Destroy the explosion effect after 2 seconds
         Destroy(explosion, 2f);
@@ -70,15 +73,15 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
         PlayExplosionSound();
 
         // Apply explosion force to nearby objects
-        Collider[] colliders = Physics.OverlapSphere(transform.position, blastRadius);
+        Collider[] colliders = Physics.OverlapSphere(explosionPosition, blastRadius);
         foreach (var nearbyObject in colliders)
         {
             Rigidbody rb = nearbyObject.GetComponent<Rigidbody>();
             if (rb != null)
             {
                 // Calculate direction from explosion center to the object
-                Vector3 explosionDirection = (nearbyObject.transform.position - transform.position).normalized;
-                rb.AddExplosionForce(explosionForce, transform.position, blastRadius);
+                Vector3 explosionDirection = (nearbyObject.transform.position - explosionPosition).normalized;
+                rb.AddExplosionForce(explosionForce, explosionPosition, blastRadius);
                 // Optional: Apply additional force in the direction of the explosion
                 rb.AddForce(explosionDirection * explosionForce);
 
@@ -86,7 +89,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
                 PlayerController player = nearbyObject.GetComponent<PlayerController>();
                 if (player != null)
                 {
-                    float damage = CalculateDamage(nearbyObject.transform.position);
+                    float damage = CalculateDamage(nearbyObject.transform.position, explosionPosition);
                     player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, owner);
                 }
             }
@@ -124,9 +127,9 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
         }
     }
 
-    float CalculateDamage(Vector3 targetPosition)
+    float CalculateDamage(Vector3 targetPosition, Vector3 explosionPosition)
     {
-        float explosionDistance = Vector3.Distance(transform.position, targetPosition);
+        float explosionDistance = Vector3.Distance(explosionPosition, targetPosition);
         float damage = Mathf.Clamp(maxDamage * (1 - explosionDistance / blastRadius), 1f, maxDamage);
         return damage;
     }

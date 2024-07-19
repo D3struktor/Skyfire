@@ -41,6 +41,15 @@ public class Grenade : MonoBehaviourPunCallbacks
         PlayBounceSound();
 
         Debug.Log("Grenade collided with " + collision.gameObject.name + " at time: " + (Time.time - timeSinceLaunch) + " seconds.");
+
+        // Check if the grenade collided with a player
+        if (collision.gameObject.GetComponent<PlayerController>() != null)
+        {
+            Debug.Log("Grenade hit a player, exploding immediately.");
+            Explode();
+            return;
+        }
+
         if (!hasExploded)
         {
             CancelInvoke("Explode");
