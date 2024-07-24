@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 5462417627531497700}
   - component: {fileID: 6730453993134840396}
+  - component: {fileID: 4861804152175700438}
   - component: {fileID: 8439997844938966242}
   - component: {fileID: 5379180120573130739}
-  - component: {fileID: 4861804152175700438}
   - component: {fileID: -5891721077308311092}
   - component: {fileID: -7643271366391955214}
   - component: {fileID: 4455583888837830225}
@@ -46,6 +46,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3678946588746919792}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &4861804152175700438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3678946588746919792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea6c03fccffa412419a61d6a40bd36cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damage: 12
+  ignoreCollisionTime: 0.2
 --- !u!23 &8439997844938966242
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -114,19 +128,6 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &4861804152175700438
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3678946588746919792}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ea6c03fccffa412419a61d6a40bd36cd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  damage: 12
 --- !u!54 &-5891721077308311092
 Rigidbody:
   m_ObjectHideFlags: 0

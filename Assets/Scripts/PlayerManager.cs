@@ -17,11 +17,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     bool isAlive = true;
     public Color color;
 
-    // TDM value.
-    // -1 => Not TDM match started
-    // 0  => TDM started, blue team assigned
-    // 1  => TDM started, red team assigned
-
     int isRed = -1;
 
     void Awake()
@@ -31,10 +26,8 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
     void Start()
     {
-        if (PV.IsMine) 
+        if (PV.IsMine)
         {
-
-
             Debug.Log("PlayerManager: Start called for local player " + PhotonNetwork.NickName);
 
             if (PlayerPrefs.GetString("GameMode") == "TDM")
@@ -45,10 +38,8 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             else
             {
                 Debug.Log("PlayerManager: GameMode is not TDM, creating controller");
-                
                 CreateController();
             }
-
         }
     }
 
@@ -60,7 +51,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
         controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { PV.ViewID });
 
-        // Set the color from TDMManager if in TDM mode
         if (PlayerPrefs.GetString("GameMode") == "TDM")
         {
             TDMManager tdmManager = FindObjectOfType<TDMManager>();
@@ -68,7 +58,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             {
                 Debug.Log("PlayerManager: TDMManager found.");
 
-                // color = Color.red;
                 if (isRed == -1)
                     Debug.Log("PlayerManager: O CHUJ NIE DZIALA.");
 
@@ -117,7 +106,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             hash.Add("deaths", deaths);
             PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
             Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} died. Total deaths: {deaths}.");
-            if (killer != null)
+
+            // Avoid adding a kill if the killer is the same as the victim
+            if (killer != null && killer != PhotonNetwork.LocalPlayer)
             {
                 PlayerManager killerPM = Find(killer);
                 if (killerPM != null)
@@ -126,19 +117,22 @@ public class PlayerManager : MonoBehaviourPunCallbacks
                 }
             }
 
-            isAlive = false; // Ensure the player is marked as not alive
+            isAlive = false;
         }
     }
 
     [PunRPC]
     public void AddKill()
     {
+        if (!PV.IsMine) return;
+
         kills++;
         Hashtable hash = new Hashtable();
         hash.Add("kills", kills);
         PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
         Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} got a kill. Total kills: {kills}.");
     }
+
 
     public static PlayerManager Find(Player player)
     {
@@ -161,7 +155,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     {
         if (PV.IsMine)
         {
-            // Clean up when other players leave
             PlayerManager pm = Find(otherPlayer);
             if (pm != null && pm.controller != null)
             {
@@ -174,7 +167,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     public void StartTDM()
     {
         TDMManager tdmManager = FindObjectOfType<TDMManager>();
-        
+
         if (tdmManager != null)
         {
             bool ValRed = tdmManager.AssignTeam();
@@ -214,8 +207,11 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            // CreateController();
             StartTDM();
         }
+    }
+    public PhotonView GetPhotonView()
+    {
+        return PV;
     }
 }

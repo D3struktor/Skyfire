@@ -1,6 +1,8 @@
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
+using System.Linq;
+
 
 public class Disc : MonoBehaviourPunCallbacks, IPunObservable
 {
@@ -11,6 +13,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     public AudioClip explosionSound; // Dźwięk eksplozji
     public float soundMaxDistance = 200f; // Maksymalna odległość słyszalności dźwięku
     public float soundFullVolumeDistance = 100f; // Odległość, przy której dźwięk jest w 100% głośności
+    public float ignoreCollisionTime = 0.2f; // Time to ignore collision with the player
 
     private Vector3 networkedPosition;
     private Quaternion networkedRotation;
@@ -19,6 +22,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     private bool hasExploded = false; // To ensure explosion happens only once
 
     private Player owner;
+    private Collider ownerCollider;
 
     void Start()
     {
@@ -31,6 +35,26 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
         // Get the owner of the projectile
         owner = photonView.Owner;
         Debug.Log("Projectile created by player: " + owner.NickName);
+
+        // Find the owner's collider and temporarily ignore collision
+        PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
+        if (playerController != null)
+        {
+            ownerCollider = playerController.GetComponent<Collider>();
+            if (ownerCollider != null)
+            {
+                Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, true);
+                Invoke("ResetCollision", ignoreCollisionTime);
+            }
+        }
+    }
+
+    void ResetCollision()
+    {
+        if (ownerCollider != null)
+        {
+            Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, false);
+        }
     }
 
     public void OnPhotonInstantiate(PhotonMessageInfo info)
@@ -93,7 +117,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
                     float damage = CalculateDamage(nearbyObject.transform.position, explosionPosition);
                     if (player.photonView.Owner == owner)
                     {
-                        damage *= 0.3f; // Reduce damage by 30% for the owner
+                        damage *= 0.5f; // Reduce damage by 50% for the owner
                     }
                     player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, owner);
 

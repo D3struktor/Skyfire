@@ -1,6 +1,7 @@
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
+using System.Linq;
 
 public class Grenade : MonoBehaviourPunCallbacks
 {
@@ -17,6 +18,7 @@ public class Grenade : MonoBehaviourPunCallbacks
     public float explosionSoundRange = 20f; // Zasięg słyszalności dźwięku eksplozji
     public float bounceSoundRange = 10f; // Zasięg słyszalności dźwięku odbicia
     public float minDistance = 1f; // Minimalna odległość dla pełnej głośności
+    [SerializeField] private float ignoreCollisionTime = 0.2f; // Czas ignorowania kolizji z graczem
 
     private bool hasExploded = false; // Flaga, aby upewnić się, że wybuch jest synchronizowany tylko raz
     private float timeSinceLaunch;
@@ -34,6 +36,31 @@ public class Grenade : MonoBehaviourPunCallbacks
         // Get the owner of the grenade
         owner = photonView.Owner;
         Debug.Log("Grenade created by player: " + owner.NickName);
+
+        // Temporarily ignore collisions with the owner
+        PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
+        if (playerController != null)
+        {
+            Collider ownerCollider = playerController.GetComponent<Collider>();
+            if (ownerCollider != null)
+            {
+                Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, true);
+                Invoke("ResetCollision", ignoreCollisionTime); // Ignore collisions for the specified time
+            }
+        }
+    }
+
+    void ResetCollision()
+    {
+        PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
+        if (playerController != null)
+        {
+            Collider ownerCollider = playerController.GetComponent<Collider>();
+            if (ownerCollider != null)
+            {
+                Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, false);
+            }
+        }
     }
 
     void OnCollisionEnter(Collision collision)

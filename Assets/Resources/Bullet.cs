@@ -1,32 +1,69 @@
 using UnityEngine;
 using Photon.Pun;
+using System.Linq;
+using Photon.Realtime;
 
 public class Bullet : MonoBehaviourPunCallbacks
 {
-    public float damage = 10f; // Obrażenia zadawane przez pocisk
+    public float damage = 10f; // Damage dealt by the bullet
+    [SerializeField] private float ignoreCollisionTime = 0.2f; // Time to ignore collisions with the shooter
+
+    private Player owner;
+
+    void Start()
+    {
+        // Get the owner of the bullet
+        owner = photonView.Owner;
+        Debug.Log("Bullet created by player: " + owner.NickName);
+
+        // Temporarily ignore collisions with the shooter
+        PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
+        if (playerController != null)
+        {
+            Collider ownerCollider = playerController.GetComponent<Collider>();
+            if (ownerCollider != null)
+            {
+                Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, true);
+                Invoke("ResetCollision", ignoreCollisionTime); // Ignore collisions for the specified time
+            }
+        }
+    }
+
+    void ResetCollision()
+    {
+        PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
+        if (playerController != null)
+        {
+            Collider ownerCollider = playerController.GetComponent<Collider>();
+            if (ownerCollider != null)
+            {
+                Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, false);
+            }
+        }
+    }
 
     void OnCollisionEnter(Collision collision)
     {
-        Debug.Log("OnCollisionEnter triggered"); // Debug na początek kolizji
+        Debug.Log("OnCollisionEnter triggered"); // Debug on collision start
 
         if (photonView.IsMine)
         {
-            Debug.Log("PhotonView is mine"); // Debug sprawdzający, czy PhotonView jest mój
+            Debug.Log("PhotonView is mine"); // Debug to check if PhotonView is mine
 
-            // Debugowanie, aby sprawdzić, czy pocisk uderzył w coś
+            // Debug to check if the bullet hit something
             Debug.Log("Bullet hit: " + collision.collider.name);
 
-            // Sprawdzenie, czy gracz ma komponent PlayerController
+            // Check if the hit object has a PlayerController component
             PlayerController player = collision.collider.GetComponent<PlayerController>();
             if (player != null)
             {
-                // Debugowanie, aby sprawdzić, czy znaleziono gracza
+                // Debug to check if a player was found
                 Debug.Log("Player hit: " + player.name);
                 player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, PhotonNetwork.LocalPlayer);
             }
             else
             {
-                // Debugowanie, gdy nie znaleziono komponentu PlayerController
+                // Debug if no PlayerController component was found
                 Debug.Log("No PlayerController found on hit object: " + collision.collider.name);
             }
 
@@ -36,7 +73,7 @@ public class Bullet : MonoBehaviourPunCallbacks
         }
         else
         {
-            // Debugowanie, gdy PhotonView nie jest mój
+            // Debug if PhotonView is not mine
             Debug.Log("PhotonView is not mine");
         }
     }

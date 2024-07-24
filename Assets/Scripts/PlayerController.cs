@@ -68,6 +68,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private AudioClip slideSound;
     private AudioSource audioSource;
 
+        private bool isAlive = true; // Track if the player is alive
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -543,6 +545,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             healthbarImage.fillAmount = currentHealth / maxHealth;
         }
     }
+
 
     void Die()
     {

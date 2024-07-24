@@ -3,25 +3,27 @@ using Photon.Pun;
 
 public class Chaingun : MonoBehaviourPunCallbacks
 {
-    public float fireRate = 0.1f; // Częstotliwość strzelania (w sekundach)
+    public float baseFireRate = 0.1f; // Base fire rate (in seconds)
     public GameObject bulletPrefab;
     public Transform firePoint;
     public ParticleSystem muzzleFlash;
     public float bulletSpeed = 100f;
-    public GameObject rotatingPart; // Obiekt rotujący
-    public float rotationSpeed = 1000f; // Prędkość rotacji obiektu
+    public GameObject rotatingPart; // Rotating part of the gun
+    public float rotationSpeed = 1000f; // Rotation speed of the rotating part
 
-    public float maxSpread = 0.5f; // Maksymalny rozrzut, zmniejszony dla większej precyzji
-    public float minSpread = 0.1f; // Minimalny rozrzut, zmniejszony dla większej precyzji
+    public float maxSpread = 0.5f; // Maximum spread
+    public float minSpread = 0.1f; // Minimum spread
 
     private float nextTimeToFire = 0f;
     private CoolingSystem coolingSystem;
-    private AudioSource audioSource; // Dodajemy AudioSource
-    public AudioClip shootSound; // Dodajemy pole dla klipu dźwiękowego
+    private AudioSource audioSource;
+    public AudioClip shootSound;
 
-    private float lastShotTime; // Zmienna przechowująca czas ostatniego strzału
-    private bool isActiveWeapon = false; // Flaga aktywności broni
-    private float weaponSwitchTime; // Czas, kiedy broń została wybrana
+    private float lastShotTime;
+    private bool isActiveWeapon = false; // Flag to check if the weapon is active
+    private float weaponSwitchTime; // Time when the weapon was selected
+    private float timeFiring; // Time the weapon has been firing
+    [SerializeField] private float rampUpTime = 1f; // Time it takes to ramp up to full fire rate
 
     void Start()
     {
@@ -48,12 +50,20 @@ public class Chaingun : MonoBehaviourPunCallbacks
             {
                 if (coolingSystem.currentHeat < coolingSystem.maxHeat)
                 {
+                    // Calculate dynamic fire rate based on how long the player has been firing
+                    timeFiring = Time.time - weaponSwitchTime; // Calculate the continuous firing duration
+                    float fireRate = Mathf.Lerp(baseFireRate * 2, baseFireRate, Mathf.Clamp01(timeFiring / rampUpTime));
+
                     nextTimeToFire = Time.time + fireRate;
                     Shoot();
                     coolingSystem.IncreaseHeat();
                 }
             }
             RotateBarrel();
+        }
+        else if (Input.GetButtonUp("Fire1"))
+        {
+            timeFiring = 0f; // Reset firing duration when the player stops firing
         }
     }
 
@@ -62,6 +72,7 @@ public class Chaingun : MonoBehaviourPunCallbacks
         if (muzzleFlash != null)
         {
             muzzleFlash.Play();
+            audioSource.PlayOneShot(shootSound);
         }
         if (audioSource != null && shootSound != null)
         {
@@ -94,7 +105,8 @@ public class Chaingun : MonoBehaviourPunCallbacks
         isActiveWeapon = isActive;
         if (isActive)
         {
-            weaponSwitchTime = Time.time; // Zapisujemy czas, kiedy broń została wybrana
+            weaponSwitchTime = Time.time; // Record the time the weapon was selected
+            timeFiring = 0f; // Initialize the firing duration
         }
     }
 
