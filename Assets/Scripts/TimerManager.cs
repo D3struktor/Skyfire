@@ -72,7 +72,7 @@ public class TimerManager : MonoBehaviourPunCallbacks
         if (timerText != null)
         {
             timerText.text = TextTemplate + ": " + currentTime.ToString("F0");
-            Debug.Log("Timer updated: " + timerText.text);
+            // Debug.Log("Timer updated: " + timerText.text);
         }
     }
 

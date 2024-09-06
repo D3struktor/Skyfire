@@ -5,43 +5,75 @@ using Photon.Pun;
 
 public class DiscShooter : MonoBehaviourPunCallbacks
 {
-    public GameObject discPrefab; // Prefab for the disc
-    public Transform shootingPoint; // Point from which discs are shot
-    public float discSpeed = 60f; // Disc speed
-    public float fireCooldown = 0.7f; // Cooldown time between shots
-    public AudioClip shootSound; // Sound clip to play when shooting
-    public float weaponSwitchDelay = 1f; // Delay after switching weapon
+    public GameObject discPrefab; // Prefab dla dysku
+    public Transform shootingPoint; // Punkt, z którego strzelamy
+    public float discSpeed = 60f; // Prędkość dysku
+    public float fireCooldown = 0.7f; // Czas oczekiwania między strzałami
+    public AudioClip shootSound; // Dźwięk strzału
+    public float weaponSwitchDelay = 1f; // Opóźnienie po zmianie broni
 
     private bool isActiveWeapon = false;
-    private float lastShotTime = 0f; // Time when the last shot was fired
-    private float lastWeaponSwitchTime = 0f; // Time when the weapon was last switched
+    private float lastShotTime = 0f; // Czas ostatniego strzału
+    private float lastWeaponSwitchTime = 0f; // Czas ostatniej zmiany broni
     private AudioSource audioSource;
+    private PlayerAmmoManager playerAmmoManager; // Lokalne zarządzanie amunicją dla każdego gracza
+    private AmmoUI ammoUI; // UI dla lokalnego gracza
 
-    void Start()
+void Start()
+{
+    if (!photonView.IsMine) return; // Tylko lokalny gracz obsługuje broń
+
+    audioSource = GetComponent<AudioSource>();
+    if (audioSource == null)
     {
-        audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-        {
-            audioSource = gameObject.AddComponent<AudioSource>();
-        }
+        audioSource = gameObject.AddComponent<AudioSource>();
     }
+
+    // Szukamy PlayerAmmoManager na rodzicu gracza
+    Transform playerTransform = transform.root; // Znajdź główny obiekt gracza
+    playerAmmoManager = playerTransform.GetComponent<PlayerAmmoManager>();
+
+    if (playerAmmoManager == null)
+    {
+        Debug.LogError("Brak komponentu PlayerAmmoManager na obiekcie gracza: " + playerTransform.name);
+    }
+
+    // Znajdź AmmoUI w scenie tylko raz
+    ammoUI = FindObjectOfType<AmmoUI>();
+    if (ammoUI == null)
+    {
+        Debug.LogError("Nie znaleziono komponentu AmmoUI w scenie.");
+    }
+    else
+    {
+        Debug.Log("AmmoUI został poprawnie przypisany.");
+    }
+    
+        // Zaktualizuj UI na starcie
+        UpdateAmmoUI();
+}
+
+
 
     void Update()
     {
+        if (!photonView.IsMine) return; // Tylko lokalny gracz obsługuje broń
+
         if (!isActiveWeapon) return;
 
         if (Time.time < lastWeaponSwitchTime + weaponSwitchDelay) return;
 
         if (Input.GetButtonDown("Fire1") && Time.time >= lastShotTime + fireCooldown)
         {
-            if (PhotonNetwork.InRoom)
+            if (playerAmmoManager != null && playerAmmoManager.UseAmmo("DiscShooter"))
             {
                 ShootDisc();
-                lastShotTime = Time.time; // Update the last shot time
+                lastShotTime = Time.time; // Aktualizacja czasu ostatniego strzału
+                UpdateAmmoUI(); // Zaktualizuj UI amunicji po strzale
             }
             else
             {
-                Debug.LogError("Cannot instantiate before the client joined/created a room.");
+                Debug.Log("Brak amunicji!");
             }
         }
 
@@ -50,10 +82,15 @@ public class DiscShooter : MonoBehaviourPunCallbacks
 
     public void SetActiveWeapon(bool active)
     {
+        if (!photonView.IsMine) return; // Tylko lokalny gracz zarządza aktywacją broni
+
         if (active)
         {
             isActiveWeapon = true;
             lastWeaponSwitchTime = Time.time;
+
+            // Zaktualizuj UI amunicji, gdy broń zostanie aktywowana
+            UpdateAmmoUI();
         }
         else
         {
@@ -61,6 +98,7 @@ public class DiscShooter : MonoBehaviourPunCallbacks
         }
     }
 
+    // Funkcja do ustawiania czasu ostatniego strzału z zewnętrznych skryptów
     public void SetLastShotTime(float time)
     {
         lastShotTime = time;
@@ -70,7 +108,7 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     {
         if (discPrefab == null || shootingPoint == null)
         {
-            Debug.LogError("Disc prefab or shooting point is not assigned.");
+            Debug.LogError("Prefab dysku lub punkt strzału nie jest przypisany.");
             return;
         }
 
@@ -83,7 +121,7 @@ public class DiscShooter : MonoBehaviourPunCallbacks
         }
         else
         {
-            Debug.LogError("Rigidbody component not found on disc prefab.");
+            Debug.LogError("Brak komponentu Rigidbody na prefabbie dysku.");
         }
 
         PlayShootSound();
@@ -97,7 +135,16 @@ public class DiscShooter : MonoBehaviourPunCallbacks
         }
         else
         {
-            Debug.LogError("AudioSource or shootSound not assigned.");
+            Debug.LogError("AudioSource lub dźwięk strzału nie są przypisane.");
+        }
+    }
+
+    // Funkcja do aktualizacji stanu UI amunicji
+    void UpdateAmmoUI()
+    {
+        if (ammoUI != null)
+        {
+            ammoUI.SetCurrentWeapon("DiscShooter");
         }
     }
 }

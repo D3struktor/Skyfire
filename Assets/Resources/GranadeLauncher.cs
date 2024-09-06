@@ -16,49 +16,82 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
     private bool isActiveWeapon = false;
     private float lastShotTime = 0f; // Time when the last shot was fired
     private float lastWeaponSwitchTime = 0f; // Time when the weapon was last switched
-    private AudioSource audioSource;
+        private AudioSource audioSource;
+
+    private PlayerAmmoManager playerAmmoManager; // Lokalne zarządzanie amunicją
+    private AmmoUI ammoUI; // UI dla lokalnego gracza
 
     void Start()
     {
+        if (!photonView.IsMine) return; // Tylko lokalny gracz obsługuje broń
+
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
         {
             audioSource = gameObject.AddComponent<AudioSource>();
         }
+
+        // Szukamy PlayerAmmoManager na obiekcie gracza
+        Transform playerTransform = transform.root; // Znajdź główny obiekt gracza
+        playerAmmoManager = playerTransform.GetComponent<PlayerAmmoManager>();
+
+        if (playerAmmoManager == null)
+        {
+            Debug.LogError("Brak komponentu PlayerAmmoManager na obiekcie gracza: " + playerTransform.name);
+        }
+
+        // Znajdź AmmoUI
+        ammoUI = FindObjectOfType<AmmoUI>();
+        if (ammoUI == null)
+        {
+            Debug.LogError("Nie znaleziono komponentu AmmoUI w scenie.");
+        }
+        else
+        {
+            Debug.Log("AmmoUI zostało poprawnie przypisane.");
+        }
+
+        // Zaktualizuj UI na starcie
+        UpdateAmmoUI();
     }
 
     void Update()
     {
+        if (!photonView.IsMine) return; // Tylko lokalny gracz obsługuje broń
+
         if (!isActiveWeapon) return;
 
-        if (Time.time < lastWeaponSwitchTime + weaponSwitchDelay) return;
+        if (Time.time < lastWeaponSwitchTime + 0.5f) return;
 
         if (Input.GetButtonDown("Fire1") && Time.time >= lastShotTime + fireCooldown)
         {
-            ShootGrenade();
-            lastShotTime = Time.time; // Update the last shot time
+            if (playerAmmoManager != null && playerAmmoManager.UseAmmo("GrenadeLauncher"))
+            {
+                ShootGrenade();
+                lastShotTime = Time.time;
+                UpdateAmmoUI(); // Zaktualizuj UI po strzale
+            }
+            else
+            {
+                Debug.Log("Brak amunicji!");
+            }
         }
     }
 
     public void SetActiveWeapon(bool active)
     {
+        if (!photonView.IsMine) return;
+
+        isActiveWeapon = active;
+
         if (active)
         {
-            isActiveWeapon = true;
             lastWeaponSwitchTime = Time.time;
-        }
-        else
-        {
-            isActiveWeapon = false;
+            UpdateAmmoUI(); // Zaktualizuj UI podczas aktywacji broni
         }
     }
 
-    public void SetLastShotTime(float time)
-    {
-        lastShotTime = time;
-    }
-
-    void ShootGrenade()
+  void ShootGrenade()
     {
         if (grenadePrefab == null || shootingPoint == null)
         {
@@ -84,8 +117,7 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
 
         PlayShootSound();
     }
-
-    void PlayShootSound()
+        void PlayShootSound()
     {
         if (audioSource != null && shootSound != null)
         {
@@ -96,4 +128,17 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
             Debug.LogError("AudioSource or shootSound not assigned.");
         }
     }
+
+    void UpdateAmmoUI()
+    {
+        if (ammoUI != null)
+        {
+            ammoUI.SetCurrentWeapon("GrenadeLauncher");
+        }
+    }
+    public void SetLastShotTime(float time)
+    {
+        lastShotTime = time;
+    }
+
 }

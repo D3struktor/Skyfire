@@ -3,67 +3,99 @@ using Photon.Pun;
 
 public class Chaingun : MonoBehaviourPunCallbacks
 {
-    public float baseFireRate = 0.1f; // Base fire rate (in seconds)
+    public float baseFireRate = 0.1f; // Podstawowa częstotliwość ognia
     public GameObject bulletPrefab;
     public Transform firePoint;
     public ParticleSystem muzzleFlash;
     public float bulletSpeed = 100f;
-    public GameObject rotatingPart; // Rotating part of the gun
-    public float rotationSpeed = 1000f; // Rotation speed of the rotating part
+    public GameObject rotatingPart; // Rotująca część broni
+    public float rotationSpeed = 1000f;
 
-    public float maxSpread = 0.5f; // Maximum spread
-    public float minSpread = 0.1f; // Minimum spread
+    public float maxSpread = 0.5f; // Maksymalne rozproszenie
+    public float minSpread = 0.1f; // Minimalne rozproszenie
 
     private float nextTimeToFire = 0f;
-    private CoolingSystem coolingSystem;
     private AudioSource audioSource;
     public AudioClip shootSound;
+    private PlayerAmmoManager playerAmmoManager; // Lokalne zarządzanie amunicją dla gracza
+    private AmmoUI ammoUI; // UI dla lokalnego gracza
+    private CoolingSystem coolingSystem; // System chłodzenia
 
-    private float lastShotTime;
-    private bool isActiveWeapon = false; // Flag to check if the weapon is active
-    private float weaponSwitchTime; // Time when the weapon was selected
-    private float timeFiring; // Time the weapon has been firing
-    [SerializeField] private float rampUpTime = 1f; // Time it takes to ramp up to full fire rate
+    private bool isActiveWeapon = false;
+    private float weaponSwitchTime; // Czas przełączenia broni
+    private float timeFiring; // Czas strzelania
+    [SerializeField] private float rampUpTime = 1f; // Czas przyspieszenia ognia
 
     void Start()
     {
-        coolingSystem = GetComponent<CoolingSystem>();
+        if (!photonView.IsMine) return; // Tylko lokalny gracz obsługuje broń
+
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
         {
             audioSource = gameObject.AddComponent<AudioSource>();
         }
 
-        if (muzzleFlash == null)
+        coolingSystem = GetComponent<CoolingSystem>();
+
+        // Szukamy PlayerAmmoManager na obiekcie gracza
+        Transform playerTransform = transform.root; // Znajdź główny obiekt gracza
+        playerAmmoManager = playerTransform.GetComponent<PlayerAmmoManager>();
+
+        if (playerAmmoManager == null)
         {
-            Debug.LogError("Muzzle flash particle system is not assigned.");
+            Debug.LogError("Brak komponentu PlayerAmmoManager na obiekcie gracza: " + playerTransform.name);
         }
+
+        // Znajdź AmmoUI
+        ammoUI = FindObjectOfType<AmmoUI>();
+        if (ammoUI == null)
+        {
+            Debug.LogError("Nie znaleziono komponentu AmmoUI w scenie.");
+        }
+
+        UpdateAmmoUI();
     }
 
     void Update()
     {
+        if (!photonView.IsMine) return; // Tylko lokalny gracz obsługuje broń
+
         if (!isActiveWeapon) return;
 
-        if (photonView.IsMine && Input.GetButton("Fire1"))
+        if (Input.GetButton("Fire1"))
         {
-            if (Time.time >= nextTimeToFire && Time.time >= weaponSwitchTime + 0.1f)
+            if (Time.time >= nextTimeToFire)
             {
-                if (coolingSystem.currentHeat < coolingSystem.maxHeat)
+                if (playerAmmoManager != null && playerAmmoManager.UseAmmo("Chaingun") && coolingSystem.currentHeat < coolingSystem.maxHeat)
                 {
-                    // Calculate dynamic fire rate based on how long the player has been firing
-                    timeFiring = Time.time - weaponSwitchTime; // Calculate the continuous firing duration
+                    timeFiring = Time.time - weaponSwitchTime;
                     float fireRate = Mathf.Lerp(baseFireRate * 2, baseFireRate, Mathf.Clamp01(timeFiring / rampUpTime));
-
                     nextTimeToFire = Time.time + fireRate;
                     Shoot();
                     coolingSystem.IncreaseHeat();
+                    UpdateAmmoUI(); // Zaktualizuj UI po strzale
                 }
             }
             RotateBarrel();
         }
         else if (Input.GetButtonUp("Fire1"))
         {
-            timeFiring = 0f; // Reset firing duration when the player stops firing
+            timeFiring = 0f;
+        }
+    }
+
+    public void SetActiveWeapon(bool active)
+    {
+        if (!photonView.IsMine) return;
+
+        isActiveWeapon = active;
+
+        if (active)
+        {
+            weaponSwitchTime = Time.time; // Zapisz czas, w którym broń została wybrana
+            timeFiring = 0f; // Reset czasu strzelania
+            UpdateAmmoUI(); // Zaktualizuj UI przy aktywowaniu broni
         }
     }
 
@@ -74,6 +106,7 @@ public class Chaingun : MonoBehaviourPunCallbacks
             muzzleFlash.Play();
             audioSource.PlayOneShot(shootSound);
         }
+
         if (audioSource != null && shootSound != null)
         {
             audioSource.PlayOneShot(shootSound);
@@ -83,10 +116,10 @@ public class Chaingun : MonoBehaviourPunCallbacks
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         Vector3 spread = firePoint.forward + new Vector3(Random.Range(-GetSpread(), GetSpread()), Random.Range(-GetSpread(), GetSpread()), 0);
         rb.velocity = spread * bulletSpeed;
-        Destroy(bullet, 2f); // Destroy bullet after 2 seconds to clean up
+        Destroy(bullet, 2f); // Zniszcz pocisk po 2 sekundach
     }
 
-    public float GetSpread()
+    float GetSpread()
     {
         float heatRatio = coolingSystem.currentHeat / coolingSystem.maxHeat;
         return Mathf.Lerp(minSpread, maxSpread, heatRatio);
@@ -100,35 +133,26 @@ public class Chaingun : MonoBehaviourPunCallbacks
         }
     }
 
-    public void SetActiveWeapon(bool isActive)
+    void UpdateAmmoUI()
     {
-        isActiveWeapon = isActive;
-        if (isActive)
+        if (ammoUI != null)
         {
-            weaponSwitchTime = Time.time; // Record the time the weapon was selected
-            timeFiring = 0f; // Initialize the firing duration
+            ammoUI.SetCurrentWeapon("Chaingun");
         }
     }
 
+    // Funkcja do ustawiania czasu ostatniego strzału
     public void SetLastShotTime(float time)
     {
-        lastShotTime = time;
+        nextTimeToFire = time;
     }
 
+    // Funkcja do ustawiania ciepła w systemie chłodzenia
     public void SetHeat(float heat)
     {
         if (coolingSystem != null)
         {
             coolingSystem.currentHeat = heat;
         }
-    }
-
-    public float GetHeat()
-    {
-        if (coolingSystem != null)
-        {
-            return coolingSystem.currentHeat;
-        }
-        return 0f;
     }
 }
