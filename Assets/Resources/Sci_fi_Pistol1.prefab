@@ -138,6 +138,7 @@ MonoBehaviour:
   fireCooldown: 1.2
   shootSound: {fileID: 8300000, guid: a83caa165f1fa1846be459c48c4af045, type: 3}
   weaponSwitchDelay: 0.6
+  isActiveWeapon: 0
 --- !u!114 &5587442779329116970
 MonoBehaviour:
   m_ObjectHideFlags: 0

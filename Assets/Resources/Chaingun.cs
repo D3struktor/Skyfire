@@ -21,7 +21,7 @@ public class Chaingun : MonoBehaviourPunCallbacks
     private AmmoUI ammoUI; // UI dla lokalnego gracza
     private CoolingSystem coolingSystem; // System chłodzenia
 
-    private bool isActiveWeapon = false;
+    public bool isActiveWeapon = false;
     private float weaponSwitchTime; // Czas przełączenia broni
     private float timeFiring; // Czas strzelania
     [SerializeField] private float rampUpTime = 1f; // Czas przyspieszenia ognia

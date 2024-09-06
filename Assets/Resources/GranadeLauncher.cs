@@ -13,7 +13,7 @@ public class GrenadeLauncher : MonoBehaviourPunCallbacks
     public AudioClip shootSound; // Sound clip to play when shooting
     public float weaponSwitchDelay = 0.5f; // Delay after switching weapon
 
-    private bool isActiveWeapon = false;
+    public bool isActiveWeapon = false;
     private float lastShotTime = 0f; // Time when the last shot was fired
     private float lastWeaponSwitchTime = 0f; // Time when the weapon was last switched
         private AudioSource audioSource;

@@ -92,6 +92,7 @@ MonoBehaviour:
   maxSpread: 0.06
   minSpread: 0
   shootSound: {fileID: 8300000, guid: 7ba0434dacd4c6a4bb43440a436177c7, type: 3}
+  isActiveWeapon: 0
   rampUpTime: 1.5
 --- !u!114 &-2429760637116632227
 MonoBehaviour:

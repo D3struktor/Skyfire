@@ -12,7 +12,7 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     public AudioClip shootSound; // Dźwięk strzału
     public float weaponSwitchDelay = 1f; // Opóźnienie po zmianie broni
 
-    private bool isActiveWeapon = false;
+    public bool isActiveWeapon = false;
     private float lastShotTime = 0f; // Czas ostatniego strzału
     private float lastWeaponSwitchTime = 0f; // Czas ostatniej zmiany broni
     private AudioSource audioSource;

@@ -69,6 +69,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private AudioSource audioSource;
 
         private bool isAlive = true; // Track if the player is alive
+        private AmmoUI ammoUI;
 
     void Awake()
     {
@@ -115,12 +116,22 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (PV.Owner.CustomProperties.TryGetValue("itemIndex", out object itemIndex))
         {
             EquipWeapon((int)itemIndex);
+            UpdateAmmoUI();
         }
         else
         {
             EquipWeapon(weaponSlot); // Equip default weapon if no property is found
+            UpdateAmmoUI();
+        }
+        // Znajdź komponent AmmoUI w scenie
+        ammoUI = FindObjectOfType<AmmoUI>();
+        if (ammoUI == null)
+        {
+            Debug.LogError("Nie znaleziono komponentu AmmoUI.");
         }
 
+        // Zaktualizuj UI na starcie
+        UpdateAmmoUI();
     }
 
     void Update()
@@ -189,6 +200,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void EquipWeapon(int slot)
     {
+        if (!photonView.IsMine) return;
         if (currentWeapon != null)
         {
             PhotonNetwork.Destroy(currentWeapon);
@@ -208,6 +220,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
                 crosshairController.SetChaingun(null); // Disable crosshair
                 Debug.Log("Primary weapon equipped, crosshair disabled");
             }
+            UpdateAmmoUI();
         }
         else if (slot == 2)
         {
@@ -223,6 +236,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
                 crosshairController.SetChaingun(null); // Disable crosshair
                 Debug.Log("Grenade launcher equipped, crosshair disabled");
             }
+            UpdateAmmoUI();
         }
         else if (slot == 3)
         {
@@ -238,6 +252,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
                     crosshairController.SetChaingun(chaingun); // Enable crosshair
                 }
             }
+            UpdateAmmoUI();
         }
 
         if (currentWeapon != null)
@@ -568,5 +583,32 @@ public class PlayerController : MonoBehaviourPunCallbacks
         randomColor = newColor;
         Debug.Log("PlayerController: Set player color to " + newColor);
     }
-    
+    void UpdateAmmoUI()
+    {
+        if (ammoUI != null)
+        {
+            string weaponType = "";
+
+            // Sprawdź, która broń jest aktualnie aktywna
+            if (discShooter != null && discShooter.isActiveWeapon)
+            {
+                weaponType = "DiscShooter";
+            }
+            else if (grenadeLauncher != null && grenadeLauncher.isActiveWeapon)
+            {
+                weaponType = "GrenadeLauncher";
+            }
+            else if (chaingun != null && chaingun.isActiveWeapon)
+            {
+                weaponType = "Chaingun";
+            }
+
+            // Zaktualizuj UI z nazwą aktywnej broni
+            if (!string.IsNullOrEmpty(weaponType))
+            {
+                ammoUI.SetCurrentWeapon(weaponType); 
+            }
+        }
+    }
+
 }
