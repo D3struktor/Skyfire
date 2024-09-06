@@ -52,6 +52,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     const float maxHealth = 100f;
     float currentHealth = maxHealth;
+    float CurrentHealth;
 
     PlayerManager playerManager;
     private CrosshairController crosshairController; // Referencja do CrosshairController
@@ -65,11 +66,21 @@ public class PlayerController : MonoBehaviourPunCallbacks
     public Color randomColor;
     public Renderer playerRenderer;
 
+    private int maxDiscShooterAmmo = 10;
+    private int maxGrenadeLauncherAmmo = 15;
+    private int maxChaingunAmmo = 100;
+
+    private int currentDiscShooterAmmo;
+    private int currentGrenadeLauncherAmmo;
+    private int currentChaingunAmmo;
+
     [SerializeField] private AudioClip slideSound;
     private AudioSource audioSource;
 
-        private bool isAlive = true; // Track if the player is alive
-        private AmmoUI ammoUI;
+    private bool isAlive = true; // Track if the player is alive
+    private AmmoUI ammoUI;
+
+    private Coroutine restoreHealthCoroutine;
 
     void Awake()
     {
@@ -132,6 +143,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         // Zaktualizuj UI na starcie
         UpdateAmmoUI();
+
+        CurrentHealth = maxHealth;
+        currentDiscShooterAmmo = maxDiscShooterAmmo;
+        currentGrenadeLauncherAmmo = maxGrenadeLauncherAmmo;
+        currentChaingunAmmo = maxChaingunAmmo;
     }
 
     void Update()
@@ -567,6 +583,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (playerManager != null)
         {
             playerManager.Die();
+            DropHealthAmmoPickup();
             Debug.Log("Player died.");
         }
     }
@@ -610,5 +627,76 @@ public class PlayerController : MonoBehaviourPunCallbacks
             }
         }
     }
+       public void RestoreHealthOverTime(float restorePercentage, float duration)
+    {
+        // Zatrzymaj istniejącą korutynę, jeśli jest aktywna
+        if (restoreHealthCoroutine != null)
+        {
+            StopCoroutine(restoreHealthCoroutine);
+        }
 
+        // Rozpocznij nową korutynę odnawiania zdrowia
+        restoreHealthCoroutine = StartCoroutine(RestoreHealthCoroutine(restorePercentage, duration));
+    }
+
+    // Korutyna, która odnawia zdrowie przez określony czas
+    private IEnumerator RestoreHealthCoroutine(float restorePercentage, float duration)
+    {
+        float totalHealthToRestore = maxHealth * restorePercentage;  // Całkowite zdrowie do odnowienia
+        float healthPerSecond = totalHealthToRestore / duration;      // Zdrowie odnawiane na sekundę
+        float elapsedTime = 0f;
+
+        while (elapsedTime < duration)
+        {
+            float healthToRestoreThisFrame = healthPerSecond * Time.deltaTime;
+            currentHealth = Mathf.Min(currentHealth + healthToRestoreThisFrame, maxHealth);  // Aktualizacja zdrowia
+
+            Debug.Log("Zdrowie odnowione: " + currentHealth + "/" + maxHealth);
+
+            elapsedTime += Time.deltaTime;  // Zwiększamy czas
+            yield return null;  // Czekamy do następnej klatki
+        }
+
+        // Upewniamy się, że po zakończeniu odnowienia zdrowie nie przekroczy maksymalnej wartości
+        currentHealth = Mathf.Min(currentHealth, maxHealth);
+        Debug.Log("Ostateczne zdrowie: " + currentHealth + "/" + maxHealth);
+    }
+
+     // Odnawianie zdrowia
+    // public void RestoreHealth(float restorePercentage)
+    // {
+    //     float healthToRestore = maxHealth * restorePercentage;
+    //     currentHealth = Mathf.Min(currentHealth + healthToRestore, maxHealth); // Zapobiega przekroczeniu maksymalnej wartości
+    //     Debug.Log("Zdrowie odnowione: " + currentHealth + "/" + maxHealth);
+    // }
+
+    // // Odnawianie amunicji
+    // public void RestoreAmmo(float restorePercentage)
+    // {
+    //     // Obliczamy, ile amunicji odnowić dla każdej broni
+    //     int discShooterAmmoToRestore = Mathf.RoundToInt(maxDiscShooterAmmo * restorePercentage);
+    //     int grenadeLauncherAmmoToRestore = Mathf.RoundToInt(maxGrenadeLauncherAmmo * restorePercentage);
+    //     int chaingunAmmoToRestore = Mathf.RoundToInt(maxChaingunAmmo * restorePercentage);
+
+    //     // Odnawiamy amunicję, ale nie przekraczamy maksymalnych wartości
+    //     currentDiscShooterAmmo = Mathf.Min(currentDiscShooterAmmo + discShooterAmmoToRestore, maxDiscShooterAmmo);
+    //     currentGrenadeLauncherAmmo = Mathf.Min(currentGrenadeLauncherAmmo + grenadeLauncherAmmoToRestore, maxGrenadeLauncherAmmo);
+    //     currentChaingunAmmo = Mathf.Min(currentChaingunAmmo + chaingunAmmoToRestore, maxChaingunAmmo);
+
+    //     Debug.Log("Amunicja odnowiona: DiscShooter: " + currentDiscShooterAmmo + "/" + maxDiscShooterAmmo +
+    //               ", GrenadeLauncher: " + currentGrenadeLauncherAmmo + "/" + maxGrenadeLauncherAmmo +
+    //               ", Chaingun: " + currentChaingunAmmo + "/" + maxChaingunAmmo);
+    // }
+    void DropHealthAmmoPickup()
+    {
+        // Ustal miejsce, gdzie ma spaść pickup (np. w miejscu gracza)
+        Vector3 dropPosition = transform.position;
+        
+        // Stwórz pickup
+        if (PhotonNetwork.IsMasterClient)
+        {
+        PhotonNetwork.Instantiate("HealthAmmoPickup", dropPosition, Quaternion.identity);
+        }
+    }
 }
+

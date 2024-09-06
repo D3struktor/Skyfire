@@ -43,7 +43,7 @@ public class TimerManager : MonoBehaviourPunCallbacks
             UpdateTimerUI();
             yield return new WaitForSeconds(1f);
             currentTime--;
-            Debug.Log("Match time remaining: " + currentTime);
+            // Debug.Log("Match time remaining: " + currentTime);
         }
 
         isMatchActive = false;

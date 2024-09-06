@@ -6,6 +6,11 @@ public class PlayerAmmoManager : MonoBehaviour
     public int grenadeLauncherAmmo = 15; // Ilość amunicji dla GranadeLauncher
     public int chaingunAmmo = 100; // Ilość amunicji dla Chaingun
 
+    // Maksymalne wartości amunicji
+    private int maxDiscShooterAmmo = 10;
+    private int maxGrenadeLauncherAmmo = 15;
+    private int maxChaingunAmmo = 100;
+
     // Pobiera amunicję dla danej broni
     public int GetAmmo(string weaponType)
     {
@@ -55,8 +60,21 @@ public class PlayerAmmoManager : MonoBehaviour
     // Resetuje amunicję po śmierci gracza lub odrodzeniu
     public void ResetAmmo()
     {
-        discShooterAmmo = 10;
-        grenadeLauncherAmmo = 15;
-        chaingunAmmo = 100;
+        discShooterAmmo = maxDiscShooterAmmo;
+        grenadeLauncherAmmo = maxGrenadeLauncherAmmo;
+        chaingunAmmo = maxChaingunAmmo;
+    }
+
+    // Odnawia amunicję dla wszystkich broni, ale nie przekracza maksymalnych wartości
+    public void RestoreAmmo(float percentage)
+    {
+        // Odnawiamy 30% maksymalnej amunicji dla każdej broni, ale nie przekraczamy maksymalnej wartości
+        discShooterAmmo = Mathf.Min(discShooterAmmo + Mathf.RoundToInt(maxDiscShooterAmmo * percentage), maxDiscShooterAmmo);
+        grenadeLauncherAmmo = Mathf.Min(grenadeLauncherAmmo + Mathf.RoundToInt(maxGrenadeLauncherAmmo * percentage), maxGrenadeLauncherAmmo);
+        chaingunAmmo = Mathf.Min(chaingunAmmo + Mathf.RoundToInt(maxChaingunAmmo * percentage), maxChaingunAmmo);
+
+        Debug.Log("Amunicja odnowiona: DiscShooter: " + discShooterAmmo + "/" + maxDiscShooterAmmo +
+                  ", GrenadeLauncher: " + grenadeLauncherAmmo + "/" + maxGrenadeLauncherAmmo +
+                  ", Chaingun: " + chaingunAmmo + "/" + maxChaingunAmmo);
     }
 }
