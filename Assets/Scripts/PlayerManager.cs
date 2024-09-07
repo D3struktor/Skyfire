@@ -158,12 +158,19 @@ public class PlayerManager : MonoBehaviourPunCallbacks
                 if (killerPM != null)
                 {
                     killerPM.PV.RPC(nameof(AddKill), killerPM.PV.Owner);
+                    photonView.RPC("UpdateKillFeed", RpcTarget.All, killer.NickName, PhotonNetwork.LocalPlayer.NickName);
                 }
             }
 
             isAlive = false;
         }
     }
+    [PunRPC]
+public void UpdateKillFeed(string killerName, string victimName)
+{
+    // Wywołanie funkcji dodawania wpisu do kill feeda
+    KillFeedManager.Instance.AddKillFeedEntry(killerName, victimName);
+}
 
     [PunRPC]
     public void AddKill()
