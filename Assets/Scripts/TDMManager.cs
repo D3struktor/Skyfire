@@ -5,81 +5,120 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class TDMManager : MonoBehaviourPunCallbacks
 {
-    public Color redTeamColor = Color.red;
-    public Color blueTeamColor = Color.blue;
+    public Color[] playerColors = new Color[20]; // Tablica z kolorami dla maksymalnie 20 graczy
+    private int nextColorIndex = 0; // Indeks dla przydzielania kolejnych kolorów z listy
+    private PhotonView pv;
 
-    private int redTeamCount = 0;
-    private int blueTeamCount = 0;
+    void Awake()
+    {
+        pv = GetComponent<PhotonView>();
+
+        if (pv == null)
+        {
+            Debug.LogError("[TDMManager] PhotonView jest null w Awake! Upewnij się, że PhotonView jest przypisany do obiektu TDMManager.");
+        }
+        else
+        {
+            Debug.Log("[TDMManager] PhotonView poprawnie zainicjalizowany.");
+        }
+
+        // Zainicjalizuj kolory dla 20 graczy (możesz tutaj zmienić kolory na dowolne)
+        DefinePlayerColors();
+    }
+
+    private void DefinePlayerColors()
+    {
+        // Dodajemy naprzemienne kolory dla graczy
+        for (int i = 0; i < playerColors.Length; i++)
+        {
+            if (i % 2 == 0)
+            {
+                playerColors[i] = Color.red; // Parzyste indeksy na czerwono
+            }
+            else
+            {
+                playerColors[i] = Color.blue; // Nieparzyste na niebiesko
+            }
+        }
+    }
 
     void Start()
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            UpdateTeamCounts();
-        }
-    }
-
-
-    public bool AssignTeam()
-    {
-
-        redTeamCount = 0;
-        blueTeamCount = 0;
-
-        UpdateTeamCounts();
-
-        bool isRedTeam = false;
-        if (redTeamCount == blueTeamCount)
-        {
-            isRedTeam = Random.Range(0, 2) == 0;
+            Debug.Log("[TDMManager] Master Client przypisuje kolory.");
+            AssignColorsToAllPlayers();
         }
         else
         {
-            isRedTeam = redTeamCount < blueTeamCount;
+            Debug.Log("[TDMManager] Nie jestem Master Clientem, czekamy.");
         }
-
-        string assignedTeam = isRedTeam ? "Red" : "Blue";
-        PhotonNetwork.LocalPlayer.SetCustomProperties(new Hashtable { { "Team", assignedTeam } });
-
-
-        Debug.Log(isRedTeam ? "TEAM RED." : "TEAM BLUE.");
-        Debug.Log($"Red Team Count: {redTeamCount}, Blue Team Count: {blueTeamCount}");
-        Debug.Log($"Przypisano: {assignedTeam} <========");
-        return isRedTeam;
     }
 
-
-
-    private void UpdateTeamCounts()
+    public void AssignColorsToAllPlayers()
     {
-        redTeamCount = 0;
-        blueTeamCount = 0;
-
         foreach (Player player in PhotonNetwork.PlayerList)
         {
-            if (player.CustomProperties.ContainsKey("Team"))
+            if (!player.CustomProperties.ContainsKey("PlayerColor"))
             {
-                string playerTeam = player.CustomProperties["Team"] as string;
-                if (playerTeam == "Red")
-                {
-                    redTeamCount++;
-                }
-                else if (playerTeam == "Blue")
-                {
-                    blueTeamCount++;
-                }
+                AssignColorToPlayer(player); // Przypisujemy sztywny kolor z tablicy
+            }
+            else
+            {
+                Debug.Log($"[TDMManager] Gracz {player.NickName} już ma przypisany kolor ({player.CustomProperties["PlayerColor"]}).");
             }
         }
-
-        Debug.Log($"Updated Team Counts - Red: {redTeamCount}, Blue: {blueTeamCount}");
     }
 
-    public Color GetTeamColor(Player player)
+    public void AssignColorToPlayer(Player player)
     {
-        Debug.Log("TDMManager: Returning team color for player " + player.NickName);
-        string team = player.CustomProperties["Team"] as string;
+        if (player == null)
+        {
+            Debug.LogError("[TDMManager] Gracz jest null!");
+            return;
+        }
 
-        Debug.Log("TDMManager: player " + player.NickName + " is in TEAM " + team);
-        return team == "Red" ? redTeamColor : blueTeamColor;
+        // Pobieramy kolor z listy, bazując na indeksie
+        Color assignedColor = playerColors[nextColorIndex];
+        nextColorIndex = (nextColorIndex + 1) % playerColors.Length; // Zapętlamy indeks po 20 graczach
+
+        // Przypisujemy kolor do CustomProperties gracza
+        Hashtable playerProperties = new Hashtable { { "PlayerColor", new Vector3(assignedColor.r, assignedColor.g, assignedColor.b) } };
+        player.SetCustomProperties(playerProperties); // Synchronizujemy kolor
+
+        Debug.Log($"[TDMManager] Gracz {player.NickName} otrzymał kolor: {assignedColor}");
+
+        // Synchronizujemy kolor do wszystkich klientów
+        pv.RPC("SyncPlayerColor", RpcTarget.AllBuffered, player.ActorNumber, assignedColor.r, assignedColor.g, assignedColor.b);
+    }
+
+    [PunRPC]
+    public void SyncPlayerColor(int actorNumber, float r, float g, float b)
+    {
+        Player player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+
+        if (player != null)
+        {
+            // Synchronizujemy kolor na wszystkich klientach
+            Hashtable playerProperties = new Hashtable { { "PlayerColor", new Vector3(r, g, b) } };
+            player.SetCustomProperties(playerProperties);
+
+            Debug.Log($"[TDMManager] Zsynchronizowano kolor gracza {player.NickName}: {new Color(r, g, b)}");
+        }
+        else
+        {
+            Debug.LogError($"[TDMManager] Nie znaleziono gracza z ActorNumber: {actorNumber}.");
+        }
+    }
+
+    public Color GetPlayerColor(Player player)
+    {
+        if (player.CustomProperties.TryGetValue("PlayerColor", out object colorObj))
+        {
+            Vector3 colorVector = (Vector3)colorObj;
+            return new Color(colorVector.x, colorVector.y, colorVector.z);
+        }
+
+        return Color.white; // Kolor domyślny, jeśli gracz nie ma przypisanego koloru
     }
 }

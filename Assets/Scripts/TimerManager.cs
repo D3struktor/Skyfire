@@ -8,17 +8,59 @@ public class TimerManager : MonoBehaviourPunCallbacks
     public float matchDuration = 30f;
     public float bufferTime = 10f;
     public string menuSceneName = "Menu"; // Nazwa sceny menu
-    // public GameObject scoreboard; // Referencja do scoreboardu UI
-    public CanvasGroup scoreboardCanvasGroup; 
+    public CanvasGroup scoreboardCanvasGroup;
 
     private float currentTime;
     private bool isMatchActive = false;
     private TMP_Text timerText;
 
+    public static bool isWarmup = false; // Flaga sygnalizująca, czy trwa warmup
+
     void Start()
     {
         Debug.Log("TimerManager started");
-        StartCoroutine(StartMatch());
+
+        // Sprawdzenie czy tryb gry to TDM
+        if (PlayerPrefs.GetString("GameMode") == "TDM")
+        {
+            Debug.Log("Game mode is TDM, starting warmup.");
+            StartCoroutine(WarmupPhase()); // Rozpoczynamy warmup
+        }
+        else
+        {
+            StartCoroutine(StartMatch());
+        }
+    }
+
+    IEnumerator WarmupPhase()
+    {
+        isWarmup = true; // Warmup się zaczyna
+        FindTimerText();
+        currentTime = 2f; 
+
+        while (currentTime > 0)
+        {
+            UpdateTimerUI("Warmup");
+            yield return new WaitForSeconds(1f);
+            currentTime--;
+        }
+
+        Debug.Log("Warmup finished, killing all players.");
+        KillAllPlayersAtStart(); // Zabijamy wszystkich graczy bez liczenia śmierci do statystyk
+        isWarmup = false; // Warmup zakończony
+        StartCoroutine(StartMatch()); // Rozpoczynamy mecz po warmupie
+    }
+
+    void KillAllPlayersAtStart()
+    {
+        PlayerManager[] players = FindObjectsOfType<PlayerManager>();
+        foreach (PlayerManager player in players)
+        {
+            if (player != null)
+            {
+                player.DieWithoutCountingDeath(); // Zabijamy gracza, ale nie liczymy śmierci
+            }
+        }
     }
 
     IEnumerator StartMatch()
@@ -43,7 +85,6 @@ public class TimerManager : MonoBehaviourPunCallbacks
             UpdateTimerUI();
             yield return new WaitForSeconds(1f);
             currentTime--;
-            // Debug.Log("Match time remaining: " + currentTime);
         }
 
         isMatchActive = false;
@@ -67,50 +108,46 @@ public class TimerManager : MonoBehaviourPunCallbacks
         Debug.Log("Buffer time ended!");
     }
 
-    void UpdateTimerUI(string TextTemplate = "Time")
+    void UpdateTimerUI(string textTemplate = "Time")
     {
         if (timerText != null)
         {
-            timerText.text = TextTemplate + ": " + currentTime.ToString("F0");
-            // Debug.Log("Timer updated: " + timerText.text);
+            timerText.text = textTemplate + ": " + currentTime.ToString("F0");
         }
     }
 
-void FindTimerText()
-{
-    if (timerText == null)
+    void FindTimerText()
     {
-        GameObject timerTextObject = GameObject.Find("TimerText"); // Zmień "TimerText" na dokładną nazwę obiektu w scenie
-        if (timerTextObject != null)
+        if (timerText == null)
         {
-            timerText = timerTextObject.GetComponent<TMP_Text>();
-            if (timerText != null)
+            GameObject timerTextObject = GameObject.Find("TimerText"); // Zmień "TimerText" na dokładną nazwę obiektu w scenie
+            if (timerTextObject != null)
             {
-                Debug.Log("Timer Text found: " + timerText.name);
+                timerText = timerTextObject.GetComponent<TMP_Text>();
+                if (timerText != null)
+                {
+                    Debug.Log("Timer Text found: " + timerText.name);
+                }
+                else
+                {
+                    Debug.LogWarning("TMP_Text component not found on the object!");
+                }
             }
             else
             {
-                Debug.LogWarning("TMP_Text component not found on the object!");
+                Debug.LogWarning("Timer Text object not found!");
             }
         }
-        else
-        {
-            Debug.LogWarning("Timer Text object not found!");
-        }
     }
-}
-
 
     void EndMatch()
     {
-        // Zatrzymaj ruch wszystkich graczy
         PlayerController[] players = FindObjectsOfType<PlayerController>();
         foreach (PlayerController player in players)
         {
             player.EnableMovement(false);
         }
 
-        // Wyświetl scoreboard
         if (scoreboardCanvasGroup != null)
         {
             scoreboardCanvasGroup.alpha = 1;
@@ -123,24 +160,19 @@ void FindTimerText()
 
     IEnumerator EndMatchAndLoadMenu()
     {
-        // Rozłącz z Photon
         PhotonNetwork.Disconnect();
         Debug.Log("Disconnecting from Photon...");
 
-        // Czekaj aż zostaniesz rozłączony
         while (PhotonNetwork.IsConnected)
         {
             yield return null;
         }
 
         Debug.Log("Disconnected from Photon. Loading menu scene...");
-        // Resetuj PhotonView ID
         ResetRoomManagerPhotonView();
 
-        // Załaduj scenę menu
         UnityEngine.SceneManagement.SceneManager.LoadScene(menuSceneName);
 
-        // Ustawienie kursora
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }

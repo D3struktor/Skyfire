@@ -17,11 +17,29 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     bool isAlive = true;
     public Color color;
 
-    int isRed = -1;
+    Camera playerCamera; // Kamera na stałe przypisana do gracza
 
     void Awake()
     {
         PV = GetComponent<PhotonView>();
+        if (PV == null)
+        {
+            Debug.LogError("PhotonView is missing from PlayerController.");
+        }
+
+        // Znajdź kamerę i przypisz ją do lokalnego gracza
+        if (PV.IsMine)
+        {
+            playerCamera = Camera.main; // Pobieramy główną kamerę
+            if (playerCamera == null)
+            {
+                Debug.LogError("No main camera found in the scene.");
+            }
+            else
+            {
+                playerCamera.gameObject.SetActive(true); // Aktywujemy kamerę dla lokalnego gracza
+            }
+        }
     }
 
     void Start()
@@ -51,6 +69,14 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
         controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { PV.ViewID });
 
+        // Obsługujemy kamerę tylko dla lokalnego gracza, ale nie niszczymy kamery po śmierci
+        if (PV.IsMine && playerCamera != null)
+        {
+            playerCamera.transform.SetParent(null); // Ustawiamy kamerę jako niezależną (nie przypisaną do kontrolera)
+            playerCamera.transform.position = controller.transform.position + new Vector3(0, 1.6f, 0); // Umieszczamy kamerę nad graczem
+            playerCamera.transform.rotation = Quaternion.identity; // Zerujemy rotację kamery
+        }
+
         if (PlayerPrefs.GetString("GameMode") == "TDM")
         {
             TDMManager tdmManager = FindObjectOfType<TDMManager>();
@@ -58,10 +84,11 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             {
                 Debug.Log("PlayerManager: TDMManager found.");
 
-                if (isRed == -1)
-                    Debug.Log("PlayerManager: O CHUJ NIE DZIALA.");
+                // Pobieramy kolor od razu po stworzeniu kontrolera
+                color = tdmManager.GetPlayerColor(PhotonNetwork.LocalPlayer);
 
-                controller.GetComponent<PhotonView>().RPC("SetPlayerColor", RpcTarget.AllBuffered, color.r, color.g, color.b);
+                // Ustawiamy kolor natychmiast
+                SetPlayerColor(controller, color);
             }
             else
             {
@@ -71,7 +98,17 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         else
         {
             color = new Color(Random.value, Random.value, Random.value);
-            controller.GetComponent<PhotonView>().RPC("SetPlayerColor", RpcTarget.AllBuffered, color.r, color.g, color.b);
+            SetPlayerColor(controller, color);
+        }
+    }
+
+    private void SetPlayerColor(GameObject playerController, Color color)
+    {
+        if (playerController != null)
+        {
+            // Ustawiamy kolor od razu na modelu gracza i synchronizujemy z innymi klientami
+            playerController.GetComponent<PhotonView>().RPC("SetPlayerColor", RpcTarget.AllBuffered, color.r, color.g, color.b);
+            Debug.Log($"PlayerManager: Set player color to RGBA({color.r}, {color.g}, {color.b}, {color.a})");
         }
     }
 
@@ -81,7 +118,14 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         {
             if (controller != null)
             {
-                PhotonNetwork.Destroy(controller);
+                if (controller.GetComponent<PhotonView>() != null)
+                {
+                    PhotonNetwork.Destroy(controller); // Niszczenie kontrolera gracza
+                }
+                else
+                {
+                    Debug.LogWarning("PhotonView is missing from controller, skipping destroy.");
+                }
             }
 
             StartCoroutine(RespawnAfterDelay(2f));
@@ -133,7 +177,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} got a kill. Total kills: {kills}.");
     }
 
-
     public static PlayerManager Find(Player player)
     {
         return FindObjectsOfType<PlayerManager>().ToList().SingleOrDefault(x => x.PV.Owner == player);
@@ -170,19 +213,8 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
         if (tdmManager != null)
         {
-            bool ValRed = tdmManager.AssignTeam();
-
-            if (ValRed)
-            {
-                color = Color.red;
-                isRed = 1;
-            }
-            else
-            {
-                color = Color.blue;
-                isRed = 0;
-            }
-
+            // Użycie logiki przypisania koloru zamiast drużyny
+            color = tdmManager.GetPlayerColor(PhotonNetwork.LocalPlayer);
             Debug.Log("Set color = " + color);
         }
         else
@@ -210,8 +242,23 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             StartTDM();
         }
     }
+
     public PhotonView GetPhotonView()
     {
         return PV;
+    }
+
+    public void DieWithoutCountingDeath()
+    {
+        if (PV.IsMine && isAlive)
+        {
+            if (controller != null)
+            {
+                PhotonNetwork.Destroy(controller); // Niszczenie kontrolera gracza
+            }
+
+            StartCoroutine(RespawnAfterDelay(2f)); // Respawn po 2 sekundach
+            isAlive = false;
+        }
     }
 }

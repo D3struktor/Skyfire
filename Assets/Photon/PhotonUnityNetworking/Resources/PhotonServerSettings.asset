@@ -54,6 +54,11 @@ MonoBehaviour:
   - SetPlayerColor
   - RPC_SetPlayerColor
   - RPC_UpdateTeamCounts
+  - SyncPlayerData
+  - SetPlayerTeam
+  - SyncPlayerColor
+  - DestroyPickup
+  - ActivateCooldown
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

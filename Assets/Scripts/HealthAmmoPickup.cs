@@ -8,9 +8,17 @@ public class HealthAmmoPickup : MonoBehaviour
     public AudioClip pickupSound;  // Dźwięk podniesienia
     private Rigidbody rb;
     private AudioSource audioSource; // Komponent AudioSource
+    private PhotonView photonView;   // Dodajemy PhotonView
 
     void Start()
     {
+        // Inicjalizujemy PhotonView
+        photonView = GetComponent<PhotonView>();
+        if (photonView == null)
+        {
+            Debug.LogError("[HealthAmmoPickup] PhotonView jest null. Upewnij się, że PhotonView jest przypisany do tego obiektu.");
+        }
+
         // Dodaj Rigidbody, jeśli nie ma
         rb = GetComponent<Rigidbody>();
         if (rb == null)
@@ -70,7 +78,17 @@ public class HealthAmmoPickup : MonoBehaviour
                 Debug.LogError("Brak komponentu PlayerAmmoManager na obiekcie gracza.");
             }
 
-            // Zniszcz pickup natychmiast po zebraniu
+            // Zamiast bezpośrednio niszczyć pickup, zlecamy to MasterClientowi przez RPC
+            photonView.RPC("DestroyPickup", RpcTarget.MasterClient); // Używamy photonView
+        }
+    }
+
+    [PunRPC]
+    public void DestroyPickup()
+    {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            Debug.Log("MasterClient: Zniszczenie pickup");
             PhotonNetwork.Destroy(gameObject);
         }
     }

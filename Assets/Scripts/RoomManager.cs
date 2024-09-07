@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime;
 using UnityEngine.SceneManagement;
 using System.IO;
 
@@ -9,7 +10,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
 {
     public static RoomManager Instance;
 
-void Awake()
+    void Awake()
     {
         if (Instance != null && Instance != this)
         {
@@ -21,7 +22,6 @@ void Awake()
         DontDestroyOnLoad(gameObject);
         Debug.Log("RoomManager instance set and marked as DontDestroyOnLoad.");
     }
-
 
     public override void OnEnable()
     {
@@ -61,5 +61,35 @@ void Awake()
         {
             PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerManager"), Vector3.zero, Quaternion.identity);
         }
+    }
+
+    // Metoda wywoływana, gdy nowy gracz dołącza do pokoju
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        Debug.Log("New player joined: " + newPlayer.NickName);
+
+        // Przykładowo, możesz tutaj zsynchronizować stan gry lub wysłać powiadomienia do innych graczy
+        foreach (Player player in PhotonNetwork.PlayerList)
+        {
+            Debug.Log("Player in room: " + player.NickName);
+        }
+
+        // Możesz także wysłać dane do nowego gracza
+        photonView.RPC("SyncPlayerData", newPlayer);
+    }
+
+    // RPC do synchronizacji danych dla nowego gracza
+    [PunRPC]
+    public void SyncPlayerData()
+    {
+        Debug.Log("Synchronizing player data for new player.");
+        // Tutaj dodaj kod do synchronizacji stanu gry, np. pozycje graczy, zdrowie, amunicję itp.
+    }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        Debug.Log("Player left: " + otherPlayer.NickName);
+
+        // Możesz tutaj obsłużyć usuwanie gracza z mapy lub inny cleanup
     }
 }

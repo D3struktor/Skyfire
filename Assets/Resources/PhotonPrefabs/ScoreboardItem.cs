@@ -15,6 +15,7 @@ public class ScoreboardItem : MonoBehaviourPunCallbacks
     public Image background; // Referencja do komponentu Image tła
 
     Player player;
+    TDMManager tdmManager;
 
     public void Initialize(Player player)
     {
@@ -25,6 +26,28 @@ public class ScoreboardItem : MonoBehaviourPunCallbacks
         SetBackgroundColor();
     }
 
+    void Start()
+    {
+        // Znajdź instancję TDMManager na scenie
+        tdmManager = FindObjectOfType<TDMManager>();
+
+        if (tdmManager == null)
+        {
+            Debug.LogError("[ScoreboardItem] TDMManager not found in the scene.");
+        }
+
+        // Dodaj opóźnienie 5 sekund przed ustawieniem koloru
+        StartCoroutine(WaitAndSetColor(5f));
+    }
+
+    IEnumerator WaitAndSetColor(float waitTime)
+    {
+        yield return new WaitForSeconds(waitTime);
+
+        SetBackgroundColor(); // Ustaw kolor tła po 5 sekundach
+    }
+
+
     void UpdateStats()
     {
         if (player.CustomProperties.TryGetValue("kills", out object kills))
@@ -33,7 +56,7 @@ public class ScoreboardItem : MonoBehaviourPunCallbacks
         }
         else
         {
-            killsText.text = "0"; // Ensure we have a default value
+            killsText.text = "0"; // Default value if "kills" is missing
         }
 
         if (player.CustomProperties.TryGetValue("deaths", out object deaths))
@@ -42,32 +65,27 @@ public class ScoreboardItem : MonoBehaviourPunCallbacks
         }
         else
         {
-            deathsText.text = "0"; // Ensure we have a default value
+            deathsText.text = "0"; // Default value if "deaths" is missing
         }
 
-        Debug.Log($"Updated stats for {player.NickName}: Kills = {killsText.text}, Deaths = {deathsText.text}");
+        Debug.Log($"[ScoreboardItem] Zaktualizowano statystyki dla {player.NickName}: Kills = {killsText.text}, Deaths = {deathsText.text}");
     }
 
     void SetBackgroundColor()
     {
-        if (player.CustomProperties.TryGetValue("Team", out object team))
+        if (tdmManager != null && player.CustomProperties.TryGetValue("PlayerColor", out object colorObj))
         {
-            if (team.ToString() == "Red")
-            {
-                background.color = Color.red;
-            }
-            else if (team.ToString() == "Blue")
-            {
-                background.color = Color.blue;
-            }
-            else
-            {
-                background.color = new Color(0,0,0,0.25f); // Default color if no team
-            }
+            // Pobierz kolor gracza z CustomProperties
+            Vector3 colorVector = (Vector3)colorObj;
+            Color playerColor = new Color(colorVector.x, colorVector.y, colorVector.z);
+            background.color = playerColor;
+
+            Debug.Log($"[ScoreboardItem] Ustawiono kolor tła dla {player.NickName}: {playerColor}");
         }
         else
         {
-            background.color = new Color(0,0,0,0.25f); // Default color if no team
+            background.color = new Color(0, 0, 0, 0.25f); // Kolor domyślny
+            Debug.LogWarning($"[ScoreboardItem] Brak przypisanego koloru dla gracza {player.NickName}, ustawiono domyślny kolor tła.");
         }
     }
 
@@ -80,7 +98,7 @@ public class ScoreboardItem : MonoBehaviourPunCallbacks
                 UpdateStats();
             }
 
-            if (changedProps.ContainsKey("Team"))
+            if (changedProps.ContainsKey("PlayerColor"))
             {
                 SetBackgroundColor();
             }
