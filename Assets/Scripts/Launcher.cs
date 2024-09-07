@@ -53,7 +53,15 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
 
         Debug.Log("Launcher: Creating room " + roomNameInputField.text);
-        PhotonNetwork.CreateRoom(roomNameInputField.text);
+
+        RoomOptions roomOptions = new RoomOptions();
+        roomOptions.MaxPlayers = 10;
+        ExitGames.Client.Photon.Hashtable roomProperties = new ExitGames.Client.Photon.Hashtable();
+        roomProperties.Add("gameStarted", false); // Domyślnie gra nie jest rozpoczęta
+        roomOptions.CustomRoomProperties = roomProperties;
+        roomOptions.CustomRoomPropertiesForLobby = new string[] { "gameStarted" }; // Dodanie tej właściwości do wyświetlania w lobby
+
+        PhotonNetwork.CreateRoom(roomNameInputField.text, roomOptions);
         MenuManager.Instance.OpenMenu("loading");
     }
 
@@ -88,19 +96,37 @@ public class Launcher : MonoBehaviourPunCallbacks
         Debug.LogError("Launcher: Create room failed with message " + message);
     }
 
-public void StartGame()
-{
-    PlayerPrefs.SetString("GameMode", "DM");
-    Debug.Log("Launcher: GameMode set to DM.");
-    PhotonNetwork.LoadLevel(1);
-}
+    public void StartGame()
+    {
+        PlayerPrefs.SetString("GameMode", "DM");
+        Debug.Log("Launcher: GameMode set to DM.");
 
-public void StartGameTDM()
-{
-    PlayerPrefs.SetString("GameMode", "TDM");
-    Debug.Log("Launcher: GameMode set to TDM.");
-    PhotonNetwork.LoadLevel(2);
-}
+        // Ustawienie właściwości pokoju 'gameStarted'
+        if (PhotonNetwork.IsMasterClient)
+        {
+            ExitGames.Client.Photon.Hashtable roomProperties = new ExitGames.Client.Photon.Hashtable();
+            roomProperties["gameStarted"] = true;
+            PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperties);
+        }
+
+        PhotonNetwork.LoadLevel(1);
+    }
+
+    public void StartGameTDM()
+    {
+        PlayerPrefs.SetString("GameMode", "TDM");
+        Debug.Log("Launcher: GameMode set to TDM.");
+
+        // Ustawienie właściwości pokoju 'gameStarted'
+        if (PhotonNetwork.IsMasterClient)
+        {
+            ExitGames.Client.Photon.Hashtable roomProperties = new ExitGames.Client.Photon.Hashtable();
+            roomProperties["gameStarted"] = true;
+            PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperties);
+        }
+
+        PhotonNetwork.LoadLevel(2);
+    }
 
     public void LeaveRoom()
     {
@@ -130,9 +156,24 @@ public void StartGameTDM()
 
         for (int i = 0; i < roomList.Count; i++)
         {
-            if (roomList[i].RemovedFromList)
+            RoomInfo roomInfo = roomList[i];
+
+            // Jeśli pokój został usunięty z listy, pomiń go
+            if (roomInfo.RemovedFromList)
+            {
                 continue;
-            Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().SetUp(roomList[i]);
+            }
+
+            // Sprawdzenie, czy pokój ma ustawioną właściwość 'gameStarted' i czy gra się rozpoczęła
+            if (roomInfo.CustomProperties.ContainsKey("gameStarted") && (bool)roomInfo.CustomProperties["gameStarted"] == true)
+            {
+                // Jeśli gra w pokoju się rozpoczęła, pomijamy go na liście
+                Debug.Log("Room " + roomInfo.Name + " is hidden because the game has already started.");
+                continue;
+            }
+
+            // Dodaj pokój do listy tylko, jeśli gra się nie rozpoczęła
+            Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().SetUp(roomInfo);
         }
     }
 
