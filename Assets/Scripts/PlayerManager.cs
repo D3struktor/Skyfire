@@ -212,31 +212,68 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         CreateController();
     }
 
-    public void RecordDeath(Player killer)
+public void RecordDeath(Player killer)
+{
+    Debug.Log("Player died");
+    if (PV.IsMine)
     {
-        Debug.Log("Player died");
-        if (PV.IsMine)
-        {
-            deaths++;
-            Hashtable hash = new Hashtable();
-            hash.Add("deaths", deaths);
-            PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-            Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} died. Total deaths: {deaths}.");
+        deaths++;
+        Hashtable hash = new Hashtable();
+        hash.Add("deaths", deaths);
+        PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+        Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} died. Total deaths: {deaths}.");
 
-            // Avoid adding a kill if the killer is the same as the victim
-            if (killer != null && killer != PhotonNetwork.LocalPlayer)
+        // Sprawdź, czy gracz nie zabił samego siebie i czy gracz nie zabił kolegi z drużyny
+        if (killer != null && killer != PhotonNetwork.LocalPlayer)
+        {
+            TDMManager tdmManager = FindObjectOfType<TDMManager>();
+            if (tdmManager != null)
             {
-                PlayerManager killerPM = Find(killer);
-                if (killerPM != null)
+                // Pobieramy drużynę gracza (ofiary) i zabójcy
+                SpawnpointTDM.TeamColor victimTeam = tdmManager.GetPlayerTeam(PhotonNetwork.LocalPlayer);
+                SpawnpointTDM.TeamColor killerTeam = tdmManager.GetPlayerTeam(killer);
+
+                // Sprawdzamy, czy zabójca nie jest w tej samej drużynie co ofiara (team kill)
+                if (victimTeam == killerTeam)
                 {
-                    killerPM.PV.RPC(nameof(AddKill), killerPM.PV.Owner);
-                    photonView.RPC("UpdateKillFeed", RpcTarget.All, killer.NickName, PhotonNetwork.LocalPlayer.NickName);
+                    Debug.Log($"PlayerManager: {killer.NickName} killed a teammate {PhotonNetwork.LocalPlayer.NickName}. Removing a kill.");
+
+                    // Odjęcie punktu za zabójstwo dla zabójcy w przypadku team kill
+                    PlayerManager teamKillPM = Find(killer); // Zmieniono nazwę zmiennej, aby uniknąć konfliktu
+                    if (teamKillPM != null)
+                    {
+                        teamKillPM.PV.RPC(nameof(RemoveKill), teamKillPM.PV.Owner); // Wywołanie RPC do odjęcia zabójstwa
+                    }
+                    return; // Nie zaliczamy normalnego zabójstwa, bo to team kill
                 }
             }
 
-            isAlive = false;
+            // Przyznanie zabójstwa dla zabójcy (jeśli nie jest to team kill)
+            PlayerManager killerPM = Find(killer);
+            if (killerPM != null)
+            {
+                killerPM.PV.RPC(nameof(AddKill), killerPM.PV.Owner);
+                photonView.RPC("UpdateKillFeed", RpcTarget.All, killer.NickName, PhotonNetwork.LocalPlayer.NickName);
+            }
         }
+
+        isAlive = false;
     }
+}
+
+[PunRPC]
+public void RemoveKill()
+{
+    if (!PV.IsMine) return;
+
+    kills--;
+    Hashtable hash = new Hashtable();
+    hash.Add("kills", kills);
+    PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+    Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} lost a kill. Total kills: {kills}.");
+}
+
+
 
     [PunRPC]
     public void UpdateKillFeed(string killerName, string victimName)
