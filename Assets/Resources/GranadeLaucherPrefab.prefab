@@ -136,8 +136,8 @@ MonoBehaviour:
   shootingPoint: {fileID: 2434285912294249829}
   grenadeSpeed: 120
   grenadeGravity: 9.81
-  grenadeDrag: 1
-  grenadeAngularDrag: 5
+  grenadeDrag: 0.4
+  grenadeAngularDrag: 0
   fireCooldown: 1
   shootSound: {fileID: 8300000, guid: 0ac737ba5454f1b4b88ef8da54fb1c87, type: 3}
   weaponSwitchDelay: 0.5

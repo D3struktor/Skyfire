@@ -5,6 +5,8 @@ using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine.SceneManagement;
 using TMPro;
+using UnityEngine.Audio;
+using UnityEngine.UI;
 
 public class Launcher : MonoBehaviourPunCallbacks
 {
@@ -18,6 +20,11 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] GameObject PlayerListItemPrefab;
     [SerializeField] GameObject startGameButton;
     [SerializeField] GameObject startGameTDMButton;
+    
+    // Nowe elementy dla ustawień
+    [SerializeField] GameObject settingsPanel;
+    [SerializeField] Slider volumeSlider;
+    [SerializeField] AudioMixer audioMixer;
 
     void Awake()
     {
@@ -30,6 +37,12 @@ public class Launcher : MonoBehaviourPunCallbacks
         PhotonNetwork.ConnectUsingSettings();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        // Wczytaj ustawienia głośności
+        float savedVolume = PlayerPrefs.GetFloat("Volume", 0.75f);
+        volumeSlider.value = savedVolume;
+        volumeSlider.onValueChanged.AddListener(SetVolume);
+        SetVolume(savedVolume); // Ustawienie głośności na start
     }
 
     public override void OnConnectedToMaster()  
@@ -53,15 +66,7 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
 
         Debug.Log("Launcher: Creating room " + roomNameInputField.text);
-
-        RoomOptions roomOptions = new RoomOptions();
-        roomOptions.MaxPlayers = 10;
-        ExitGames.Client.Photon.Hashtable roomProperties = new ExitGames.Client.Photon.Hashtable();
-        roomProperties.Add("gameStarted", false); // Domyślnie gra nie jest rozpoczęta
-        roomOptions.CustomRoomProperties = roomProperties;
-        roomOptions.CustomRoomPropertiesForLobby = new string[] { "gameStarted" }; // Dodanie tej właściwości do wyświetlania w lobby
-
-        PhotonNetwork.CreateRoom(roomNameInputField.text, roomOptions);
+        PhotonNetwork.CreateRoom(roomNameInputField.text);
         MenuManager.Instance.OpenMenu("loading");
     }
 
@@ -100,15 +105,6 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         PlayerPrefs.SetString("GameMode", "DM");
         Debug.Log("Launcher: GameMode set to DM.");
-
-        // Ustawienie właściwości pokoju 'gameStarted'
-        if (PhotonNetwork.IsMasterClient)
-        {
-            ExitGames.Client.Photon.Hashtable roomProperties = new ExitGames.Client.Photon.Hashtable();
-            roomProperties["gameStarted"] = true;
-            PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperties);
-        }
-
         PhotonNetwork.LoadLevel(1);
     }
 
@@ -116,15 +112,6 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         PlayerPrefs.SetString("GameMode", "TDM");
         Debug.Log("Launcher: GameMode set to TDM.");
-
-        // Ustawienie właściwości pokoju 'gameStarted'
-        if (PhotonNetwork.IsMasterClient)
-        {
-            ExitGames.Client.Photon.Hashtable roomProperties = new ExitGames.Client.Photon.Hashtable();
-            roomProperties["gameStarted"] = true;
-            PhotonNetwork.CurrentRoom.SetCustomProperties(roomProperties);
-        }
-
         PhotonNetwork.LoadLevel(2);
     }
 
@@ -156,29 +143,42 @@ public class Launcher : MonoBehaviourPunCallbacks
 
         for (int i = 0; i < roomList.Count; i++)
         {
-            RoomInfo roomInfo = roomList[i];
-
-            // Jeśli pokój został usunięty z listy, pomiń go
-            if (roomInfo.RemovedFromList)
-            {
+            if (roomList[i].RemovedFromList)
                 continue;
-            }
-
-            // Sprawdzenie, czy pokój ma ustawioną właściwość 'gameStarted' i czy gra się rozpoczęła
-            if (roomInfo.CustomProperties.ContainsKey("gameStarted") && (bool)roomInfo.CustomProperties["gameStarted"] == true)
-            {
-                // Jeśli gra w pokoju się rozpoczęła, pomijamy go na liście
-                Debug.Log("Room " + roomInfo.Name + " is hidden because the game has already started.");
-                continue;
-            }
-
-            // Dodaj pokój do listy tylko, jeśli gra się nie rozpoczęła
-            Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().SetUp(roomInfo);
+            Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().SetUp(roomList[i]);
         }
     }
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         Instantiate(PlayerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().SetUp(newPlayer);
+    }
+
+    // Funkcje dla ustawień i głośności
+    public void OpenSettings()
+    {
+        settingsPanel.SetActive(true);
+    }
+
+    public void CloseSettings()
+    {
+        settingsPanel.SetActive(false);
+    }
+
+    public void SetVolume(float volume)
+    {
+        audioMixer.SetFloat("Volume", Mathf.Log10(volume) * 20); // Zmiana wartości w AudioMixer
+        PlayerPrefs.SetFloat("Volume", volume); // Zapisanie głośności
+    }
+
+    public void ExitGame()
+    {
+        Debug.Log("Exit Game pressed. Quitting application.");
+
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false; // Dla edytora Unity
+        #else
+            Application.Quit(); // Prawdziwe wyjście z gry
+        #endif
     }
 }

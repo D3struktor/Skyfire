@@ -26,19 +26,30 @@ public class ScoreboardItem : MonoBehaviourPunCallbacks
         SetBackgroundColor();
     }
 
-    void Start()
+void Start()
+{
+    // Znajdź instancję TDMManager na scenie
+    tdmManager = FindObjectOfType<TDMManager>();
+
+    if (tdmManager == null)
     {
-        // Znajdź instancję TDMManager na scenie
-        tdmManager = FindObjectOfType<TDMManager>();
-
-        if (tdmManager == null)
-        {
-            Debug.LogError("[ScoreboardItem] TDMManager not found in the scene.");
-        }
-
-        // Dodaj opóźnienie 5 sekund przed ustawieniem koloru
-        StartCoroutine(WaitAndSetColor(5f));
+        Debug.LogError("[ScoreboardItem] TDMManager not found in the scene.");
     }
+
+    // Wyczyść początkowe statystyki
+    ClearStats();
+
+    // Dodaj opóźnienie 5 sekund przed ustawieniem koloru i aktualizacją statystyk
+    StartCoroutine(WaitAndSetColor(5f));
+}
+
+void ClearStats()
+{
+    // Resetowanie wyświetlanych wartości dla zabójstw i zgonów
+    killsText.text = "0";
+    deathsText.text = "0";
+}
+
 
     IEnumerator WaitAndSetColor(float waitTime)
     {

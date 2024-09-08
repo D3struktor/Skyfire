@@ -255,7 +255,10 @@ public void UpdateKillFeed(string killerName, string victimName)
         return PV;
     }
 
-    public void DieWithoutCountingDeath()
+public void DieWithoutCountingDeath()
+{
+    // Sprawdzenie, czy tryb gry to TDM
+    if (PlayerPrefs.GetString("GameMode") == "TDM")
     {
         if (PV.IsMine && isAlive)
         {
@@ -268,4 +271,10 @@ public void UpdateKillFeed(string killerName, string victimName)
             isAlive = false;
         }
     }
+    else
+    {
+        Debug.Log("DieWithoutCountingDeath: This method is only available in TDM mode.");
+    }
+}
+
 }
