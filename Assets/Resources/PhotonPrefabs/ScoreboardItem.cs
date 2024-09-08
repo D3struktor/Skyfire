@@ -82,23 +82,50 @@ void ClearStats()
         Debug.Log($"[ScoreboardItem] Zaktualizowano statystyki dla {player.NickName}: Kills = {killsText.text}, Deaths = {deathsText.text}");
     }
 
-    void SetBackgroundColor()
+void SetBackgroundColor()
+{
+    if (tdmManager != null && player.CustomProperties.TryGetValue("PlayerTeam", out object teamObj))
     {
-        if (tdmManager != null && player.CustomProperties.TryGetValue("PlayerColor", out object colorObj))
-        {
-            // Pobierz kolor gracza z CustomProperties
-            Vector3 colorVector = (Vector3)colorObj;
-            Color playerColor = new Color(colorVector.x, colorVector.y, colorVector.z);
-            background.color = playerColor;
+        // Pobieramy drużynę gracza z CustomProperties
+        SpawnpointTDM.TeamColor playerTeam = (SpawnpointTDM.TeamColor)teamObj;
 
-            Debug.Log($"[ScoreboardItem] Ustawiono kolor tła dla {player.NickName}: {playerColor}");
-        }
-        else
-        {
-            background.color = new Color(0, 0, 0, 0.25f); // Kolor domyślny
-            Debug.LogWarning($"[ScoreboardItem] Brak przypisanego koloru dla gracza {player.NickName}, ustawiono domyślny kolor tła.");
-        }
+        // Ustawiamy kolor w zależności od drużyny
+        Color playerColor = playerTeam == SpawnpointTDM.TeamColor.Red ? Color.red : Color.blue;
+        background.color = playerColor;
+
+        Debug.Log($"[ScoreboardItem] Ustawiono kolor tła dla {player.NickName} w drużynie {playerTeam}: {playerColor}");
     }
+    else
+    {
+        // Kolor domyślny, jeśli nie znaleziono drużyny
+        background.color = new Color(0, 0, 0, 0.25f); // Kolor domyślny
+        Debug.LogWarning($"[ScoreboardItem] Brak przypisanego koloru dla gracza {player.NickName}, ustawiono domyślny kolor tła.");
+
+        // Ponowna próba pobrania drużyny po krótkim czasie
+        StartCoroutine(WaitAndSetColor());
+    }
+}
+
+
+IEnumerator WaitAndSetColor()
+{
+    // Poczekaj chwilę (np. 0.5 sekundy) i spróbuj ponownie
+    yield return new WaitForSeconds(0.5f);
+
+    if (player.CustomProperties.TryGetValue("PlayerColor", out object colorObj))
+    {
+        Vector3 colorVector = (Vector3)colorObj;
+        Color playerColor = new Color(colorVector.x, colorVector.y, colorVector.z);
+        background.color = playerColor;
+
+        Debug.Log($"[ScoreboardItem] Ponownie ustawiono kolor tła dla {player.NickName}: {playerColor}");
+    }
+    else
+    {
+        Debug.LogWarning($"[ScoreboardItem] Ponownie nie udało się ustawić koloru tła dla {player.NickName}, zachowano domyślny kolor.");
+    }
+}
+
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
     {

@@ -180,9 +180,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8676551345374926910}
-  - component: {fileID: 7447213008048418516}
+  - component: {fileID: 758812083512310637}
   m_Layer: 0
-  m_Name: SpawnPoint
+  m_Name: SpawnPoint TDM-prefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -204,7 +204,7 @@ Transform:
   - {fileID: 333675703755493258}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 221.929, z: 0}
---- !u!114 &7447213008048418516
+--- !u!114 &758812083512310637
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -213,7 +213,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 8500357428417275664}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc9ee24bb022ac74baa5a84560c6fd43, type: 3}
+  m_Script: {fileID: 11500000, guid: 27e364443dadc7348a2795912fda0c17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   graphics: {fileID: 4578717347859262829}
+  teamColor: {r: 1, g: 0, b: 0, a: 0}

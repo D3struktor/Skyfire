@@ -5,8 +5,7 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class TDMManager : MonoBehaviourPunCallbacks
 {
-    public Color[] playerColors = new Color[20]; // Tablica z kolorami dla maksymalnie 20 graczy
-    private int nextColorIndex = 0; // Indeks dla przydzielania kolejnych kolorów z listy
+    private int nextTeamIndex = 0; // Indeks do przydzielania drużyn z naprzemiennym podziałem
     private PhotonView pv;
 
     void Awake()
@@ -21,33 +20,14 @@ public class TDMManager : MonoBehaviourPunCallbacks
         {
             Debug.Log("[TDMManager] PhotonView poprawnie zainicjalizowany.");
         }
-
-        // Zainicjalizuj kolory dla 20 graczy (możesz tutaj zmienić kolory na dowolne)
-        DefinePlayerColors();
-    }
-
-    private void DefinePlayerColors()
-    {
-        // Dodajemy naprzemienne kolory dla graczy
-        for (int i = 0; i < playerColors.Length; i++)
-        {
-            if (i % 2 == 0)
-            {
-                playerColors[i] = Color.red; // Parzyste indeksy na czerwono
-            }
-            else
-            {
-                playerColors[i] = Color.blue; // Nieparzyste na niebiesko
-            }
-        }
     }
 
     void Start()
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            Debug.Log("[TDMManager] Master Client przypisuje kolory.");
-            AssignColorsToAllPlayers();
+            Debug.Log("[TDMManager] Master Client przypisuje drużyny.");
+            AssignTeamsToAllPlayers();
         }
         else
         {
@@ -55,22 +35,22 @@ public class TDMManager : MonoBehaviourPunCallbacks
         }
     }
 
-    public void AssignColorsToAllPlayers()
+    public void AssignTeamsToAllPlayers()
     {
         foreach (Player player in PhotonNetwork.PlayerList)
         {
-            if (!player.CustomProperties.ContainsKey("PlayerColor"))
+            if (!player.CustomProperties.ContainsKey("PlayerTeam"))
             {
-                AssignColorToPlayer(player); // Przypisujemy sztywny kolor z tablicy
+                AssignTeamToPlayer(player); // Przypisujemy drużynę (Red lub Blue)
             }
             else
             {
-                Debug.Log($"[TDMManager] Gracz {player.NickName} już ma przypisany kolor ({player.CustomProperties["PlayerColor"]}).");
+                Debug.Log($"[TDMManager] Gracz {player.NickName} już ma przypisaną drużynę ({player.CustomProperties["PlayerTeam"]}).");
             }
         }
     }
 
-    public void AssignColorToPlayer(Player player)
+    public void AssignTeamToPlayer(Player player)
     {
         if (player == null)
         {
@@ -78,32 +58,33 @@ public class TDMManager : MonoBehaviourPunCallbacks
             return;
         }
 
-        // Pobieramy kolor z listy, bazując na indeksie
-        Color assignedColor = playerColors[nextColorIndex];
-        nextColorIndex = (nextColorIndex + 1) % playerColors.Length; // Zapętlamy indeks po 20 graczach
+        // Naprzemienne przypisywanie drużyn Red i Blue
+        SpawnpointTDM.TeamColor assignedTeam = nextTeamIndex % 2 == 0 ? SpawnpointTDM.TeamColor.Red : SpawnpointTDM.TeamColor.Blue;
+        nextTeamIndex++;
 
-        // Przypisujemy kolor do CustomProperties gracza
-        Hashtable playerProperties = new Hashtable { { "PlayerColor", new Vector3(assignedColor.r, assignedColor.g, assignedColor.b) } };
-        player.SetCustomProperties(playerProperties); // Synchronizujemy kolor
+        // Przypisujemy drużynę do CustomProperties gracza
+        Hashtable playerProperties = new Hashtable { { "PlayerTeam", assignedTeam } };
+        player.SetCustomProperties(playerProperties); // Synchronizujemy drużynę
 
-        Debug.Log($"[TDMManager] Gracz {player.NickName} otrzymał kolor: {assignedColor}");
+        Debug.Log($"[TDMManager] Gracz {player.NickName} otrzymał drużynę: {assignedTeam}");
 
-        // Synchronizujemy kolor do wszystkich klientów
-        pv.RPC("SyncPlayerColor", RpcTarget.AllBuffered, player.ActorNumber, assignedColor.r, assignedColor.g, assignedColor.b);
+        // Synchronizujemy drużynę do wszystkich klientów
+        pv.RPC("SyncPlayerTeam", RpcTarget.AllBuffered, player.ActorNumber, (int)assignedTeam);
     }
 
     [PunRPC]
-    public void SyncPlayerColor(int actorNumber, float r, float g, float b)
+    public void SyncPlayerTeam(int actorNumber, int team)
     {
         Player player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
 
         if (player != null)
         {
-            // Synchronizujemy kolor na wszystkich klientach
-            Hashtable playerProperties = new Hashtable { { "PlayerColor", new Vector3(r, g, b) } };
+            // Synchronizujemy drużynę na wszystkich klientach
+            SpawnpointTDM.TeamColor teamColor = (SpawnpointTDM.TeamColor)team;
+            Hashtable playerProperties = new Hashtable { { "PlayerTeam", teamColor } };
             player.SetCustomProperties(playerProperties);
 
-            Debug.Log($"[TDMManager] Zsynchronizowano kolor gracza {player.NickName}: {new Color(r, g, b)}");
+            Debug.Log($"[TDMManager] Zsynchronizowano drużynę gracza {player.NickName}: {teamColor}");
         }
         else
         {
@@ -111,14 +92,14 @@ public class TDMManager : MonoBehaviourPunCallbacks
         }
     }
 
-    public Color GetPlayerColor(Player player)
+    public SpawnpointTDM.TeamColor GetPlayerTeam(Player player)
     {
-        if (player.CustomProperties.TryGetValue("PlayerColor", out object colorObj))
+        if (player.CustomProperties.TryGetValue("PlayerTeam", out object teamObj))
         {
-            Vector3 colorVector = (Vector3)colorObj;
-            return new Color(colorVector.x, colorVector.y, colorVector.z);
+            return (SpawnpointTDM.TeamColor)teamObj;
         }
 
-        return Color.white; // Kolor domyślny, jeśli gracz nie ma przypisanego koloru
+        // Zwracamy domyślną drużynę, jeśli gracz nie ma przypisanej drużyny
+        return SpawnpointTDM.TeamColor.Red;
     }
 }

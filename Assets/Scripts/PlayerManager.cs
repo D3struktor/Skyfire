@@ -63,20 +63,85 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
     public void CreateController()
     {
+        Debug.Log($"PlayerManager: Attempting to create controller for {PhotonNetwork.LocalPlayer.NickName} (IsMine: {PV.IsMine}, IsMasterClient: {PhotonNetwork.IsMasterClient})");
+
         if (!isAlive)
+        {
+            Debug.Log($"PlayerManager: Player {PhotonNetwork.LocalPlayer.NickName} is not alive. Skipping controller creation.");
             return;
+        }
 
-        Transform spawnpoint = SpawnManager.Instance.GetSpawnpoint();
-        controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { PV.ViewID });
+        Transform spawnpoint = null;
 
-        // Obsługujemy kamerę tylko dla lokalnego gracza, ale nie niszczymy kamery po śmierci
+        // Sprawdzamy tryb gry
+        string gameMode = PlayerPrefs.GetString("GameMode");
+        Debug.Log($"PlayerManager: Current GameMode is {gameMode}");
+
+        if (gameMode == "TDM")
+        {
+            // Używamy systemu spawnowania dla TDM
+            SpawnManagerTDM spawnManagerTDM = FindObjectOfType<SpawnManagerTDM>();
+            if (spawnManagerTDM != null)
+            {
+                Debug.Log("PlayerManager: SpawnManagerTDM found.");
+
+                // Pobieramy punkt respawnu na podstawie drużyny
+                spawnpoint = spawnManagerTDM.GetSpawnPoint(PhotonNetwork.LocalPlayer);
+
+                if (spawnpoint != null)
+                {
+                    Debug.Log($"PlayerManager: Spawn point found at {spawnpoint.position} for player {PhotonNetwork.LocalPlayer.NickName} in TDM mode.");
+                }
+                else
+                {
+                    Debug.LogError($"PlayerManager: No valid spawn point found for player {PhotonNetwork.LocalPlayer.NickName} in TDM mode.");
+                    return;
+                }
+            }
+            else
+            {
+                Debug.LogError("PlayerManager: SpawnManagerTDM not found.");
+                return;
+            }
+        }
+        else
+        {
+            // Standardowe spawnowanie dla innych trybów gry
+            spawnpoint = SpawnManager.Instance.GetSpawnpoint();
+
+            if (spawnpoint != null)
+            {
+                Debug.Log($"PlayerManager: Standard spawn point found at {spawnpoint.position} for player {PhotonNetwork.LocalPlayer.NickName}.");
+            }
+            else
+            {
+                Debug.LogError($"PlayerManager: No valid spawn point found for player {PhotonNetwork.LocalPlayer.NickName} in non-TDM mode.");
+                return;
+            }
+        }
+
+        // Tworzymy kontroler gracza w wybranym punkcie respawn dla WSZYSTKICH graczy
+        if (spawnpoint != null && controller == null)
+        {
+            Debug.Log($"PlayerManager: Instantiating PlayerController prefab for {PhotonNetwork.LocalPlayer.NickName} at spawn point {spawnpoint.position}.");
+            controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "PlayerController"), spawnpoint.position, spawnpoint.rotation, 0, new object[] { PV.ViewID });
+        }
+        else if (controller != null)
+        {
+            Debug.LogWarning($"PlayerManager: Controller already exists for {PhotonNetwork.LocalPlayer.NickName}, skipping creation.");
+        }
+
+        // Obsługujemy kamerę tylko dla lokalnego gracza (kamera jest przypisywana tylko lokalnemu graczowi)
         if (PV.IsMine && playerCamera != null)
         {
             playerCamera.transform.SetParent(null); // Ustawiamy kamerę jako niezależną (nie przypisaną do kontrolera)
             playerCamera.transform.position = controller.transform.position + new Vector3(0, 1.6f, 0); // Umieszczamy kamerę nad graczem
             playerCamera.transform.rotation = Quaternion.identity; // Zerujemy rotację kamery
+
+            Debug.Log($"PlayerManager: Camera assigned and positioned for {PhotonNetwork.LocalPlayer.NickName}.");
         }
 
+        // Przypisanie koloru gracza w trybie TDM
         if (PlayerPrefs.GetString("GameMode") == "TDM")
         {
             TDMManager tdmManager = FindObjectOfType<TDMManager>();
@@ -84,8 +149,20 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             {
                 Debug.Log("PlayerManager: TDMManager found.");
 
-                // Pobieramy kolor od razu po stworzeniu kontrolera
-                color = tdmManager.GetPlayerColor(PhotonNetwork.LocalPlayer);
+                // Pobieramy drużynę od razu po stworzeniu kontrolera
+                SpawnpointTDM.TeamColor playerTeam = tdmManager.GetPlayerTeam(PhotonNetwork.LocalPlayer);
+
+                // Ustawiamy kolor w zależności od drużyny
+                if (playerTeam == SpawnpointTDM.TeamColor.Red)
+                {
+                    color = Color.red;
+                }
+                else if (playerTeam == SpawnpointTDM.TeamColor.Blue)
+                {
+                    color = Color.blue;
+                }
+
+                Debug.Log($"PlayerManager: Player {PhotonNetwork.LocalPlayer.NickName} assigned color {color} based on team {playerTeam}.");
 
                 // Ustawiamy kolor natychmiast
                 SetPlayerColor(controller, color);
@@ -94,11 +171,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             {
                 Debug.LogError("PlayerManager: TDMManager not found.");
             }
-        }
-        else
-        {
-            color = new Color(Random.value, Random.value, Random.value);
-            SetPlayerColor(controller, color);
         }
     }
 
@@ -165,12 +237,13 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             isAlive = false;
         }
     }
+
     [PunRPC]
-public void UpdateKillFeed(string killerName, string victimName)
-{
-    // Wywołanie funkcji dodawania wpisu do kill feeda
-    KillFeedManager.Instance.AddKillFeedEntry(killerName, victimName);
-}
+    public void UpdateKillFeed(string killerName, string victimName)
+    {
+        // Wywołanie funkcji dodawania wpisu do kill feeda
+        KillFeedManager.Instance.AddKillFeedEntry(killerName, victimName);
+    }
 
     [PunRPC]
     public void AddKill()
@@ -220,8 +293,19 @@ public void UpdateKillFeed(string killerName, string victimName)
 
         if (tdmManager != null)
         {
-            // Użycie logiki przypisania koloru zamiast drużyny
-            color = tdmManager.GetPlayerColor(PhotonNetwork.LocalPlayer);
+            // Pobieramy drużynę i ustawiamy kolor na podstawie drużyny
+            SpawnpointTDM.TeamColor playerTeam = tdmManager.GetPlayerTeam(PhotonNetwork.LocalPlayer);
+
+            // Ustawiamy kolor w zależności od drużyny
+            if (playerTeam == SpawnpointTDM.TeamColor.Red)
+            {
+                color = Color.red;
+            }
+            else if (playerTeam == SpawnpointTDM.TeamColor.Blue)
+            {
+                color = Color.blue;
+            }
+
             Debug.Log("Set color = " + color);
         }
         else
@@ -255,26 +339,25 @@ public void UpdateKillFeed(string killerName, string victimName)
         return PV;
     }
 
-public void DieWithoutCountingDeath()
-{
-    // Sprawdzenie, czy tryb gry to TDM
-    if (PlayerPrefs.GetString("GameMode") == "TDM")
+    public void DieWithoutCountingDeath()
     {
-        if (PV.IsMine && isAlive)
+        // Sprawdzenie, czy tryb gry to TDM
+        if (PlayerPrefs.GetString("GameMode") == "TDM")
         {
-            if (controller != null)
+            if (PV.IsMine && isAlive)
             {
-                PhotonNetwork.Destroy(controller); // Niszczenie kontrolera gracza
-            }
+                if (controller != null)
+                {
+                    PhotonNetwork.Destroy(controller); // Niszczenie kontrolera gracza
+                }
 
-            StartCoroutine(RespawnAfterDelay(2f)); // Respawn po 2 sekundach
-            isAlive = false;
+                StartCoroutine(RespawnAfterDelay(2f)); // Respawn po 2 sekundach
+                isAlive = false;
+            }
+        }
+        else
+        {
+            Debug.Log("DieWithoutCountingDeath: This method is only available in TDM mode.");
         }
     }
-    else
-    {
-        Debug.Log("DieWithoutCountingDeath: This method is only available in TDM mode.");
-    }
-}
-
 }
