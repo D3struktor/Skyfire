@@ -180,7 +180,7 @@ MonoBehaviour:
   ammoRestorePercentage: 0.3
   restoreCooldown: 60
   pickupSound: {fileID: 8300000, guid: e64031fca51eebf41b3cc0176a063efd, type: 3}
-  volumeBoostFactor: 5
+  volumeBoostFactor: 2
 --- !u!114 &6358870883584295642
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -372,7 +372,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: -3.43, z: 0}
-  m_LocalScale: {x: 2.5481234, y: 0.065218404, z: 2.6543612}
+  m_LocalScale: {x: 2.5481234, y: 0.036767278, z: 2.6543612}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3226110598948730110}

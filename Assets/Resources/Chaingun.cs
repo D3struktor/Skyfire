@@ -65,7 +65,7 @@ public class Chaingun : MonoBehaviourPunCallbacks
         if (!isActiveWeapon) return;
 
         // Add delay after switching weapon similar to GrenadeLauncher
-        if (Time.time < lastWeaponSwitchTime + 0.12f) return;
+        if (Time.time < lastWeaponSwitchTime + 0.3f) return;
 
         if (Input.GetButton("Fire1"))
         {

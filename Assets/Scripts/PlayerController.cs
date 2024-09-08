@@ -75,14 +75,14 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private int currentChaingunAmmo;
 
     [SerializeField] private AudioClip slideSound;
+    [SerializeField] private AudioClip jetpackSound;
+    [SerializeField] private AudioClip Shot;
     private AudioSource audioSource;
 
     private bool isAlive = true; // Track if the player is alive
     private AmmoUI ammoUI;
 
     private Coroutine restoreHealthCoroutine;
-
-    public AudioSource jetpackAudio;
 
     void Awake()
     {
@@ -104,7 +104,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         Cursor.lockState = CursorLockMode.Locked;
         currentJetpackFuel = jetpackFuelMax;
-        jetpackAudio.volume = 0.7f;
 
         playerRenderer = GetComponent<Renderer>();
         playerRenderer.material.color = randomColor;
@@ -378,20 +377,22 @@ public class PlayerController : MonoBehaviourPunCallbacks
             rb.AddForce(jetpackDirection, ForceMode.Acceleration);
             UseJetpackFuel();
 
-            // Play the sound if it's not already playing
-            if (!jetpackAudio.isPlaying)
+            if (!audioSource.isPlaying)
             {
-                jetpackAudio.Play();
+            audioSource.clip = jetpackSound; // Set the audio clip to jetpack sound
+            audioSource.volume = 0.6f; // Set volume to 60%
+            audioSource.Play();
             }
         }
-        else
+            else
+    {
+        // Stop the sound when not using the jetpack
+        if (audioSource.clip == jetpackSound && audioSource.isPlaying)
         {
-            // Stop the sound when not using the jetpack
-            if (jetpackAudio.isPlaying)
-            {
-                jetpackAudio.Stop();
-            }
+            audioSource.Stop();
         }
+    }
+
 
         if (currentJetpackFuel <= 0)
         {
@@ -591,6 +592,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (healthbarImage != null)
         {
             healthbarImage.fillAmount = currentHealth / maxHealth;
+        }
+        
+        if (Shot != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(Shot);
         }
     }
 
