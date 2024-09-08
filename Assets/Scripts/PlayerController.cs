@@ -82,6 +82,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private Coroutine restoreHealthCoroutine;
 
+    public AudioSource jetpackAudio;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -102,6 +104,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         Cursor.lockState = CursorLockMode.Locked;
         currentJetpackFuel = jetpackFuelMax;
+        jetpackAudio.volume = 0.7f;
 
         playerRenderer = GetComponent<Renderer>();
         playerRenderer.material.color = randomColor;
@@ -374,6 +377,20 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Vector3 jetpackDirection = transform.forward * jetpackForceZ + transform.right * jetpackForceX + Vector3.up * jetpackForceY;
             rb.AddForce(jetpackDirection, ForceMode.Acceleration);
             UseJetpackFuel();
+
+            // Play the sound if it's not already playing
+            if (!jetpackAudio.isPlaying)
+            {
+                jetpackAudio.Play();
+            }
+        }
+        else
+        {
+            // Stop the sound when not using the jetpack
+            if (jetpackAudio.isPlaying)
+            {
+                jetpackAudio.Stop();
+            }
         }
 
         if (currentJetpackFuel <= 0)

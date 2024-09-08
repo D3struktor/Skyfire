@@ -25,6 +25,7 @@ public class Chaingun : MonoBehaviourPunCallbacks
     private float weaponSwitchTime; // Czas przełączenia broni
     private float timeFiring; // Czas strzelania
     [SerializeField] private float rampUpTime = 1f; // Czas przyspieszenia ognia
+    private float lastWeaponSwitchTime = 0f; // Time when the weapon was last switched
 
     void Start()
     {
@@ -63,6 +64,9 @@ public class Chaingun : MonoBehaviourPunCallbacks
 
         if (!isActiveWeapon) return;
 
+        // Add delay after switching weapon similar to GrenadeLauncher
+        if (Time.time < lastWeaponSwitchTime + 0.12f) return;
+
         if (Input.GetButton("Fire1"))
         {
             if (Time.time >= nextTimeToFire)
@@ -94,7 +98,8 @@ public class Chaingun : MonoBehaviourPunCallbacks
         if (active)
         {
             weaponSwitchTime = Time.time; // Zapisz czas, w którym broń została wybrana
-            timeFiring = 0f; // Reset czasu strzelania
+            lastWeaponSwitchTime = Time.time; // Update the last weapon switch time
+            timeFiring = 0.12f; // Reset czasu strzelania
             UpdateAmmoUI(); // Zaktualizuj UI przy aktywowaniu broni
         }
     }
