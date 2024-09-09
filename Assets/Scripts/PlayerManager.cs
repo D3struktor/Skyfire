@@ -239,13 +239,16 @@ public void RecordDeath(Player killer)
                     Debug.Log($"PlayerManager: {killer.NickName} killed a teammate {PhotonNetwork.LocalPlayer.NickName}. Removing a kill.");
 
                     // Odjęcie punktu za zabójstwo dla zabójcy w przypadku team kill
-                    PlayerManager teamKillPM = Find(killer); // Zmieniono nazwę zmiennej, aby uniknąć konfliktu
+                    PlayerManager teamKillPM = Find(killer);
                     if (teamKillPM != null)
                     {
-                        teamKillPM.PV.RPC(nameof(RemoveKill), teamKillPM.PV.Owner); // Wywołanie RPC do odjęcia zabójstwa
+                        teamKillPM.PV.RPC(nameof(RemoveKill), teamKillPM.PV.Owner);
                     }
                     return; // Nie zaliczamy normalnego zabójstwa, bo to team kill
                 }
+
+                // Zwiększenie licznika zabójstw drużyny zabójcy
+                tdmManager.AddKillToTeam(killerTeam);
             }
 
             // Przyznanie zabójstwa dla zabójcy (jeśli nie jest to team kill)
@@ -260,6 +263,7 @@ public void RecordDeath(Player killer)
         isAlive = false;
     }
 }
+
 
 [PunRPC]
 public void RemoveKill()
