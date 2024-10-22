@@ -36,7 +36,7 @@ public class TimerManager : MonoBehaviourPunCallbacks
     {
         isWarmup = true; // Warmup się zaczyna
         FindTimerText();
-        currentTime = 5f; 
+        currentTime = 1f; 
 
         while (currentTime > 0)
         {

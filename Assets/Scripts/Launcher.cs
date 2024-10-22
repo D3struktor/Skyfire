@@ -20,13 +20,22 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] GameObject PlayerListItemPrefab;
     [SerializeField] GameObject startGameButton;
     [SerializeField] GameObject startGameTDMButton;
-    
+
     // Nowe elementy dla ustawień
     [SerializeField] GameObject settingsPanel;
     [SerializeField] Slider volumeSlider;
     [SerializeField] AudioMixer audioMixer;
     [SerializeField] Slider sfxVolumeSlider;
-    [SerializeField] AudioMixer SFXMixer; // Declare SFXMixer here
+    [SerializeField] AudioMixer SFXMixer;
+
+    // Elementy do ekranu ładowania
+    [SerializeField] private GameObject loadingScreen;  // Panel dla ekranu ładowania
+    [SerializeField] private Image loadingImage;        // Obraz JPG na ekranie ładowania
+    [SerializeField] private TMP_Text loadingText;      // Tekst wyświetlający stan ładowania
+    [SerializeField] private Slider loadingSlider;      // Pasek ładowania
+
+    // Symulowane ładowanie
+    [SerializeField] private float fakeLoadingTime = 3.0f;  // Czas trwania symulowanego ładowania
 
     // Declare savedVolume and savedSFXVolume
     private float savedVolume;
@@ -119,14 +128,83 @@ public class Launcher : MonoBehaviourPunCallbacks
     {
         PlayerPrefs.SetString("GameMode", "DM");
         Debug.Log("Launcher: GameMode set to DM.");
-        PhotonNetwork.LoadLevel(1);
+
+        // Pokaż ekran ładowania
+        ShowLoadingScreen();
+
+        // Symuluj ładowanie paska i załaduj scenę
+        StartCoroutine(FakeLoadingProgress(1));  // Indeks sceny do załadowania
     }
 
     public void StartGameTDM()
     {
+        Debug.Log("Launcher: Host setting GameMode to TDM for all players.");
+
+        // Wywołanie RPC, aby ustawić tryb TDM dla wszystkich graczy
+        photonView.RPC("SetGameModeTDM", RpcTarget.All);
+
+        // Pokaż ekran ładowania
+        ShowLoadingScreen();
+
+        // Symuluj ładowanie paska i załaduj scenę
+        StartCoroutine(FakeLoadingProgress(2));  // Załaduj scenę o indeksie 2
+    }
+
+    // RPC, który ustawia tryb gry na TDM dla każdego gracza
+    [PunRPC]
+    public void SetGameModeTDM()
+    {
+        // Ustaw tryb gry na TDM lokalnie
         PlayerPrefs.SetString("GameMode", "TDM");
-        Debug.Log("Launcher: GameMode set to TDM.");
-        PhotonNetwork.LoadLevel(2);
+        Debug.Log("Launcher: GameMode set to TDM for all players.");
+    }
+
+
+    private void ShowLoadingScreen()
+    {
+        // Włącz ekran ładowania
+        loadingScreen.SetActive(true);
+
+        // Zresetuj wartość paska i tekst
+        if (loadingSlider != null)
+        {
+            loadingSlider.value = 0f;
+        }
+
+        if (loadingText != null)
+        {
+            loadingText.text = "Ładowanie... 0%";
+        }
+    }
+
+    // Symulacja ładowania paska postępu z faktycznym ładowaniem sceny
+    private IEnumerator FakeLoadingProgress(int sceneIndex)
+    {
+        float elapsedTime = 0f;
+
+        // Rozpocznij ładowanie sceny w tle
+        PhotonNetwork.LoadLevel(sceneIndex);
+
+        // Zresetuj pasek ładowania do 0%
+        loadingSlider.value = 0f;
+
+        while (elapsedTime < fakeLoadingTime)
+        {
+            // Oblicz postęp na podstawie czasu
+            elapsedTime += Time.deltaTime;
+            float progress = Mathf.Clamp01(elapsedTime / fakeLoadingTime);
+
+            // Ustaw wartość paska
+            loadingSlider.value = progress;
+
+            // Aktualizacja tekstu ładowania
+            if (loadingText != null)
+            {
+                loadingText.text = "Ładowanie... " + (progress * 100f).ToString("F0") + "%";
+            }
+
+            yield return null;  // Czekaj do następnej klatki
+        }
     }
 
     public void LeaveRoom()
@@ -163,10 +241,29 @@ public class Launcher : MonoBehaviourPunCallbacks
         }
     }
 
-    public override void OnPlayerEnteredRoom(Player newPlayer)
+public override void OnPlayerEnteredRoom(Player newPlayer)
+{
+    // Dodaj nowego gracza do listy graczy
+    Instantiate(PlayerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().SetUp(newPlayer);
+
+    // Sprawdź, czy tryb gry został ustawiony w CustomProperties pokoju
+    if (PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("GameMode"))
     {
-        Instantiate(PlayerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().SetUp(newPlayer);
+        // Pobierz aktualny tryb gry z właściwości pokoju
+        string gameMode = PhotonNetwork.CurrentRoom.CustomProperties["GameMode"].ToString();
+        Debug.Log($"Launcher: Player {newPlayer.NickName} joined the room. GameMode is {gameMode}");
+
+        // Ustaw tryb gry dla nowego gracza
+        PlayerPrefs.SetString("GameMode", gameMode);
+
+        Debug.Log($"Launcher: Updated GameMode for {newPlayer.NickName} to {gameMode}");
     }
+    else
+    {
+        Debug.Log("Launcher: No GameMode set in room properties.");
+    }
+}
+
 
     // Funkcje dla ustawień i głośności
     public void OpenSettings()

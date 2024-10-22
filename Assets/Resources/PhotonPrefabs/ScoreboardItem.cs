@@ -40,7 +40,7 @@ void Start()
     ClearStats();
 
     // Dodaj opóźnienie 5 sekund przed ustawieniem koloru i aktualizacją statystyk
-    StartCoroutine(WaitAndSetColor(5f));
+    StartCoroutine(WaitAndSetColor(1.5f));
 }
 
 void ClearStats()
@@ -48,6 +48,7 @@ void ClearStats()
     // Resetowanie wyświetlanych wartości dla zabójstw i zgonów
     killsText.text = "0";
     deathsText.text = "0";
+    Debug.Log("Statystyki zostały zresetowane.");
 }
 
 
