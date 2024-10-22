@@ -104,25 +104,39 @@ public class Chaingun : MonoBehaviourPunCallbacks
         }
     }
 
-    void Shoot()
+void Shoot()
+{
+    if (muzzleFlash != null)
     {
-        if (muzzleFlash != null)
-        {
-            muzzleFlash.Play();
-            audioSource.PlayOneShot(shootSound);
-        }
-
-        if (audioSource != null && shootSound != null)
-        {
-            audioSource.PlayOneShot(shootSound);
-        }
-
-        GameObject bullet = PhotonNetwork.Instantiate(bulletPrefab.name, firePoint.position, firePoint.rotation);
-        Rigidbody rb = bullet.GetComponent<Rigidbody>();
-        Vector3 spread = firePoint.forward + new Vector3(Random.Range(-GetSpread(), GetSpread()), Random.Range(-GetSpread(), GetSpread()), 0);
-        rb.velocity = spread * bulletSpeed;
-        Destroy(bullet, 2f); // Zniszcz pocisk po 2 sekundach
+        muzzleFlash.Play();
+        audioSource.PlayOneShot(shootSound);
     }
+
+    if (audioSource != null && shootSound != null)
+    {
+        audioSource.PlayOneShot(shootSound);
+    }
+
+    // Tworzenie pocisku
+    GameObject bullet = PhotonNetwork.Instantiate(bulletPrefab.name, firePoint.position, firePoint.rotation);
+    Rigidbody rb = bullet.GetComponent<Rigidbody>();
+
+    // Wyznaczanie rozproszenia (spread) względem lokalnej osi
+    Vector3 spread = new Vector3(
+        Random.Range(-GetSpread(), GetSpread()), 
+        Random.Range(-GetSpread(), GetSpread()), 
+        0f); // Dodanie rozproszenia tylko do osi X i Y (lewo-prawo i góra-dół)
+    
+    // Ustawienie kierunku pocisku z uwzględnieniem rozproszenia
+    Vector3 direction = firePoint.forward + firePoint.TransformDirection(spread);
+
+    // Nadanie prędkości pociskowi w odpowiednim kierunku
+    rb.velocity = direction.normalized * bulletSpeed;
+
+    // Zniszcz pocisk po 2 sekundach
+    Destroy(bullet, 2f);
+}
+
 
     float GetSpread()
     {

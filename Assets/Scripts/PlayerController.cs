@@ -77,12 +77,22 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private AudioClip slideSound;
     [SerializeField] private AudioClip jetpackSound;
     [SerializeField] private AudioClip Shot;
+    [SerializeField] private AudioClip energyPackSound;
     private AudioSource audioSource;
 
     private bool isAlive = true; // Track if the player is alive
     private AmmoUI ammoUI;
 
     private Coroutine restoreHealthCoroutine;
+
+private bool isUsingEnergyPack = false;
+private float energyPackCooldown = 10f;
+private float energyPackDuration = 1.2f;
+private float energyPackFuelCost = 80f; // 20 jednostek paliwa zużywane przez 2 sekundy
+private float energyPackTimer = 0f;
+private float energyPackCooldownTimer = 0f;
+private bool canUseEnergyPack = true;
+
 
     void Awake()
     {
@@ -166,6 +176,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         Jump();
         UpdateUI();
         HandleWeaponSwitch();
+        HandleEnergyPack();
         }
     }
 
@@ -322,6 +333,10 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             healthbarImage.fillAmount = currentHealth / maxHealth; // Update health bar
         }
+            if (!canUseEnergyPack && playerSpeedText != null)
+    {
+        playerSpeedText.text += "\nEnergy Pack Cooldown: " + Mathf.Ceil(energyPackCooldownTimer).ToString() + "s";
+    }
     }
 
     void FixedUpdate()
@@ -500,7 +515,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             }
 
             slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
-            rb.AddForce( slopeDirection * slideSpeed, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
+            rb.AddForce( slopeDirection * slideSpeed * 1.3f, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
 
             // Apply additional force to maintain or increase speed while skiing
             Vector3 appliedForce = slopeDirection * skiAcceleration;
@@ -721,5 +736,74 @@ public class PlayerController : MonoBehaviourPunCallbacks
         PhotonNetwork.Instantiate("HealthAmmoPickup", dropPosition, Quaternion.identity);
         }
     }
+void HandleEnergyPack()
+{
+    // Cooldown Energy Packa
+    if (!canUseEnergyPack)
+    {
+        energyPackCooldownTimer -= Time.deltaTime;
+        if (energyPackCooldownTimer <= 0f)
+        {
+            canUseEnergyPack = true;
+            Debug.Log("Energy Pack gotowy do użycia.");
+        }
+    }
+
+    // Użycie Energy Packa, jeśli gracz jest w powietrzu i Energy Pack jest dostępny
+    if (Input.GetKeyDown(KeyCode.E) && !isColliding && canUseEnergyPack && currentJetpackFuel >= energyPackFuelCost)
+    {
+        isUsingEnergyPack = true;
+        energyPackTimer = energyPackDuration;
+        canUseEnergyPack = false;
+        energyPackCooldownTimer = energyPackCooldown;
+
+        Debug.Log("Energy Pack aktywowany.");
+
+        // Odtwórz dźwięk Energy Packa
+        if (audioSource != null && energyPackSound != null)
+        {
+            audioSource.clip = energyPackSound;
+            audioSource.loop = false;  // Energy Pack dźwięk nie musi się zapętlać
+            audioSource.Play();
+        }
+    }
+
+    // Jeśli Energy Pack jest używany, odliczaj czas trwania i zużywaj paliwo
+    if (isUsingEnergyPack)
+    {
+        energyPackTimer -= Time.deltaTime;
+
+        // Zużywanie paliwa stopniowo przez czas działania Energy Packa
+        float fuelUsagePerSecond = energyPackFuelCost / energyPackDuration;
+        currentJetpackFuel -= fuelUsagePerSecond * Time.deltaTime;
+        currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
+
+        // Aktualizacja UI, aby pokazać zużycie paliwa
+        if (jetpackFuelImage != null)
+        {
+            jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
+        }
+
+        // Dodanie impulsu w kierunku, w którym patrzy gracz (tylko jeśli to jest nasz obiekt)
+        if (PV.IsMine)
+        {
+            Vector3 boostDirection = playerCamera.transform.forward;
+            rb.AddForce(boostDirection * jetpackForceZ/2, ForceMode.Impulse);
+            Debug.Log("Siła dodana jako impuls: " + boostDirection * jetpackForceZ);
+        }
+
+        // Zakończ działanie Energy Packa, gdy czas się skończy lub braknie paliwa
+        if (energyPackTimer <= 0f || currentJetpackFuel <= 0f)
+        {
+            isUsingEnergyPack = false;
+            Debug.Log("Energy Pack wyłączony.");
+        }
+    }
+}
+
+
+
+
+
 }
 

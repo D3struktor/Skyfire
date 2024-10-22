@@ -57,9 +57,18 @@ public class Bullet : MonoBehaviourPunCallbacks
             PlayerController player = collision.collider.GetComponent<PlayerController>();
             if (player != null)
             {
-                // Debug to check if a player was found
-                Debug.Log("Player hit: " + player.name);
-                player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, PhotonNetwork.LocalPlayer);
+                // Check if the hit player is the same as the owner of the bullet
+                if (player.photonView.Owner == owner)
+                {
+                    // Ignore damage if it's the owner of the bullet (self-hit)
+                    Debug.Log("Ignoring self-hit on player: " + player.name);
+                }
+                else
+                {
+                    // Apply damage to the hit player
+                    Debug.Log("Player hit: " + player.name);
+                    player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, PhotonNetwork.LocalPlayer);
+                }
             }
             else
             {

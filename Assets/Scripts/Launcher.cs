@@ -25,6 +25,12 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] GameObject settingsPanel;
     [SerializeField] Slider volumeSlider;
     [SerializeField] AudioMixer audioMixer;
+    [SerializeField] Slider sfxVolumeSlider;
+    [SerializeField] AudioMixer SFXMixer; // Declare SFXMixer here
+
+    // Declare savedVolume and savedSFXVolume
+    private float savedVolume;
+    private float savedSFXVolume;
 
     void Awake()
     {
@@ -38,11 +44,19 @@ public class Launcher : MonoBehaviourPunCallbacks
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // Wczytaj ustawienia głośności
-        float savedVolume = PlayerPrefs.GetFloat("Volume", 0.75f);
+        // Initialize savedVolume and savedSFXVolume from PlayerPrefs
+        savedVolume = PlayerPrefs.GetFloat("Volume", 0.5f); // Default to 0.5 if not found
+        savedSFXVolume = PlayerPrefs.GetFloat("SFXVolume", 0.5f); // Default to 0.5 if not found
+
+        // Load the main volume settings
         volumeSlider.value = savedVolume;
         volumeSlider.onValueChanged.AddListener(SetVolume);
-        SetVolume(savedVolume); // Ustawienie głośności na start
+        SetVolume(savedVolume); // Set the volume initially
+
+        // Load the SFX volume settings
+        sfxVolumeSlider.value = savedSFXVolume;
+        sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolume);
+        SetSFXVolume(savedSFXVolume); // Set the SFX volume initially
     }
 
     public override void OnConnectedToMaster()  
@@ -167,8 +181,14 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     public void SetVolume(float volume)
     {
-        audioMixer.SetFloat("Volume", Mathf.Log10(volume) * 20); // Zmiana wartości w AudioMixer
+        audioMixer.SetFloat("MasterVolume", Mathf.Log10(volume) * 20); // Zmiana wartości w AudioMixer
         PlayerPrefs.SetFloat("Volume", volume); // Zapisanie głośności
+    }
+
+    public void SetSFXVolume(float volume)
+    {
+        SFXMixer.SetFloat("SFXVolume", Mathf.Log10(volume) * 20); // Zmiana wartości w AudioMixer dla SFX
+        PlayerPrefs.SetFloat("SFXVolume", volume); // Zapisanie głośności SFX
     }
 
     public void ExitGame()
