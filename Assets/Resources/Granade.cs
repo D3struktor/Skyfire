@@ -24,31 +24,44 @@ public class Grenade : MonoBehaviourPunCallbacks
     private float timeSinceLaunch;
     private Player owner;
 
-    void Start()
+    public float throwForce = 10f; // Siła rzutu granatem
+public Vector3 throwDirection = new Vector3(1f, 1f, 0f); // Kierunek rzutu (w tym przypadku w prawo z lekkim nachyleniem w górę)
+
+
+void Start()
+{
+    Debug.Log("Grenade instantiated, will explode in " + explosionDelay + " seconds if nothing happens.");
+    timeSinceLaunch = Time.time;
+    Invoke("Explode", explosionDelay); // Ustawienie wybuchu po 5 sekundach
+
+    // Get the PhotonView component
+    PhotonView photonView = GetComponent<PhotonView>();
+
+    // Get the owner of the grenade
+    owner = photonView.Owner;
+    Debug.Log("Grenade created by player: " + owner.NickName);
+
+    // Apply force to the grenade for parabolic throw
+    Rigidbody rb = GetComponent<Rigidbody>();
+    if (rb != null)
     {
-        Debug.Log("Grenade instantiated, will explode in " + explosionDelay + " seconds if nothing happens.");
-        timeSinceLaunch = Time.time;
-        Invoke("Explode", explosionDelay); // Ustawienie wybuchu po 5 sekundach
+        Vector3 force = throwDirection.normalized * throwForce;
+        rb.AddForce(force, ForceMode.Impulse); // Dodanie siły wyrzutu
+    }
 
-        // Get the PhotonView component
-        PhotonView photonView = GetComponent<PhotonView>();
-
-        // Get the owner of the grenade
-        owner = photonView.Owner;
-        Debug.Log("Grenade created by player: " + owner.NickName);
-
-        // Temporarily ignore collisions with the owner
-        PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
-        if (playerController != null)
+    // Temporarily ignore collisions with the owner
+    PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
+    if (playerController != null)
+    {
+        Collider ownerCollider = playerController.GetComponent<Collider>();
+        if (ownerCollider != null)
         {
-            Collider ownerCollider = playerController.GetComponent<Collider>();
-            if (ownerCollider != null)
-            {
-                Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, true);
-                Invoke("ResetCollision", ignoreCollisionTime); // Ignore collisions for the specified time
-            }
+            Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, true);
+            Invoke("ResetCollision", ignoreCollisionTime); // Ignore collisions for the specified time
         }
     }
+}
+
 
     void ResetCollision()
     {

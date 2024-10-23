@@ -85,13 +85,13 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private Coroutine restoreHealthCoroutine;
 
-private bool isUsingEnergyPack = false;
-private float energyPackCooldown = 10f;
-private float energyPackDuration = 1.2f;
-private float energyPackFuelCost = 80f; // 20 jednostek paliwa zużywane przez 2 sekundy
-private float energyPackTimer = 0f;
-private float energyPackCooldownTimer = 0f;
-private bool canUseEnergyPack = true;
+    private bool isUsingEnergyPack = false;
+    private float energyPackCooldown = 10f;
+    private float energyPackDuration = 1.2f;
+    private float energyPackFuelCost = 80f; // 20 jednostek paliwa zużywane przez 2 sekundy
+    private float energyPackTimer = 0f;
+    private float energyPackCooldownTimer = 0f;
+    private bool canUseEnergyPack = true;
 
 
     void Awake()

@@ -206,7 +206,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea6c03fccffa412419a61d6a40bd36cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 12
+  damage: 15
   ignoreCollisionTime: 0.3
 --- !u!23 &8439997844938966242
 MeshRenderer:

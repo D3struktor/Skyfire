@@ -1184,10 +1184,10 @@ MonoBehaviour:
   walkSpeed: 20
   sensitivity: 2
   slideSpeedFactor: 1
-  jetpackForceY: 12
+  jetpackForceY: 18
   jetpackForceX: 0
-  jetpackForceZ: 5
-  jetpackFuelMax: 180
+  jetpackForceZ: 8
+  jetpackFuelMax: 240
   jetpackFuelRegenRate: 30
   jetpackFuelUsageRate: 60
   jetpackFuelImage: {fileID: 7154005466795292452}

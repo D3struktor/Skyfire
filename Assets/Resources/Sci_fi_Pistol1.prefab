@@ -42,7 +42,7 @@ GameObject:
   - component: {fileID: 890287631944524716}
   - component: {fileID: 874423976312550836}
   - component: {fileID: 864988165853306998}
-  - component: {fileID: 7409748169785816294}
+  - component: {fileID: 116067959134546590}
   - component: {fileID: 5587442779329116970}
   - component: {fileID: 2092437546827196869}
   - component: {fileID: -1459214309549960469}
@@ -121,7 +121,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &7409748169785816294
+--- !u!114 &116067959134546590
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -135,7 +135,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   discPrefab: {fileID: 3678946588746919792, guid: ae7bf2642bda8c44982ac02c4e4f5732, type: 3}
   shootingPoint: {fileID: 8949653290496763778}
-  discSpeed: 270
+  discSpeed: 300
   fireCooldown: 1.2
   shootSound: {fileID: 8300000, guid: a83caa165f1fa1846be459c48c4af045, type: 3}
   weaponSwitchDelay: 0.6

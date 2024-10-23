@@ -48,6 +48,12 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         {
             Debug.Log("PlayerManager: Start called for local player " + PhotonNetwork.NickName);
 
+            FadeInOnStart fadeScript = FindObjectOfType<FadeInOnStart>();
+            if (fadeScript != null)
+            {
+                fadeScript.gameObject.SetActive(true);
+            }
+
             if (PlayerPrefs.GetString("GameMode") == "TDM")
             {
                 Debug.Log("PlayerManager: GameMode is TDM");
