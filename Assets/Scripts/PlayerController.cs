@@ -103,7 +103,10 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private bool isGrounded = true;
 
     [SerializeField] private Transform headPos;
-      [SerializeField] Transform Cam = null;
+    [SerializeField] Transform Cam = null;
+    // [SerializeField] private CapsuleCollider capsuleCollider;
+    
+
 
 
     void Awake()
@@ -132,6 +135,20 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         model = transform.Find("model").gameObject; // Znajdź obiekt "model" w hierarchii
         anim = model.GetComponent<Animator>(); // Pobierz Animator z obiektu model
+         // Pobieramy obiekt Ch44, który jest dzieckiem modelu
+        GameObject ch44 = model.transform.Find("Ch44").gameObject;
+
+        // Pobieramy renderer z obiektu Ch44
+        Renderer ch44Renderer = ch44.GetComponent<Renderer>();
+
+        // Pobieramy aktualne materiały przypisane do obiektu Ch44
+        Material[] materials = ch44Renderer.materials;
+
+        // Zmieniamy kolor materiału Element 1 (czyli drugiego materiału)
+        materials[1].color = randomColor;
+
+        // Przypisujemy zaktualizowaną tablicę materiałów z powrotem do renderera
+        ch44Renderer.materials = materials;
 
         if (!PV.IsMine)
         {
@@ -380,21 +397,26 @@ public class PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    void Movement()
-    {
-        if (isColliding)
-        {
-            Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
-            Vector3 forward = Camera.main.transform.forward * axis.x;
-            Vector3 right = Camera.main.transform.right * axis.y;
-            Vector3 wishDirection = (forward + right).normalized * walkSpeed;
-            wishDirection.y = rb.velocity.y; // Maintain vertical velocity on the ground
-            rb.velocity = wishDirection;
 
-                // Aktualizacja animacji na podstawie wartości ruchu
+void Movement()
+{
+    if (isColliding)
+    {
+        Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
+        
+        // Używamy transform.forward i transform.right, zamiast forward kamery
+        Vector3 forward = transform.forward * axis.x;
+        Vector3 right = transform.right * axis.y;
+        Vector3 wishDirection = (forward + right).normalized * walkSpeed;
+
+        wishDirection.y = rb.velocity.y; // Zachowaj pionową prędkość (grawitację)
+        rb.velocity = wishDirection;
+
+        // Aktualizacja animacji na podstawie wartości ruchu
         UpdateAnimations(axis);
-        }
     }
+}
+
     private void UpdateAnimations(Vector2 axis)
 {
     // Przekazywanie wartości do Animatora (odpowiednie dla xmove i ymove)
@@ -471,7 +493,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
             {
                 isSliding = true;
                 rb.drag = 0f; // Set drag to low value during sliding
-                
+                anim.SetBool("isSliding", true);
+
                 // Play sliding sound
                 if (slideSound != null && audioSource != null)
                 {
@@ -485,7 +508,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             if (isSliding)
             {
-                StartCoroutine(StopSlidingAfterDelay(0.5f)); // Delay stopping slide by 0.5 seconds
+                StartCoroutine(StopSlidingAfterDelay(0.2f)); // Delay stopping slide by 0.2 seconds
             }
         }
     }
@@ -495,6 +518,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         yield return new WaitForSeconds(delay);
 
         isSliding = false;
+        anim.SetBool("isSliding", false);
         rb.drag = endDrag;
         StartCoroutine(TransitionDrag(rb.drag, groundDrag, dragTransitionTime)); // Smoothly transition drag
         
@@ -580,6 +604,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         if (rb != null) // Check if rb is still valid
         {
             rb.drag = groundDrag; // Set drag to groundDrag on collision with ground
+            anim.SetBool("isColliding", true);
         }
     }
 
@@ -590,6 +615,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             isColliding = false;
             rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
+            anim.SetBool("isColiding", false);
         }
     }
 

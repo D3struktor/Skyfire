@@ -1243,7 +1243,7 @@ MonoBehaviour:
   chaingunPrefab: {fileID: 2062645146687671931}
   randomColor: {r: 0, g: 0, b: 0, a: 1}
   playerRenderer: {fileID: 85265003257965570}
-  slideSound: {fileID: 8300000, guid: 8db1e061f470e6740873c8bed7926baf, type: 3}
+  slideSound: {fileID: 8300000, guid: e3b8543f00ec9f64c84b1dca501e0bfd, type: 3}
   jetpackSound: {fileID: 8300000, guid: 82fbddc8efc19b041839ad4a30417dfd, type: 3}
   Shot: {fileID: 8300000, guid: bbc2d38eee3dd38498554672183140da, type: 3}
   energyPackSound: {fileID: 8300000, guid: e533cc1fd29731f4a8a4552414a0fc40, type: 3}
@@ -1329,9 +1329,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
-  m_Height: 2.0351157
+  m_Height: 2.0292969
   m_Direction: 1
-  m_Center: {x: 0, y: -0.017557781, z: 0}
+  m_Center: {x: 0, y: 0.8729706, z: 0}
 --- !u!54 &6157084091109305163
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1408,8 +1408,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: -1483086409508410553, guid: c00fde4c2f64f9c458d4bc18c9e4d1d2, type: 2}
-  m_audioClip: {fileID: 8300000, guid: 8db1e061f470e6740873c8bed7926baf, type: 3}
-  m_Resource: {fileID: 8300000, guid: 8db1e061f470e6740873c8bed7926baf, type: 3}
+  m_audioClip: {fileID: 8300000, guid: e3b8543f00ec9f64c84b1dca501e0bfd, type: 3}
+  m_Resource: {fileID: 8300000, guid: e3b8543f00ec9f64c84b1dca501e0bfd, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -2466,6 +2466,18 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 9100000, guid: 9aaacc8b5251f9e47a2d1fcdaa83ac7f, type: 2}
     - target: {fileID: 2188573792855826331, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
+      propertyPath: m_WarningMessage
+      value: "\nBinding warning: Some generic clip(s) animate transforms that are
+        already bound by a Humanoid avatar. These transforms can only be changed
+        by Humanoid clips.\n\tTransform 'mixamorig:Hips'\n\tTransform 'mixamorig:LeftFoot'\n\tTransform
+        'mixamorig:LeftHandThumb2'\n\tTransform 'mixamorig:LeftHandIndex1'\n\tTransform
+        'mixamorig:LeftHandPinky2'\n\tTransform 'mixamorig:RightHandRing2'\n\tTransform
+        'mixamorig:Spine1'\n\tTransform 'mixamorig:LeftToeBase'\n\tTransform 'mixamorig:LeftHandThumb3'\n\tTransform
+        'mixamorig:RightArm'\n\tand more ...\n\tFrom animation clip 'Standing To
+        Crouch'\n\tFrom animation clip 'Crouch To Standing'\n\tFrom animation clip
+        'Slide'"
+      objectReference: {fileID: 0}
+    - target: {fileID: 2188573792855826331, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
       propertyPath: m_ApplyRootMotion
       value: 0
       objectReference: {fileID: 0}
@@ -2529,17 +2541,28 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6877308210864976452, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 79f3c880eae98a4478e2d35f53b29a79, type: 2}
+    - target: {fileID: 6877308210864976452, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
     m_RemovedComponents:
     - {fileID: 4815022954002048791, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
-    - {fileID: 716380621103062311, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
     - {fileID: 3986007447619330596, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
     - {fileID: 6466902302112142357, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
+    - {fileID: 5131695096963330372, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 4002170931513742220, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1853016879589177686}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2974288106272985481, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 448251332009656080}
   m_SourcePrefab: {fileID: 100100000, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
 --- !u!4 &575116593657165442 stripped
 Transform:
@@ -2556,6 +2579,33 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5241992674161673697, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
   m_PrefabInstance: {fileID: 6969163386089832992}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5328244802269549481 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2974288106272985481, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
+  m_PrefabInstance: {fileID: 6969163386089832992}
+  m_PrefabAsset: {fileID: 0}
+--- !u!64 &448251332009656080
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5328244802269549481}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 1
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 1022625529149906712, guid: 965d9b43af464724fbea811336dc49f1, type: 3}
 --- !u!4 &6286427414017757612 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4002170931513742220, guid: ee3eb44ea265fbc4a83de7adcb77895f, type: 3}
