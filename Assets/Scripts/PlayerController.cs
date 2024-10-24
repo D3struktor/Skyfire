@@ -93,6 +93,18 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private float energyPackCooldownTimer = 0f;
     private bool canUseEnergyPack = true;
 
+    //MODEL!!!
+
+    public GameObject model; // Referencja do obiektu model
+    private Animator anim; // Referencja do Animatora
+
+    private float mouseX;
+    private float mouseY;
+    private bool isGrounded = true;
+
+    [SerializeField] private Transform headPos;
+      [SerializeField] Transform Cam = null;
+
 
     void Awake()
     {
@@ -117,6 +129,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         playerRenderer = GetComponent<Renderer>();
         playerRenderer.material.color = randomColor;
+
+        model = transform.Find("model").gameObject; // Znajdź obiekt "model" w hierarchii
+        anim = model.GetComponent<Animator>(); // Pobierz Animator z obiektu model
 
         if (!PV.IsMine)
         {
@@ -187,6 +202,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
         yaw += Input.GetAxisRaw("Mouse X") * sensitivity;
         transform.rotation = Quaternion.Euler(0, yaw, 0);
         playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
+
+        Cam.position = headPos.position;
     }
 
     void HandleWeaponSwitch()
@@ -373,8 +390,17 @@ public class PlayerController : MonoBehaviourPunCallbacks
             Vector3 wishDirection = (forward + right).normalized * walkSpeed;
             wishDirection.y = rb.velocity.y; // Maintain vertical velocity on the ground
             rb.velocity = wishDirection;
+
+                // Aktualizacja animacji na podstawie wartości ruchu
+        UpdateAnimations(axis);
         }
     }
+    private void UpdateAnimations(Vector2 axis)
+{
+    // Przekazywanie wartości do Animatora (odpowiednie dla xmove i ymove)
+    anim.SetFloat("xmove", axis.y); // Ruch w osi pionowej (przód/tył)
+    anim.SetFloat("ymove", axis.x); // Ruch w osi poziomej (prawo/lewo)
+}
 
     void Jump()
     {

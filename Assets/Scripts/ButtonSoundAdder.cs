@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public class ButtonSoundAdder : MonoBehaviour
 {
-    [MenuItem("Tools/Add ButtonSound To All Buttons")]
+    // [MenuItem("Tools/Add ButtonSound To All Buttons")]
     public static void AddButtonSoundToAllButtons()
     {
         // Find all Button components in the scene
