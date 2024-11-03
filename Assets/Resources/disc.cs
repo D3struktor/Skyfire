@@ -2,6 +2,7 @@ using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
 using System.Linq;
+using UnityEngine.Audio;
 
 
 public class Disc : MonoBehaviourPunCallbacks, IPunObservable
@@ -11,6 +12,8 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     public float explosionForce = 500f;
     public float maxDamage = 100f; // Maksymalne obrażenia
     public AudioClip explosionSound; // Dźwięk eksplozji
+    private AudioSource audioSource;
+    [SerializeField] private AudioMixerGroup sfxMixerGroup;
     public float soundMaxDistance = 200f; // Maksymalna odległość słyszalności dźwięku
     public float soundFullVolumeDistance = 100f; // Odległość, przy której dźwięk jest w 100% głośności
     public float ignoreCollisionTime = 0.2f; // Time to ignore collision with the player
@@ -144,13 +147,17 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
             GameObject soundObject = new GameObject("ExplosionSound");
             AudioSource audioSource = soundObject.AddComponent<AudioSource>();
             audioSource.clip = explosionSound;
-            audioSource.spatialBlend = 1.0f; // Ensure the sound is 3D
+            audioSource.spatialBlend = 1.0f; // Ustawienie dźwięku na 3D
             audioSource.maxDistance = soundMaxDistance;
             audioSource.rolloffMode = AudioRolloffMode.Linear;
             audioSource.transform.position = transform.position;
+
+            // Ustawienie grupy miksera dla AudioSource
+            audioSource.outputAudioMixerGroup = sfxMixerGroup;
+
             audioSource.Play();
 
-            // Destroy the sound object after the clip finishes playing
+            // Zniszcz obiekt dźwiękowy po zakończeniu odtwarzania
             Destroy(soundObject, explosionSound.length);
         }
         else

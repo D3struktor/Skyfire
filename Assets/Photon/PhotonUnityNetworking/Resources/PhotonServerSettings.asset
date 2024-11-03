@@ -64,6 +64,11 @@ MonoBehaviour:
   - RemoveKill
   - SyncTeamKills
   - SetGameModeTDM
+  - SyncHandPositions
+  - RPC_AttachWeaponToPlayer
+  - SyncWeaponData
+  - SyncWeaponAndHandData
+  - SyncWeaponTransform
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

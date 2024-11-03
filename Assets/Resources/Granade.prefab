@@ -263,6 +263,7 @@ MonoBehaviour:
   maxDamage: 95
   explosionSound: {fileID: 8300000, guid: 573b34f3927d254498187674b6f6246e, type: 3}
   bounceSound: {fileID: 8300000, guid: 563fdef6c5127104cac10d48ab107284, type: 3}
+  sfxMixerGroup: {fileID: -1483086409508410553, guid: c00fde4c2f64f9c458d4bc18c9e4d1d2, type: 2}
   explosionSoundRange: 350
   bounceSoundRange: 200
   minDistance: 100

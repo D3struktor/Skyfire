@@ -105,7 +105,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private Transform headPos;
     [SerializeField] Transform Cam = null;
     // [SerializeField] private CapsuleCollider capsuleCollider;
-    
+
+    public GameObject ragdollPrefab; // Przypisz prefab ragdolla w inspektorze
 
 
 
@@ -196,12 +197,20 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void Update()
     {
-        if (isMovementEnabled)
+        // Przełącz `isMovementEnabled` przy użyciu klawisza Escape
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
+            isMovementEnabled = !isMovementEnabled;
+            Debug.Log("Movement toggled: " + isMovementEnabled);
+        }
 
-        if (!PV.IsMine)
+        // Jeśli ruch jest wyłączony, zatrzymaj wszystkie akcje
+        if (!isMovementEnabled || !PhotonView.Get(this).IsMine)
+        {
             return;
+        }
 
+        // Logika ruchu i akcji gracza
         Look();
         HandleJetpack();
         Slide();
@@ -209,8 +218,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
         UpdateUI();
         HandleWeaponSwitch();
         HandleEnergyPack();
-        }
     }
+
+    
 
     void Look()
     {
@@ -222,6 +232,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         Cam.position = headPos.position;
     }
+
+    
 
     void HandleWeaponSwitch()
     {
@@ -261,83 +273,146 @@ public class PlayerController : MonoBehaviourPunCallbacks
         }
     }
 
-    void EquipWeapon(int slot)
+void EquipWeapon(int slot)
+{
+    if (!photonView.IsMine) return;
+
+    // Zniszcz istniejącą broń
+    if (currentWeapon != null)
     {
-        if (!photonView.IsMine) return;
-        if (currentWeapon != null)
-        {
-            PhotonNetwork.Destroy(currentWeapon);
-        }
+        PhotonNetwork.Destroy(currentWeapon);
+    }
 
-        if (slot == 1)
+    // Wybór prefabu broni na podstawie slotu
+    GameObject weaponPrefab = slot switch
+    {
+        1 => primaryWeaponPrefab,
+        2 => grenadeLauncherPrefab,
+        3 => chaingunPrefab,
+        _ => null
+    };
+
+    if (weaponPrefab == null)
+    {
+        Debug.LogError("Weapon prefab is null. Make sure the weapon slot is set up correctly.");
+        return;
+    }
+
+    // Tworzenie broni
+    currentWeapon = PhotonNetwork.Instantiate(weaponPrefab.name, playerCamera.transform.position + playerCamera.transform.forward * 0.5f, playerCamera.transform.rotation);
+
+    // Dołączenie broni do gracza lokalnie
+    AttachWeaponToPlayer();
+
+    // Synchronizacja WeaponIK
+    WeaponIK weaponIK = GetComponentInChildren<WeaponIK>();
+    weaponIK?.ChangeWeapon(currentWeapon.transform);
+
+    // Aktualizacja komponentów broni
+    ConfigureWeaponComponents(slot);
+}
+
+
+
+void ConfigureWeaponComponents(int slot)
+{
+    if (slot == 1)
+    {
+        discShooter = currentWeapon.GetComponent<DiscShooter>();
+        if (discShooter != null)
         {
-            currentWeapon = PhotonNetwork.Instantiate(primaryWeaponPrefab.name, Vector3.zero, Quaternion.identity);
-            discShooter = currentWeapon.GetComponent<DiscShooter>();
-            if (discShooter != null)
-            {
-                discShooter.SetActiveWeapon(true);
-                discShooter.SetLastShotTime(lastShotTime); // Set last shot time
-            }
+            discShooter.SetActiveWeapon(true);
+            discShooter.SetLastShotTime(lastShotTime);
+        }
+        if (crosshairController != null)
+        {
+            crosshairController.SetChaingun(null);
+            Debug.Log("Primary weapon equipped, crosshair disabled");
+        }
+    }
+    else if (slot == 2)
+    {
+        grenadeLauncher = currentWeapon.GetComponent<GrenadeLauncher>();
+        if (grenadeLauncher != null)
+        {
+            grenadeLauncher.SetActiveWeapon(true);
+            grenadeLauncher.SetLastShotTime(lastShotTime);
+        }
+        if (crosshairController != null)
+        {
+            crosshairController.SetChaingun(null);
+            Debug.Log("Grenade launcher equipped, crosshair disabled");
+        }
+    }
+    else if (slot == 3)
+    {
+        chaingun = currentWeapon.GetComponent<Chaingun>();
+        if (chaingun != null)
+        {
+            chaingun.SetActiveWeapon(true);
+            chaingun.SetLastShotTime(lastShotTime);
+            chaingun.SetHeat(storedHeat);
             if (crosshairController != null)
             {
-                crosshairController.SetChaingun(null); // Disable crosshair
-                Debug.Log("Primary weapon equipped, crosshair disabled");
+                crosshairController.SetChaingun(chaingun);
             }
-            UpdateAmmoUI();
         }
-        else if (slot == 2)
-        {
-            currentWeapon = PhotonNetwork.Instantiate(grenadeLauncherPrefab.name, Vector3.zero, Quaternion.identity);
-            grenadeLauncher = currentWeapon.GetComponent<GrenadeLauncher>();
-            if (grenadeLauncher != null)
-            {
-                grenadeLauncher.SetActiveWeapon(true);
-                grenadeLauncher.SetLastShotTime(lastShotTime); // Set last shot time
-            }
-            if (crosshairController != null)
-            {
-                crosshairController.SetChaingun(null); // Disable crosshair
-                Debug.Log("Grenade launcher equipped, crosshair disabled");
-            }
-            UpdateAmmoUI();
-        }
-        else if (slot == 3)
-        {
-            currentWeapon = PhotonNetwork.Instantiate(chaingunPrefab.name, Vector3.zero, Quaternion.identity);
-            chaingun = currentWeapon.GetComponent<Chaingun>();
-            if (chaingun != null)
-            {
-                chaingun.SetActiveWeapon(true);
-                chaingun.SetLastShotTime(lastShotTime); // Set last shot time
-                chaingun.SetHeat(storedHeat); // Ustawienie przechowywanej wartości ciepła
-                if (crosshairController != null)
-                {
-                    crosshairController.SetChaingun(chaingun); // Enable crosshair
-                }
-            }
-            UpdateAmmoUI();
-        }
+    }
 
-        if (currentWeapon != null)
+    UpdateAmmoUI();
+}
+
+void AttachWeaponToPlayer()
+{
+    if (currentWeapon != null)
+    {
+        if (photonView.IsMine)
         {
-            AttachWeaponToPlayer();
+            // Ustawienie broni jako dziecka kamery lokalnie, aby podążała za nią
+            currentWeapon.transform.SetParent(playerCamera.transform);
+            currentWeapon.transform.localPosition = new Vector3(0.35f, -0.4f, 0.3f);
+            currentWeapon.transform.localRotation = Quaternion.identity;
         }
         else
         {
-            Debug.LogError("Failed to instantiate weapon. Make sure the weapon prefabs are correctly set up.");
+            // Dla innych graczy broń pozostaje dzieckiem PlayerController, ale nie będzie przymocowana do ich kamery
+            currentWeapon.transform.SetParent(transform);
         }
     }
-
-    void AttachWeaponToPlayer()
+    else
     {
-        if (currentWeapon != null)
+        Debug.LogError("Current weapon is null. Make sure the weapon is instantiated properly.");
+    }
+}
+
+
+[PunRPC]
+void RPC_AttachWeaponToPlayer(int weaponViewID)
+{
+    // Znajdź broń na podstawie ViewID
+    GameObject networkWeapon = PhotonView.Find(weaponViewID)?.gameObject;
+
+    if (networkWeapon != null)
+    {
+        // Dołącz broń do kamery gracza
+        networkWeapon.transform.SetParent(playerCamera.transform);
+        networkWeapon.transform.localPosition = new Vector3(0.35f, -0.4f, 0.3f);
+        networkWeapon.transform.localRotation = Quaternion.identity;
+
+        // Konfiguracja WeaponIK
+        WeaponIK weaponIK = GetComponentInChildren<WeaponIK>();
+        if (weaponIK != null)
         {
-            // Attach weapon to the player's camera so it follows the view
-            currentWeapon.transform.SetParent(playerCamera.transform);
-            currentWeapon.transform.localPosition = new Vector3(0.5f, -0.5f, 1f); // Adjust as needed
-            currentWeapon.transform.localRotation = Quaternion.identity;
+            weaponIK.ChangeWeapon(networkWeapon.transform);
         }
     }
+    else
+    {
+        Debug.LogError("Failed to find network weapon. Make sure it was instantiated correctly.");
+    }
+}
+
+
 
     void UpdateWeaponProperty(int slot)
     {
@@ -434,7 +509,7 @@ void Movement()
 
     void HandleJetpack()
     {
-        if (canUseJetpack && currentJetpackFuel > 0 && Input.GetMouseButton(1))
+        if (canUseJetpack && currentJetpackFuel > 0 && Input.GetMouseButton(1)|| Input.GetKey(KeyCode.Space))
         {
             Vector3 jetpackDirection = transform.forward * jetpackForceZ + transform.right * jetpackForceX + Vector3.up * jetpackForceY;
             rb.AddForce(jetpackDirection, ForceMode.Acceleration);
@@ -467,7 +542,7 @@ void Movement()
             canUseJetpack = true;
         }
 
-        if (!Input.GetMouseButton(1) && currentJetpackFuel < jetpackFuelMax)
+         if (!Input.GetMouseButton(1) && !Input.GetKey(KeyCode.Space) && currentJetpackFuel < jetpackFuelMax)
         {
             RegenerateJetpackFuel();
         }
@@ -615,7 +690,7 @@ void Movement()
         {
             isColliding = false;
             rb.drag = airDrag; // Set drag to airDrag on leaving ground collision
-            anim.SetBool("isColiding", false);
+            anim.SetBool("isColliding", false);
         }
     }
 
@@ -668,15 +743,45 @@ void Movement()
     }
 
 
-    void Die()
+void Die()
+{
+    // Tworzenie instancji ragdolla na pozycji gracza
+    GameObject ragdollInstance = PhotonNetwork.Instantiate(ragdollPrefab.name, transform.position, transform.rotation);
+    ragdollInstance.transform.localScale = new Vector3(6f, 6f, 6f);
+
+    // Aktywacja fizyki w ragdollu
+    RagdollActivator ragdollActivator = ragdollInstance.GetComponent<RagdollActivator>();
+    if (ragdollActivator != null)
     {
-        if (playerManager != null)
-        {
-            playerManager.Die();
-            DropHealthAmmoPickup();
-            Debug.Log("Player died.");
-        }
+        ragdollActivator.ActivateRagdoll();
     }
+
+    // Zniszcz ragdolla po 3 sekundach
+    StartCoroutine(DestroyRagdollAfterDelay(ragdollInstance, 3f));
+
+    // Powiadomienie managera o śmierci gracza
+    if (playerManager != null)
+    {
+        playerManager.Die();
+        DropHealthAmmoPickup();
+        Debug.Log("Player died.");
+    }
+
+    // Natychmiastowe zniszczenie głównego obiektu gracza
+    PhotonNetwork.Destroy(gameObject);
+}
+
+private IEnumerator DestroyRagdollAfterDelay(GameObject ragdoll, float delay)
+{
+    yield return new WaitForSeconds(delay);
+    PhotonNetwork.Destroy(ragdoll); // Użyj PhotonNetwork.Destroy, jeśli chcesz zsynchronizować zniszczenie ragdolla w sieci
+}
+
+
+
+
+
+
     
     public void EnableMovement(bool enable)
     {
@@ -852,10 +957,6 @@ void HandleEnergyPack()
         }
     }
 }
-
-
-
-
 
 }
 

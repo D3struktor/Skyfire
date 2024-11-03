@@ -2,22 +2,23 @@ using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using UnityEngine.Audio;
+using TMPro;
 
 public class PauseMenu : MonoBehaviourPunCallbacks
 {
-    public static bool isPaused = false; // Czy gra jest w stanie pauzy
-    public GameObject pauseMenuUI;       // Panel menu pauzy
+    public static bool isPaused = false;
+    public GameObject pauseMenuUI;
 
-    private PlayerController playerController;  // Referencja do PlayerController
+    // Suwaki głośności
+    [SerializeField] private Slider volumeSlider;
+    [SerializeField] private AudioMixer audioMixer;
+    [SerializeField] private Slider sfxVolumeSlider;
+    [SerializeField] private AudioMixer SFXMixer;
 
-    void Start()
+    private void Start()
     {
-        // Znajdź PlayerController na początku gry
-        if (PhotonNetwork.LocalPlayer != null)
-        {
-            playerController = FindObjectOfType<PlayerController>();
-        }
-
         // Upewnij się, że menu pauzy jest wyłączone na początku
         if (pauseMenuUI != null)
         {
@@ -27,15 +28,18 @@ public class PauseMenu : MonoBehaviourPunCallbacks
         {
             Debug.LogError("PauseMenuUI is not assigned!");
         }
+
+        // Inicjalizacja suwaków głośności z zapisanymi ustawieniami
+        InitializeVolumeSliders();
     }
 
-    void Update()
+    private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (isPaused)
             {
-                Resume();
+                Unpause();
             }
             else
             {
@@ -44,7 +48,19 @@ public class PauseMenu : MonoBehaviourPunCallbacks
         }
     }
 
-    public void Resume()
+    private void Pause()
+    {
+        if (pauseMenuUI != null)
+        {
+            pauseMenuUI.SetActive(true); // Pokaż menu pauzy
+        }
+
+        isPaused = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    private void Unpause()
     {
         if (pauseMenuUI != null)
         {
@@ -52,57 +68,64 @@ public class PauseMenu : MonoBehaviourPunCallbacks
         }
 
         isPaused = false;
-        Cursor.lockState = CursorLockMode.Locked; // Ukryj kursor
+        Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        // Odblokuj ruch gracza
-        if (playerController != null)
-        {
-            playerController.EnableMovement(true); // Włącz ruch gracza
-        }
     }
 
-    void Pause()
+    private void InitializeVolumeSliders()
     {
-        if (pauseMenuUI != null)
+        // Pobierz zapisaną głośność i ustaw suwaki
+        float savedVolume = PlayerPrefs.GetFloat("Volume", 0.5f);
+        float savedSFXVolume = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
+
+        // Ustawienie wartości suwaków i nasłuchiwanie zmian
+        if (volumeSlider != null)
         {
-            pauseMenuUI.SetActive(true);  // Pokaż menu pauzy
+            volumeSlider.value = savedVolume;
+            volumeSlider.onValueChanged.AddListener(SetVolume);
         }
-
-        isPaused = true;
-        Cursor.lockState = CursorLockMode.None;  // Pokaż kursor
-        Cursor.visible = true;
-
-        // Zablokuj ruch gracza
-        if (playerController != null)
+        if (sfxVolumeSlider != null)
         {
-            playerController.EnableMovement(false); // Zablokuj ruch gracza
+            sfxVolumeSlider.value = savedSFXVolume;
+            sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolume);
         }
     }
 
-    // Wyjdź z pokoju i wróć do lobby
+    // Metoda do ustawiania głównej głośności
+    public void SetVolume(float volume)
+    {
+        audioMixer.SetFloat("MasterVolume", Mathf.Log10(volume) * 20); // Ustaw głośność w AudioMixer
+        PlayerPrefs.SetFloat("Volume", volume); // Zapisz głośność
+    }
+
+    // Metoda do ustawiania głośności efektów dźwiękowych
+    public void SetSFXVolume(float volume)
+    {
+        SFXMixer.SetFloat("SFXVolume", Mathf.Log10(volume) * 20); // Ustaw głośność SFX w AudioMixer
+        PlayerPrefs.SetFloat("SFXVolume", volume); // Zapisz głośność SFX
+    }
+
     public void ExitToLobby()
     {
         if (PhotonNetwork.InRoom)
         {
-            PhotonNetwork.LeaveRoom();  // Wyjdź z pokoju
+            PhotonNetwork.LeaveRoom();
         }
     }
 
-    // Callback, gdy gracz opuści pokój
     public override void OnLeftRoom()
     {
-        // Przejdź do sceny Lobby, gdy pokój zostanie opuszczony
         SceneManager.LoadScene("Menu");
     }
 
-    // Wyjdź z gry
     public void ExitGame()
     {
+        Debug.Log("Exit Game pressed. Quitting application.");
+
         #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
+            UnityEditor.EditorApplication.isPlaying = false; // Dla edytora Unity
         #else
-            Application.Quit();  // Wyjdź z gry
+            Application.Quit(); // Prawdziwe wyjście z gry
         #endif
     }
 }

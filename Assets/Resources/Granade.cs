@@ -2,6 +2,7 @@ using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
 using System.Linq;
+using UnityEngine.Audio;
 
 public class Grenade : MonoBehaviourPunCallbacks
 {
@@ -14,6 +15,7 @@ public class Grenade : MonoBehaviourPunCallbacks
     public float maxDamage = 100f; // Maksymalne obrażenia granatu
     public AudioClip explosionSound; // Dźwięk eksplozji
     public AudioClip bounceSound; // Dźwięk odbicia
+    [SerializeField] private AudioMixerGroup sfxMixerGroup;
 
     public float explosionSoundRange = 20f; // Zasięg słyszalności dźwięku eksplozji
     public float bounceSoundRange = 10f; // Zasięg słyszalności dźwięku odbicia
@@ -173,15 +175,20 @@ void Start()
         if (explosionSound != null)
         {
             GameObject soundObject = new GameObject("ExplosionSound");
-            soundObject.transform.position = transform.position; // Ustawienie pozycji obiektu dźwiękowego
+            soundObject.transform.position = transform.position;
+
             AudioSource audioSource = soundObject.AddComponent<AudioSource>();
             audioSource.clip = explosionSound;
             audioSource.spatialBlend = 1.0f; // Ensure the sound is 3D
-            audioSource.maxDistance = explosionSoundRange; // Ustawienie zasięgu słyszalności
-            audioSource.minDistance = minDistance; // Ustawienie minimalnej odległości dla pełnej głośności
+            audioSource.maxDistance = explosionSoundRange;
+            audioSource.minDistance = minDistance;
+
+            // Ustawienie grupy miksera dla AudioSource
+            audioSource.outputAudioMixerGroup = sfxMixerGroup;
+
             audioSource.Play();
 
-            // Destroy the sound object after the clip finishes playing
+            // Zniszcz obiekt dźwiękowy po zakończeniu odtwarzania
             Destroy(soundObject, explosionSound.length);
         }
         else
@@ -195,15 +202,20 @@ void Start()
         if (bounceSound != null)
         {
             GameObject bounceSoundObject = new GameObject("BounceSound");
-            bounceSoundObject.transform.position = transform.position; // Ustawienie pozycji obiektu dźwiękowego
+            bounceSoundObject.transform.position = transform.position;
+
             AudioSource bounceAudioSource = bounceSoundObject.AddComponent<AudioSource>();
             bounceAudioSource.clip = bounceSound;
             bounceAudioSource.spatialBlend = 1.0f; // Ensure the sound is 3D
-            bounceAudioSource.maxDistance = bounceSoundRange; // Ustawienie zasięgu słyszalności
-            bounceAudioSource.minDistance = minDistance; // Ustawienie minimalnej odległości dla pełnej głośności
+            bounceAudioSource.maxDistance = bounceSoundRange;
+            bounceAudioSource.minDistance = minDistance;
+
+            // Ustawienie grupy miksera dla AudioSource
+            bounceAudioSource.outputAudioMixerGroup = sfxMixerGroup;
+
             bounceAudioSource.Play();
 
-            // Destroy the sound object after the clip finishes playing
+            // Zniszcz obiekt dźwiękowy po zakończeniu odtwarzania
             Destroy(bounceSoundObject, bounceSound.length);
         }
         else
@@ -211,6 +223,7 @@ void Start()
             Debug.LogError("Bounce sound not assigned.");
         }
     }
+
 
     float CalculateDamage(Vector3 targetPosition)
     {
