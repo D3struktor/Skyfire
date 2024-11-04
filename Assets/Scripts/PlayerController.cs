@@ -389,7 +389,7 @@ void AttachWeaponToPlayer()
         {
             // Ustawienie broni jako dziecka kamery lokalnie, aby podążała za nią
             currentWeapon.transform.SetParent(playerCamera.transform);
-            currentWeapon.transform.localPosition = new Vector3(0.35f, -0.4f, 0.3f);
+            currentWeapon.transform.localPosition = new Vector3(0.35f, -0.3f, 0.25f);
             currentWeapon.transform.localRotation = Quaternion.identity;
         }
         else

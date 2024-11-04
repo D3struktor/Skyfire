@@ -260,7 +260,7 @@ MonoBehaviour:
   sfxMixerGroup: {fileID: -1483086409508410553, guid: c00fde4c2f64f9c458d4bc18c9e4d1d2, type: 2}
   soundMaxDistance: 550
   soundFullVolumeDistance: 100
-  ignoreCollisionTime: 0.4
+  ignoreCollisionTime: 0.6
 --- !u!136 &5379180120573130739
 CapsuleCollider:
   m_ObjectHideFlags: 0
