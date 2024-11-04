@@ -28,7 +28,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private Image healthbarImage; // Image for health bar
     private bool isSliding = false;
     private bool isColliding = false;
-    [SerializeField] private float groundCheckDistance = 100.1f;
+    [SerializeField] private float groundCheckDistance = 0.1f;
     [SerializeField] private float skiAcceleration = 20.0f; // Increased acceleration value
     [SerializeField] private float minSkiSpeed = 10.0f; // Increased minimum ski speed
     [SerializeField] private float groundDrag = 0.1f;
@@ -108,6 +108,10 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     public GameObject ragdollPrefab; // Przypisz prefab ragdolla w inspektorze
 
+    //medale
+    private MedalDisplay medalDisplay;
+
+
 
 
     void Awake()
@@ -128,6 +132,11 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void Start()
     {
+            if (PV.IsMine)
+    {
+        PV.Owner.TagObject = this;
+        Debug.Log("TagObject ustawiony dla gracza: " + PV.Owner.NickName);
+    }
         Cursor.lockState = CursorLockMode.Locked;
         currentJetpackFuel = jetpackFuelMax;
 
@@ -193,6 +202,16 @@ public class PlayerController : MonoBehaviourPunCallbacks
         currentDiscShooterAmmo = maxDiscShooterAmmo;
         currentGrenadeLauncherAmmo = maxGrenadeLauncherAmmo;
         currentChaingunAmmo = maxChaingunAmmo;
+
+            medalDisplay = FindObjectOfType<MedalDisplay>();
+            if (medalDisplay != null)
+            {
+                Debug.Log("MedalDisplay przypisane poprawnie.");
+            }
+            else
+            {
+                Debug.Log("MedalDisplay nie zostało znalezione!");
+            }
     }
 
     void Update()
@@ -473,6 +492,14 @@ void RPC_AttachWeaponToPlayer(int weaponViewID)
     }
 
 
+
+
+
+
+
+
+
+
 void Movement()
 {
     if (isColliding)
@@ -717,30 +744,57 @@ void Movement()
         PV.RPC(nameof(RPC_TakeDamage), PV.Owner, damage);
     }
 
-    [PunRPC]
-    public void RPC_TakeDamage(float damage, Player killer, PhotonMessageInfo info)
+[PunRPC]
+public void RPC_TakeDamage(float damage, Player hitter, PhotonMessageInfo info)
+{
+    // Aktualizacja zdrowia
+    currentHealth -= damage;
+    Debug.Log("RPC_TakeDamage wywołane. Obrażenia: " + damage + ", gracz trafiający: " + (hitter != null ? hitter.NickName : "brak"));
+
+    // Wyświetlanie medalu tylko przy trafieniu innego gracza
+    if (hitter != null && hitter.IsLocal && hitter != PV.Owner)
     {
-        currentHealth -= damage;
-        if (currentHealth <= 0)
+        PlayerController hitterController = hitter.TagObject as PlayerController;
+        if (hitterController != null)
         {
-            // Call Die first to handle destruction and respawning
-            Die();
+            Debug.Log("PlayerController znaleziony u gracza dokonującego trafienia. weaponSlot: " + hitterController.weaponSlot);
 
-            // Record the death for the local player and attribute the kill to the correct player
-            playerManager.RecordDeath(killer);
-        }
-
-        // Update health UI here
-        if (healthbarImage != null)
-        {
-            healthbarImage.fillAmount = currentHealth / maxHealth;
-        }
-        
-        if (Shot != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(Shot);
+            if (hitterController.weaponSlot == 1) // DiscShooter
+            {
+                Debug.Log("Wyświetlanie medalu DiscShootera przy trafieniu");
+                hitterController.medalDisplay?.ShowDiscShooterMedal();
+            }
+            else if (hitterController.weaponSlot == 2) // Granatnik
+            {
+                Debug.Log("Wyświetlanie medalu granatnika przy trafieniu");
+                hitterController.medalDisplay?.ShowGrenadeMedal();
+            }
         }
     }
+    else if (hitter == PV.Owner)
+    {
+        Debug.Log("Gracz trafił samego siebie – pominięto wyświetlanie medalu.");
+    }
+
+    // Sprawdzenie, czy zdrowie spadło do zera
+    if (currentHealth <= 0)
+    {
+        Die();
+    }
+
+    // Aktualizacja UI zdrowia
+    if (healthbarImage != null)
+    {
+        healthbarImage.fillAmount = currentHealth / maxHealth;
+    }
+
+    // Odtwórz dźwięk trafienia
+    if (Shot != null && audioSource != null)
+    {
+        audioSource.PlayOneShot(Shot);
+    }
+}
+
 
 
 void Die()

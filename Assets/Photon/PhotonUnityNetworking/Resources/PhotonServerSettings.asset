@@ -69,6 +69,8 @@ MonoBehaviour:
   - SyncWeaponData
   - SyncWeaponAndHandData
   - SyncWeaponTransform
+  - RPC_UpdateAirStatus
+  - RPC_SetInAir
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0
