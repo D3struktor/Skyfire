@@ -41,6 +41,9 @@ public class Launcher : MonoBehaviourPunCallbacks
     private float savedVolume;
     private float savedSFXVolume;
 
+     private AnalyticsInitializer analyticsInitializer; //ważne
+    public GameObject analyticsManagerObject; //ważne
+
     void Awake()
     {
         Instance = this;  
@@ -48,6 +51,17 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     void Start()
     {
+                // Pobranie AnalyticsInitializer z Hierarchii
+        AnalyticsInitializer analyticsInitializer = FindObjectOfType<AnalyticsInitializer>();
+        if (analyticsInitializer != null)
+        {
+            analyticsInitializer.LogSessionStart();
+        }
+        else
+        {
+            Debug.LogError("AnalyticsInitializer nie znaleziono!");
+        }
+        
         Debug.Log("Launcher: Connecting to Master");
         PhotonNetwork.ConnectUsingSettings();
         Cursor.lockState = CursorLockMode.None;
@@ -129,6 +143,12 @@ public class Launcher : MonoBehaviourPunCallbacks
         PlayerPrefs.SetString("GameMode", "DM");
         Debug.Log("Launcher: GameMode set to DM.");
 
+            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+            if (analytics != null)
+            {
+                analytics.LogSessionStart();
+            }
+
         // Pokaż ekran ładowania
         ShowLoadingScreen();
 
@@ -139,6 +159,12 @@ public class Launcher : MonoBehaviourPunCallbacks
     public void StartGameTDM()
     {
         Debug.Log("Launcher: Host setting GameMode to TDM for all players.");
+
+            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+            if (analytics != null)
+            {
+                analytics.LogSessionStart();
+            }
 
         // Wywołanie RPC, aby ustawić tryb TDM dla wszystkich graczy
         photonView.RPC("SetGameModeTDM", RpcTarget.All);
@@ -290,12 +316,20 @@ public override void OnPlayerEnteredRoom(Player newPlayer)
 
     public void ExitGame()
     {
-        Debug.Log("Exit Game pressed. Quitting application.");
+        Debug.Log("Exit Game pressed. Logging analytics and quitting application.");
+
+        // Log session end
+        AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+        if (analytics != null)
+        {
+            analytics.LogSessionEnd("PlayerQuit");
+        }
 
         #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false; // Dla edytora Unity
+            UnityEditor.EditorApplication.isPlaying = false; // For Unity Editor
         #else
-            Application.Quit(); // Prawdziwe wyjście z gry
+            Application.Quit(); // For standalone builds
         #endif
     }
+
 }

@@ -190,26 +190,39 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         }
     }
 
-    public void Die()
-    {
-        if (PV.IsMine && isAlive)
-        {
-            if (controller != null)
-            {
-                if (controller.GetComponent<PhotonView>() != null)
-                {
-                    PhotonNetwork.Destroy(controller); // Niszczenie kontrolera gracza
-                }
-                else
-                {
-                    Debug.LogWarning("PhotonView is missing from controller, skipping destroy.");
-                }
-            }
+public void Die()
+{
+    Debug.Log($"Die() wywołane dla {PhotonNetwork.LocalPlayer.NickName} (IsMine: {PV.IsMine}, IsAlive: {isAlive})");
 
-            StartCoroutine(RespawnAfterDelay(2f));
-            isAlive = false;
+    if (!PV.IsMine || !isAlive)
+    {
+        Debug.LogWarning("Die() wywołane, ale PV.IsMine == false lub gracz już nie żyje.");
+        return;
+    }
+
+    if (controller != null)
+    {
+        PhotonView controllerPV = controller.GetComponent<PhotonView>();
+        if (controllerPV != null && controllerPV.IsMine)
+        {
+            PhotonNetwork.Destroy(controller);
+            Debug.Log("Kontroler gracza zniszczony.");
+        }
+        else
+        {
+            Debug.LogWarning("Kontroler nie należy do lokalnego gracza, pomijam zniszczenie.");
         }
     }
+    else
+    {
+        Debug.LogWarning("Controller jest null, nie można go zniszczyć.");
+    }
+
+    isAlive = false; // Aktualizacja stanu lokalnego gracza
+    StartCoroutine(RespawnAfterDelay(2f)); // Rozpoczęcie respawnu
+}
+
+
 
     private IEnumerator RespawnAfterDelay(float delay)
     {
@@ -292,34 +305,52 @@ public void RemoveKill()
         KillFeedManager.Instance.AddKillFeedEntry(killerName, victimName);
     }
 
-    [PunRPC]
-    public void AddKill()
-    {
-        if (!PV.IsMine) return;
+ [PunRPC]
+public void AddKill()
+{
+    Debug.Log($"AddKill wywołane dla {PhotonNetwork.LocalPlayer.NickName}");
+    if (!PV.IsMine) return;
 
-        kills++;
-        Hashtable hash = new Hashtable();
-        hash.Add("kills", kills);
-        PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-        Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} got a kill. Total kills: {kills}.");
+    kills++;
+    Hashtable hash = new Hashtable { { "kills", kills } };
+    PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+    Debug.Log($"Zaktualizowano zabójstwa dla {PhotonNetwork.LocalPlayer.NickName}: {kills}");
+}
+
+
+ public static PlayerManager Find(Player player)
+{
+    Debug.Log($"Szukam PlayerManager dla gracza {player.NickName}");
+    var manager = FindObjectsOfType<PlayerManager>().ToList().SingleOrDefault(x => x.PV.Owner == player);
+    if (manager == null)
+    {
+        Debug.LogError($"Nie znaleziono PlayerManager dla {player.NickName}");
     }
+    return manager;
+}
 
-    public static PlayerManager Find(Player player)
+public void ReportKill(Player killedPlayer)
+{
+    Debug.Log("Wywołano ReportKill");
+    if (PV.IsMine)
     {
-        return FindObjectsOfType<PlayerManager>().ToList().SingleOrDefault(x => x.PV.Owner == player);
-    }
-
-    public void ReportKill(Player killedPlayer)
-    {
-        if (PV.IsMine)
+        var killedPlayerManager = Find(killedPlayer);
+        if (killedPlayerManager != null)
         {
-            var killedPlayerManager = Find(killedPlayer);
-            if (killedPlayerManager != null)
-            {
-                killedPlayerManager.RecordDeath(PhotonNetwork.LocalPlayer);
-            }
+            Debug.Log($"Znaleziono PlayerManager dla {killedPlayer.NickName}, wywołuję RecordDeath");
+            killedPlayerManager.RecordDeath(PhotonNetwork.LocalPlayer);
+        }
+        else
+        {
+            Debug.LogError($"Nie znaleziono PlayerManager dla {killedPlayer.NickName}");
         }
     }
+    else
+    {
+        Debug.LogWarning("ReportKill wywołane, ale PV.IsMine == false");
+    }
+}
+
 
     void OnPhotonPlayerDisconnected(Player otherPlayer)
     {

@@ -207,7 +207,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   damage: 15
-  ignoreCollisionTime: 0.3
+  ignoreCollisionTime: 0.4
 --- !u!23 &8439997844938966242
 MeshRenderer:
   m_ObjectHideFlags: 0

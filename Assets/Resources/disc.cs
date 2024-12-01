@@ -40,7 +40,9 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
         Debug.Log("Projectile created by player: " + owner.NickName);
 
         // Find the owner's collider and temporarily ignore collision
-        PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
+        PlayerController playerController = FindObjectsOfType<PlayerController>()
+    .FirstOrDefault(p => p.photonView != null && p.photonView.Owner == owner);
+
         if (playerController != null)
         {
             ownerCollider = playerController.GetComponent<Collider>();

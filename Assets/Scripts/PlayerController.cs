@@ -111,7 +111,19 @@ public class PlayerController : MonoBehaviourPunCallbacks
     //medale
     private MedalDisplay medalDisplay;
 
+    private AnalyticsInitializer analyticsInitializer; //ważne
+    public GameObject analyticsManagerObject; //ważne
 
+    //jetpack analyzer
+    public bool isJetpackActive = false; // Flaga do sprawdzania, czy jetpack jest aktywny
+    public Vector3 jetpackStartPosition;
+
+    private float timeInAir = 0f;
+    private float timeOnGround = 0f;
+
+    public float CurrentSpeed => rb.velocity.magnitude; // Aktualna prędkość
+    public float TimeInAir => timeInAir;               // Czas w powietrzu
+    public float TimeOnGround => timeOnGround;         // Czas na ziemi
 
 
     void Awake()
@@ -132,10 +144,25 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void Start()
     {
-            if (PV.IsMine)
+       // Ustawienie TagObject
+    PV.Owner.TagObject = this;
+    Debug.Log("TagObject ustawiony dla gracza: " + PV.Owner.NickName);
+
+    // Inicjalizacje tylko dla lokalnego gracza
+    if (PV.IsMine)
     {
-        PV.Owner.TagObject = this;
-        Debug.Log("TagObject ustawiony dla gracza: " + PV.Owner.NickName);
+        Debug.Log("Jestem właścicielem tego obiektu PhotonView: " + PV.Owner.NickName);
+
+        // Pobranie AnalyticsInitializer z Hierarchii
+        AnalyticsInitializer analyticsInitializer = FindObjectOfType<AnalyticsInitializer>();
+        if (analyticsInitializer != null)
+        {
+            analyticsInitializer.LogSessionStart();
+        }
+        else
+        {
+            Debug.LogError("AnalyticsInitializer nie znaleziono!");
+        }
     }
         Cursor.lockState = CursorLockMode.Locked;
         currentJetpackFuel = jetpackFuelMax;
@@ -216,6 +243,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void Update()
     {
+        TrackAirAndGroundTime();
         // Przełącz `isMovementEnabled` przy użyciu klawisza Escape
         if (Input.GetKeyDown(KeyCode.Escape))
         {
@@ -239,12 +267,24 @@ public class PlayerController : MonoBehaviourPunCallbacks
         HandleEnergyPack();
     }
 
+        private void TrackAirAndGroundTime()
+    {
+        if (isColliding)
+        {
+            timeOnGround += Time.deltaTime; // Dodawanie czasu na ziemi
+        }
+        else
+        {
+            timeInAir += Time.deltaTime; // Dodawanie czasu w powietrzu
+        }
+    }
+
     
 
     void Look()
     {
         pitch -= Input.GetAxisRaw("Mouse Y") * sensitivity;
-        pitch = Mathf.Clamp(pitch, -90.0f, 90.0f);
+        pitch = Mathf.Clamp(pitch, -85.0f, 90.0f);
         yaw += Input.GetAxisRaw("Mouse X") * sensitivity;
         transform.rotation = Quaternion.Euler(0, yaw, 0);
         playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
@@ -534,46 +574,77 @@ void Movement()
         }
     }
 
-    void HandleJetpack()
+void HandleJetpack()
+{
+    // Sprawdzanie, czy jetpack może być używany
+    if (canUseJetpack && currentJetpackFuel > 0 && (Input.GetMouseButton(1) || Input.GetKey(KeyCode.Space)))
     {
-        if (canUseJetpack && currentJetpackFuel > 0 && Input.GetMouseButton(1)|| Input.GetKey(KeyCode.Space))
+        // Jetpack właśnie został aktywowany
+        if (!isJetpackActive)
         {
-            Vector3 jetpackDirection = transform.forward * jetpackForceZ + transform.right * jetpackForceX + Vector3.up * jetpackForceY;
-            rb.AddForce(jetpackDirection, ForceMode.Acceleration);
-            UseJetpackFuel();
+            isJetpackActive = true;
+            jetpackStartPosition = transform.position;
 
-            if (!audioSource.isPlaying)
-            {
-            audioSource.clip = jetpackSound; // Set the audio clip to jetpack sound
-            audioSource.volume = 0.6f; // Set volume to 60%
-            audioSource.Play();
-            }
+            // Logowanie rozpoczęcia jetpacka
+            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+            analytics?.LogJetpackStart(jetpackStartPosition, Time.time);
+
+            Debug.Log("JetpackStart: Jetpack został aktywowany.");
         }
-            else
+
+        // Działanie jetpacka
+        Vector3 jetpackDirection = transform.forward * jetpackForceZ + transform.right * jetpackForceX + Vector3.up * jetpackForceY;
+        rb.AddForce(jetpackDirection, ForceMode.Acceleration);
+        UseJetpackFuel();
+
+        // Dźwięk jetpacka
+        if (!audioSource.isPlaying)
+        {
+            audioSource.clip = jetpackSound;
+            audioSource.volume = 0.6f;
+            audioSource.Play();
+        }
+    }
+    else
     {
-        // Stop the sound when not using the jetpack
+        // Jetpack przestaje być aktywny
+        if (isJetpackActive)
+        {
+            isJetpackActive = false;
+
+            // Logowanie zakończenia jetpacka
+            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+            analytics?.LogJetpackEnd(transform.position, Time.time);
+
+            Debug.Log("JetpackEnd: Jetpack został wyłączony.");
+        }
+
+        // Zatrzymywanie dźwięku
         if (audioSource.clip == jetpackSound && audioSource.isPlaying)
         {
             audioSource.Stop();
         }
     }
 
-
-        if (currentJetpackFuel <= 0)
-        {
-            canUseJetpack = false;
-        }
-
-        if (!canUseJetpack && currentJetpackFuel / jetpackFuelMax >= 0.1f)
-        {
-            canUseJetpack = true;
-        }
-
-         if (!Input.GetMouseButton(1) && !Input.GetKey(KeyCode.Space) && currentJetpackFuel < jetpackFuelMax)
-        {
-            RegenerateJetpackFuel();
-        }
+    // Blokowanie jetpacka, jeśli brak paliwa
+    if (currentJetpackFuel <= 0)
+    {
+        canUseJetpack = false;
     }
+
+    // Odblokowanie jetpacka, gdy paliwo zostanie częściowo zregenerowane
+    if (!canUseJetpack && currentJetpackFuel / jetpackFuelMax >= 0.1f)
+    {
+        canUseJetpack = true;
+    }
+
+    // Regeneracja paliwa, jeśli jetpack nie jest używany
+    if (!Input.GetMouseButton(1) && !Input.GetKey(KeyCode.Space) && currentJetpackFuel < jetpackFuelMax)
+    {
+        RegenerateJetpackFuel();
+    }
+}
+
 
     void UseJetpackFuel()
     {
@@ -745,33 +816,41 @@ void Movement()
     }
 
 [PunRPC]
-public void RPC_TakeDamage(float damage, Player hitter, PhotonMessageInfo info)
+public void RPC_TakeDamage(float damage, Player killer, PhotonMessageInfo info)
 {
-    // Aktualizacja zdrowia
+    // Aktualizacja zdrowia gracza
     currentHealth -= damage;
-    Debug.Log("RPC_TakeDamage wywołane. Obrażenia: " + damage + ", gracz trafiający: " + (hitter != null ? hitter.NickName : "brak"));
+    Debug.Log($"RPC_TakeDamage: Gracz {PhotonNetwork.LocalPlayer.NickName} otrzymał obrażenia: {damage}. Aktualne zdrowie: {currentHealth}. Trafił: {killer?.NickName ?? "brak"}");
 
-    // Wyświetlanie medalu tylko przy trafieniu innego gracza
-    if (hitter != null && hitter.IsLocal && hitter != PV.Owner)
+    // Wyświetlanie medali przy trafieniu
+    if (killer != null && killer.IsLocal && killer != PV.Owner)
     {
-        PlayerController hitterController = hitter.TagObject as PlayerController;
-        if (hitterController != null)
-        {
-            Debug.Log("PlayerController znaleziony u gracza dokonującego trafienia. weaponSlot: " + hitterController.weaponSlot);
+        Debug.Log($"Gracz {killer.NickName} jest lokalnym graczem i trafił gracza {PhotonNetwork.LocalPlayer.NickName}");
 
-            if (hitterController.weaponSlot == 1) // DiscShooter
+        // Pobierz PlayerController killera z innego skryptu, jeśli istnieje
+        PlayerController killerController = killer.TagObject as PlayerController;
+        if (killerController != null)
+        {
+            Debug.Log($"PlayerController znaleziony u gracza trafiającego. weaponSlot: {killerController.weaponSlot}");
+
+            // Wyświetlanie medali w zależności od używanej broni
+            if (killerController.weaponSlot == 1) // DiscShooter
             {
                 Debug.Log("Wyświetlanie medalu DiscShootera przy trafieniu");
-                hitterController.medalDisplay?.ShowDiscShooterMedal();
+                killerController.medalDisplay?.ShowDiscShooterMedal();
             }
-            else if (hitterController.weaponSlot == 2) // Granatnik
+            else if (killerController.weaponSlot == 2) // Granatnik
             {
                 Debug.Log("Wyświetlanie medalu granatnika przy trafieniu");
-                hitterController.medalDisplay?.ShowGrenadeMedal();
+                killerController.medalDisplay?.ShowGrenadeMedal();
             }
         }
+        else
+        {
+            Debug.LogWarning("Nie znaleziono PlayerController dla killera.");
+        }
     }
-    else if (hitter == PV.Owner)
+    else if (killer == PV.Owner)
     {
         Debug.Log("Gracz trafił samego siebie – pominięto wyświetlanie medalu.");
     }
@@ -779,7 +858,13 @@ public void RPC_TakeDamage(float damage, Player hitter, PhotonMessageInfo info)
     // Sprawdzenie, czy zdrowie spadło do zera
     if (currentHealth <= 0)
     {
+        Debug.Log($"Gracz {PhotonNetwork.LocalPlayer.NickName} zginął. Zabójca: {killer?.NickName ?? "brak"}.");
+
+        // Wywołanie Die() w celu obsługi zniszczenia i respawnu gracza
         Die();
+
+        // Przypisanie zabójstwa
+        playerManager.RecordDeath(killer);
     }
 
     // Aktualizacja UI zdrowia
@@ -788,7 +873,7 @@ public void RPC_TakeDamage(float damage, Player hitter, PhotonMessageInfo info)
         healthbarImage.fillAmount = currentHealth / maxHealth;
     }
 
-    // Odtwórz dźwięk trafienia
+    // Odtworzenie dźwięku trafienia
     if (Shot != null && audioSource != null)
     {
         audioSource.PlayOneShot(Shot);
@@ -797,21 +882,24 @@ public void RPC_TakeDamage(float damage, Player hitter, PhotonMessageInfo info)
 
 
 
+
+
 void Die()
 {
-    // Tworzenie instancji ragdolla na pozycji gracza
-    GameObject ragdollInstance = PhotonNetwork.Instantiate(ragdollPrefab.name, transform.position, transform.rotation);
-    ragdollInstance.transform.localScale = new Vector3(6f, 6f, 6f);
+    if (!isAlive) return; // Jeśli gracz już nie żyje, zakończ metodę
+    isAlive = false; // Ustaw flagę na false, aby oznaczyć, że gracz zginął
 
-    // Aktywacja fizyki w ragdollu
-    RagdollActivator ragdollActivator = ragdollInstance.GetComponent<RagdollActivator>();
-    if (ragdollActivator != null)
-    {
-        ragdollActivator.ActivateRagdoll();
-    }
+    AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+    analytics?.LogPlayerDied(transform.position, currentHealth, Time.time);
+GameObject ragdollInstance = PhotonNetwork.Instantiate(ragdollPrefab.name, transform.position, transform.rotation);
+// Aktywacja fizyki w ragdollu
+RagdollActivator ragdollActivator = ragdollInstance.GetComponent<RagdollActivator>();
+if (ragdollActivator != null)
+{
+    ragdollActivator.ActivateRagdoll();
+}
 
-    // Zniszcz ragdolla po 3 sekundach
-    StartCoroutine(DestroyRagdollAfterDelay(ragdollInstance, 3f));
+
 
     // Powiadomienie managera o śmierci gracza
     if (playerManager != null)
@@ -947,70 +1035,64 @@ private IEnumerator DestroyRagdollAfterDelay(GameObject ragdoll, float delay)
         PhotonNetwork.Instantiate("HealthAmmoPickup", dropPosition, Quaternion.identity);
         }
     }
-void HandleEnergyPack()
-{
-    // Cooldown Energy Packa
-    if (!canUseEnergyPack)
+    void HandleEnergyPack()
     {
-        energyPackCooldownTimer -= Time.deltaTime;
-        if (energyPackCooldownTimer <= 0f)
+        // Cooldown Energy Packa
+        if (!canUseEnergyPack)
         {
-            canUseEnergyPack = true;
-            Debug.Log("Energy Pack gotowy do użycia.");
-        }
-    }
-
-    // Użycie Energy Packa, jeśli gracz jest w powietrzu i Energy Pack jest dostępny
-    if (Input.GetKeyDown(KeyCode.E) && !isColliding && canUseEnergyPack && currentJetpackFuel >= energyPackFuelCost)
-    {
-        isUsingEnergyPack = true;
-        energyPackTimer = energyPackDuration;
-        canUseEnergyPack = false;
-        energyPackCooldownTimer = energyPackCooldown;
-
-        Debug.Log("Energy Pack aktywowany.");
-
-        // Odtwórz dźwięk Energy Packa
-        if (audioSource != null && energyPackSound != null)
-        {
-            audioSource.clip = energyPackSound;
-            audioSource.loop = false;  // Energy Pack dźwięk nie musi się zapętlać
-            audioSource.Play();
-        }
-    }
-
-    // Jeśli Energy Pack jest używany, odliczaj czas trwania i zużywaj paliwo
-    if (isUsingEnergyPack)
-    {
-        energyPackTimer -= Time.deltaTime;
-
-        // Zużywanie paliwa stopniowo przez czas działania Energy Packa
-        float fuelUsagePerSecond = energyPackFuelCost / energyPackDuration;
-        currentJetpackFuel -= fuelUsagePerSecond * Time.deltaTime;
-        currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
-
-        // Aktualizacja UI, aby pokazać zużycie paliwa
-        if (jetpackFuelImage != null)
-        {
-            jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
+            energyPackCooldownTimer -= Time.deltaTime;
+            if (energyPackCooldownTimer <= 0f)
+            {
+                canUseEnergyPack = true;
+                Debug.Log("Energy Pack gotowy do użycia.");
+            }
         }
 
-        // Dodanie impulsu w kierunku, w którym patrzy gracz (tylko jeśli to jest nasz obiekt)
-        if (PV.IsMine)
+        // Użycie Energy Packa
+        if (Input.GetKeyDown(KeyCode.E) && !isColliding && canUseEnergyPack && currentJetpackFuel >= energyPackFuelCost)
         {
-            Vector3 boostDirection = playerCamera.transform.forward;
-            rb.AddForce(boostDirection * jetpackForceZ/2, ForceMode.Impulse);
-            Debug.Log("Siła dodana jako impuls: " + boostDirection * jetpackForceZ);
+            isUsingEnergyPack = true;
+            energyPackTimer = energyPackDuration;
+            canUseEnergyPack = false;
+            energyPackCooldownTimer = energyPackCooldown;
+
+            // Logowanie zdarzenia analitycznego
+            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+            analytics?.LogEnergypackUsed(transform.position, Time.time);
+
+            Debug.Log("Energy Pack aktywowany.");
         }
 
-        // Zakończ działanie Energy Packa, gdy czas się skończy lub braknie paliwa
-        if (energyPackTimer <= 0f || currentJetpackFuel <= 0f)
+        // Działanie Energy Packa
+        if (isUsingEnergyPack)
         {
-            isUsingEnergyPack = false;
-            Debug.Log("Energy Pack wyłączony.");
+            energyPackTimer -= Time.deltaTime;
+
+            // Zużycie paliwa
+            float fuelUsagePerSecond = energyPackFuelCost / energyPackDuration;
+            currentJetpackFuel -= fuelUsagePerSecond * Time.deltaTime;
+            currentJetpackFuel = Mathf.Clamp(currentJetpackFuel, 0, jetpackFuelMax);
+
+            // Aktualizacja UI
+            if (jetpackFuelImage != null)
+            {
+                jetpackFuelImage.fillAmount = currentJetpackFuel / jetpackFuelMax;
+            }
+
+            // Dodanie impulsu
+            if (PV.IsMine)
+            {
+                Vector3 boostDirection = playerCamera.transform.forward;
+                rb.AddForce(boostDirection * jetpackForceZ / 2.25f, ForceMode.Impulse);
+                // Debug.Log("Siła dodana jako impuls: " + boostDirection * jetpackForceZ);
+            }
+
+            // Sprawdzenie zakończenia Energy Packa
+            if (energyPackTimer <= 0f || currentJetpackFuel <= 0f)
+            {
+                isUsingEnergyPack = false;
+                Debug.Log("Energy Pack wyłączony.");
+            }
         }
     }
 }
-
-}
-

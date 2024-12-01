@@ -9,6 +9,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 9c77fdcbf1f5f61439628fa3d3b8e37e, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9c77fdcbf1f5f61439628fa3d3b8e37e, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9c77fdcbf1f5f61439628fa3d3b8e37e, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9c77fdcbf1f5f61439628fa3d3b8e37e, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -847,7 +859,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 058cd6e1cb7c8374fbfd4b781c880b66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lifetime: 5
+  lifetime: 10
 --- !u!1 &5560493731414499404 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -9070493210130169274, guid: 9c77fdcbf1f5f61439628fa3d3b8e37e, type: 3}

@@ -267,7 +267,7 @@ MonoBehaviour:
   explosionSoundRange: 350
   bounceSoundRange: 200
   minDistance: 100
-  ignoreCollisionTime: 0.2
+  ignoreCollisionTime: 0.6
   throwForce: 150
   throwDirection: {x: 0, y: -0.00000001, z: 0}
 --- !u!136 &5379180120573130739

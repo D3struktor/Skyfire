@@ -4502,6 +4502,8 @@ GameObject:
   - component: {fileID: 6069387674921610586}
   - component: {fileID: 4060058250399177595}
   - component: {fileID: 7735723111196973465}
+  - component: {fileID: 2667762454479344568}
+  - component: {fileID: 6125676445629361411}
   m_Layer: 0
   m_Name: PlayerController
   m_TagString: Player
@@ -4586,6 +4588,9 @@ MonoBehaviour:
   headPos: {fileID: 1853016879589177686}
   Cam: {fileID: 1177674957338346322}
   ragdollPrefab: {fileID: 4896710479594594139, guid: 548baad5bdc7e004da6a7edbecedbd7c, type: 3}
+  analyticsManagerObject: {fileID: 7690855714516856143, guid: b48abc31a3b7b944489b25a95ae84da6, type: 3}
+  isJetpackActive: 0
+  jetpackStartPosition: {x: 0, y: 0, z: 0}
 --- !u!114 &4335473115240373283
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5144,6 +5149,30 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0d073b8c00ed3834b8f293e5b615b6f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &2667762454479344568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8549866176330816754}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe6575c5a4b5a7f4388b53f118e334d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &6125676445629361411
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8549866176330816754}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3adf57536e94a44287f8e57f5e4b37a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &8610244161178116754
@@ -6014,7 +6043,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3932776034481615374, guid: 549a56c72521bc34ab18f2b2517001d4, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4458517846456166580, guid: 549a56c72521bc34ab18f2b2517001d4, type: 3}
       propertyPath: m_LocalScale.x
