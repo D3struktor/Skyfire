@@ -39,6 +39,16 @@ public class RoomManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsMasterClient)
         {
+            Debug.Log("MasterClient starting the game.");
+            
+            // Zamknięcie pokoju i ukrycie go z listy
+            if (PhotonNetwork.CurrentRoom != null)
+            {
+                PhotonNetwork.CurrentRoom.IsOpen = false;
+                PhotonNetwork.CurrentRoom.IsVisible = false;
+                Debug.Log("Room closed and hidden from lobby.");
+            }
+
             LoadRandomScene();
         }
         else
@@ -68,13 +78,13 @@ public class RoomManager : MonoBehaviourPunCallbacks
     {
         Debug.Log("New player joined: " + newPlayer.NickName);
 
-        // Przykładowo, możesz tutaj zsynchronizować stan gry lub wysłać powiadomienia do innych graczy
+        // Synchronizacja stanu gry lub wysłanie powiadomień do innych graczy
         foreach (Player player in PhotonNetwork.PlayerList)
         {
             Debug.Log("Player in room: " + player.NickName);
         }
 
-        // Możesz także wysłać dane do nowego gracza
+        // Wysłanie danych do nowego gracza
         photonView.RPC("SyncPlayerData", newPlayer);
     }
 
@@ -83,13 +93,25 @@ public class RoomManager : MonoBehaviourPunCallbacks
     public void SyncPlayerData()
     {
         Debug.Log("Synchronizing player data for new player.");
-        // Tutaj dodaj kod do synchronizacji stanu gry, np. pozycje graczy, zdrowie, amunicję itp.
+        // Dodaj kod do synchronizacji stanu gry, np. pozycje graczy, zdrowie, amunicję itp.
     }
 
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
         Debug.Log("Player left: " + otherPlayer.NickName);
 
-        // Możesz tutaj obsłużyć usuwanie gracza z mapy lub inny cleanup
+        // Obsłuż usuwanie gracza z mapy lub inny cleanup
+    }
+
+    public override void OnCreatedRoom()
+    {
+        Debug.Log("Room created. Setting max players.");
+        
+        // Ustaw maksymalną liczbę graczy w pokoju
+        if (PhotonNetwork.CurrentRoom != null)
+        {
+            PhotonNetwork.CurrentRoom.MaxPlayers = 2; // Przykład: maksymalnie 8 graczy
+            Debug.Log("Max players set to: " + PhotonNetwork.CurrentRoom.MaxPlayers);
+        }
     }
 }

@@ -56,7 +56,7 @@ Transform:
   m_GameObject: {fileID: 6724962454566415435}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.22, y: 4.19, z: 22.98}
+  m_LocalPosition: {x: 0.22, y: 4.19, z: 49.24}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -168,7 +168,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   grenadePrefab: {fileID: 3678946588746919792, guid: 4d6346f552b633043a343c4d03f5fa1d, type: 3}
   shootingPoint: {fileID: 2434285912294249829}
-  grenadeSpeed: 160
+  grenadeSpeed: 300
   grenadeGravity: 200
   grenadeDrag: 0.4
   grenadeAngularDrag: 0

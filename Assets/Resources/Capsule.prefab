@@ -253,14 +253,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   explosionEffect: {fileID: 443653445314069269, guid: 7e3e8e2f6ecdbb04a982af0a14f2d887, type: 3}
-  blastRadius: 10
-  explosionForce: 130
-  maxDamage: 120
+  blastRadius: 12
+  explosionForce: 160
+  maxDamage: 200
   explosionSound: {fileID: 8300000, guid: 3beb91d2cbf601649be11b2a6f5c2759, type: 3}
   sfxMixerGroup: {fileID: -1483086409508410553, guid: c00fde4c2f64f9c458d4bc18c9e4d1d2, type: 2}
   soundMaxDistance: 550
   soundFullVolumeDistance: 100
-  ignoreCollisionTime: 1
+  ignoreCollisionTime: 10
 --- !u!136 &5379180120573130739
 CapsuleCollider:
   m_ObjectHideFlags: 0

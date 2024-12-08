@@ -120,10 +120,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private float timeInAir = 0f;
     private float timeOnGround = 0f;
+    private float cumulativeSpeed = 0f; // Sum of all speed samples
+    private int speedSamples = 0;       // Number of speed samples taken
 
-    public float CurrentSpeed => rb.velocity.magnitude; // Aktualna prędkość
-    public float TimeInAir => timeInAir;               // Czas w powietrzu
-    public float TimeOnGround => timeOnGround;         // Czas na ziemi
+    // public float CurrentSpeed => rb.velocity.magnitude; // Aktualna prędkość
+    // public float TimeInAir => timeInAir;               // Czas w powietrzu
+    // public float TimeOnGround => timeOnGround;         // Czas na ziemi
 
 
     void Awake()
@@ -243,7 +245,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     void Update()
     {
-        TrackAirAndGroundTime();
+        TrackAirAndGroundTime(); // Update air/ground time tracking
+        TrackAverageSpeed();    // Track speed for average calculation
         // Przełącz `isMovementEnabled` przy użyciu klawisza Escape
         if (Input.GetKeyDown(KeyCode.Escape))
         {
@@ -266,20 +269,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         HandleWeaponSwitch();
         HandleEnergyPack();
     }
-
-        private void TrackAirAndGroundTime()
-    {
-        if (isColliding)
-        {
-            timeOnGround += Time.deltaTime; // Dodawanie czasu na ziemi
-        }
-        else
-        {
-            timeInAir += Time.deltaTime; // Dodawanie czasu w powietrzu
-        }
-    }
-
-    
+   
 
     void Look()
     {
@@ -886,17 +876,25 @@ public void RPC_TakeDamage(float damage, Player killer, PhotonMessageInfo info)
 
 void Die()
 {
-    if (!isAlive) return; // Jeśli gracz już nie żyje, zakończ metodę
-    isAlive = false; // Ustaw flagę na false, aby oznaczyć, że gracz zginął
+if (!isAlive) return; // Jeśli gracz już nie żyje, zakończ metodę
+isAlive = false; // Ustaw flagę na false, aby oznaczyć, że gracz zginął
 
-    AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-    analytics?.LogPlayerDied(transform.position, currentHealth, Time.time);
-GameObject ragdollInstance = PhotonNetwork.Instantiate(ragdollPrefab.name, transform.position, transform.rotation);
-// Aktywacja fizyki w ragdollu
-RagdollActivator ragdollActivator = ragdollInstance.GetComponent<RagdollActivator>();
-if (ragdollActivator != null)
+AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+analytics?.LogPlayerDied(transform.position, currentHealth, Time.time);
+
+// Sprawdzenie, czy ten obiekt jest kontrolowany przez lokalnego gracza
+PhotonView photonView = GetComponent<PhotonView>();
+if (photonView != null && photonView.IsMine)
 {
-    ragdollActivator.ActivateRagdoll();
+    // Utwórz ragdoll tylko dla lokalnego gracza
+    GameObject ragdollInstance = PhotonNetwork.Instantiate(ragdollPrefab.name, transform.position, transform.rotation);
+
+    // Aktywacja fizyki w ragdollu
+    RagdollActivator ragdollActivator = ragdollInstance.GetComponent<RagdollActivator>();
+    if (ragdollActivator != null)
+    {
+        ragdollActivator.ActivateRagdoll();
+    }
 }
 
 
@@ -1095,4 +1093,69 @@ private IEnumerator DestroyRagdollAfterDelay(GameObject ragdoll, float delay)
             }
         }
     }
+private void TrackAirAndGroundTime()
+{
+    if (isColliding) // Zakładam, że isColliding jest poprawnie aktualizowane
+    {
+        timeOnGround += Time.deltaTime; // Dodaj czas spędzony na ziemi
+    }
+    else
+    {
+        timeInAir += Time.deltaTime; // Dodaj czas spędzony w powietrzu
+    }
+}
+
+private void TrackAverageSpeed()
+{
+    if (playerSpeedText != null)
+    {
+        // Wyodrębnij linię tekstu, która zawiera "Speed:"
+        string[] lines = playerSpeedText.text.Split('\n'); // Dziel tekst na linie
+        foreach (string line in lines)
+        {
+            if (line.StartsWith("Speed: ")) // Znajdź linię zaczynającą się od "Speed: "
+            {
+                string speedText = line.Replace("Speed: ", "").Trim(); // Usuń "Speed: " i białe znaki
+                if (float.TryParse(speedText, out float currentSpeed))
+                {
+                    cumulativeSpeed += currentSpeed;
+                    speedSamples++;
+                }
+                else
+                {
+                    Debug.LogWarning($"Nie można sparsować prędkości z tekstu: {speedText}");
+                }
+                return; // Wyjdź z pętli, bo już znaleźliśmy wartość "Speed"
+            }
+        }
+        
+        Debug.LogWarning("Nie znaleziono linii z 'Speed:' w playerSpeedText.");
+    }
+    else
+    {
+        Debug.LogError("Player speed text is not assigned!");
+    }
+}
+
+// Właściwość do obliczania średniej prędkości
+public float AverageSpeed
+{
+    get
+    {
+        if (speedSamples > 0)
+        {
+            return cumulativeSpeed / speedSamples; // Oblicz średnią prędkość
+        }
+        else
+        {
+            Debug.LogWarning("Brak próbek prędkości. Średnia prędkość wynosi 0.");
+            return 0f;
+        }
+    }
+}
+
+// Właściwości tylko do odczytu dla czasu w powietrzu i na ziemi
+public float TimeInAir => timeInAir;               // Łączny czas w powietrzu
+public float TimeOnGround => timeOnGround;         // Łączny czas na ziemi
+
 }

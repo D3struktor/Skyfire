@@ -3,6 +3,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using System.Linq;
 using UnityEngine.Audio;
+using System.Collections;
 
 
 public class Disc : MonoBehaviourPunCallbacks, IPunObservable
@@ -26,46 +27,146 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
 
     private Player owner;
     private Collider ownerCollider;
+    private Collider discCollider; // Deklaracja globalna
 
-    void Start()
+void Start()
+{
+    networkedPosition = transform.position;
+    networkedRotation = transform.rotation;
+
+    discCollider = GetComponent<Collider>();
+    ownerCollider = FindOwnerCollider();
+
+    if (ownerCollider != null && discCollider != null)
     {
-        networkedPosition = transform.position;
-        networkedRotation = transform.rotation;
-
-        // Get the PhotonView component
-        PhotonView photonView = GetComponent<PhotonView>();
-
-        // Get the owner of the projectile
-        owner = photonView.Owner;
-        Debug.Log("Projectile created by player: " + owner.NickName);
-
-        // Find the owner's collider and temporarily ignore collision
-        PlayerController playerController = FindObjectsOfType<PlayerController>()
-    .FirstOrDefault(p => p.photonView != null && p.photonView.Owner == owner);
-
-        if (playerController != null)
-        {
-            ownerCollider = playerController.GetComponent<Collider>();
-            if (ownerCollider != null)
-            {
-                Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, true);
-                Invoke("ResetCollision", ignoreCollisionTime);
-            }
-        }
+        // Wywołanie MaintainIgnoreCollision z odpowiednimi argumentami
+        StartCoroutine(MaintainIgnoreCollision(discCollider, ownerCollider));
+    }
+    else
+    {
+        Debug.LogWarning("Either ownerCollider or discCollider is null.");
     }
 
-    void ResetCollision()
+    // Get the PhotonView component
+    PhotonView photonView = GetComponent<PhotonView>();
+
+    // Get the owner of the projectile
+    owner = photonView.Owner;
+    Debug.Log("Projectile created by player: " + owner.NickName);
+
+    // Ignorowanie kolizji
+    IgnoreOwnerCollision();
+}
+Collider FindOwnerCollider()
+{
+    // Znajdź PlayerController właściciela
+    PlayerController playerController = FindObjectsOfType<PlayerController>()
+        .FirstOrDefault(p => p.photonView != null && p.photonView.Owner == GetComponent<PhotonView>().Owner);
+
+    if (playerController != null)
     {
+        Debug.Log("Owner collider found for player: " + playerController.photonView.Owner.NickName);
+        return playerController.GetComponent<Collider>();
+    }
+    else
+    {
+        Debug.LogWarning("PlayerController not found for owner.");
+        return null;
+    }
+}
+IEnumerator ResetIgnoreCollision(Collider discCollider, Collider ownerCollider, float delay)
+{
+    yield return new WaitForSeconds(delay);
+    if (discCollider != null && ownerCollider != null)
+    {
+        Physics.IgnoreCollision(discCollider, ownerCollider, false);
+        Debug.Log("Collision re-enabled between disc and owner.");
+    }
+    else
+    {
+        Debug.LogWarning("Colliders are null while trying to re-enable collision.");
+    }
+}
+IEnumerator EnableColliderAfterDelay(Collider collider, float delay)
+{
+    yield return new WaitForSeconds(delay);
+    if (collider != null)
+    {
+        collider.enabled = true;
+        Debug.Log("Collider pocisku został włączony.");
+    }
+}
+
+void IgnoreOwnerCollision()
+{
+    // Znajdź właściciela na podstawie Photona
+    PlayerController playerController = FindObjectsOfType<PlayerController>()
+        .FirstOrDefault(p => p.photonView != null && p.photonView.Owner == owner);
+
+    if (playerController != null)
+    {
+        ownerCollider = playerController.GetComponent<Collider>();
         if (ownerCollider != null)
         {
-            Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, false);
+            Debug.Log("Ignoring collision with owner: " + owner.NickName);
+            StartCoroutine(MaintainIgnoreCollision(discCollider, ownerCollider));
+        }
+        else
+        {
+            Debug.LogWarning("Collider not found for owner: " + owner.NickName);
         }
     }
-
-    public void OnPhotonInstantiate(PhotonMessageInfo info)
+    else
     {
-        Debug.Log("Shooter = " + info.Sender);
+        Debug.LogError($"PlayerController not found for owner: {owner.NickName}");
+        Debug.Log($"Active PlayerControllers: {FindObjectsOfType<PlayerController>().Length}");
     }
+}
+
+IEnumerator MaintainIgnoreCollision(Collider discCollider, Collider ownerCollider)
+{
+    Debug.Log("MaintainIgnoreCollision started.");
+    float timer = 0f;
+
+    while (timer < 0.5f) // Czas ignorowania kolizji
+    {
+        if (discCollider != null && ownerCollider != null)
+        {
+            Physics.IgnoreCollision(discCollider, ownerCollider, true);
+            Debug.Log("Ignoring collision between disc and owner.");
+        }
+        else
+        {
+            Debug.LogWarning("Colliders are null during MaintainIgnoreCollision.");
+            yield break;
+        }
+
+        timer += Time.deltaTime;
+        yield return null;
+    }
+
+    // Po upływie czasu przywróć kolizję
+    if (discCollider != null && ownerCollider != null)
+    {
+        Physics.IgnoreCollision(discCollider, ownerCollider, false);
+        Debug.Log("Collision re-enabled between disc and owner.");
+    }
+}
+
+
+
+public void OnPhotonInstantiate(PhotonMessageInfo info)
+{
+    Debug.Log("OnPhotonInstantiate called.");
+    if (info.Sender != null)
+    {
+        Debug.Log("Shooter = " + info.Sender.NickName);
+    }
+    else
+    {
+        Debug.LogWarning("Info.Sender is null.");
+    }
+}
 
     void Update()
     {

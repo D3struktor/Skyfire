@@ -2,6 +2,7 @@ using Unity.Services.Core;
 using Unity.Services.Analytics;
 using Photon.Pun;
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
@@ -20,7 +21,7 @@ public class AnalyticsInitializer : MonoBehaviourPunCallbacks
     private float timeOnGround = 0f;
     private bool wasGrounded = true;
 
-    private PlayerController playerController;
+    public PlayerController playerController;
     private bool isTrackingSession = false; // Flaga do rozpoczęcia śledzenia
 
     private void Update()
@@ -83,45 +84,77 @@ public class AnalyticsInitializer : MonoBehaviourPunCallbacks
         return true; // Zmień na swoją implementację
     }
 
-    private async void Start()
+private async void Start()
+{
+    // Znajdź PlayerController na scenie
+    playerController = FindObjectOfType<PlayerController>();
+    if (playerController == null)
     {
-        DontDestroyOnLoad(gameObject);
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        if (!isInitialized)
-        {
-            await InitializeUnityServices();
-            isInitialized = true;
-        }
-
-        // Start session tracking
-        sessionStartTime = Time.time;
-        LogSessionStart();
+        Debug.LogWarning("PlayerController nie został znaleziony. Będzie szukany na każdej załadowanej scenie.");
     }
+
+    // Utrzymaj AnalyticsInitializer między scenami
+    DontDestroyOnLoad(gameObject);
+    StartCoroutine(CheckPlayerController()); // Regularne sprawdzanie gracza
+
+    // Subskrybuj zdarzenie ładowania sceny
+    SceneManager.sceneLoaded += OnSceneLoaded;
+
+    // Inicjalizacja Unity Services (Analytics itp.)
+    if (!isInitialized)
+    {
+        await InitializeUnityServices();
+        isInitialized = true;
+    }
+
+    // Ustaw czas rozpoczęcia sesji
+    sessionStartTime = Time.time;
+    LogSessionStart(); // Rejestracja rozpoczęcia sesji
+}
         private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded; // Odsubskrybujemy zdarzenie
     }
-     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        if (scene.buildIndex == 1 || scene.buildIndex == 2) // Indeksy scen Map1 i Map2
-        {
-            playerController = FindObjectOfType<PlayerController>();
-            if (playerController == null)
-            {
-                Debug.LogError("PlayerController not found on Map1 or Map2!");
-                return;
-            }
+private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+{
+    StartCoroutine(WaitAndFindPlayerController(scene));
+}
 
-            sessionStartTime = Time.time; // Ustaw start sesji
-            isTrackingSession = true;    // Rozpocznij śledzenie
-            LogSessionStart();
-        }
-        else
-        {
-            isTrackingSession = false; // Zatrzymaj śledzenie na niewłaściwych scenach
-        }
+private IEnumerator WaitAndFindPlayerController(Scene scene)
+{
+    yield return new WaitForSeconds(6f); // Odczekaj 0.5 sekundy na załadowanie sceny
+
+    playerController = FindObjectOfType<PlayerController>();
+    if (playerController == null)
+    {
+        Debug.LogWarning($"PlayerController nie znaleziony na scenie: {scene.name}. Śledzenie sesji może być ograniczone.");
+        yield break; // Zakończ korutynę zamiast używać return
     }
 
+    // Rozpocznij śledzenie sesji
+    isTrackingSession = true;
+    sessionStartTime = Time.time;
+
+    Debug.Log($"PlayerController znaleziony na scenie: {scene.name}. Śledzenie sesji rozpoczęte.");
+}
+    private IEnumerator CheckPlayerController()
+    {
+        while (true) // Pętla nieskończona, działa przez cały czas trwania gry
+        {
+            if (playerController == null) // Sprawdź, czy gracz istnieje
+            {
+                Debug.LogWarning("PlayerController nie istnieje. Szukam nowego gracza...");
+                playerController = FindObjectOfType<PlayerController>(); // Próbuj znaleźć nowego PlayerController
+
+                if (playerController != null)
+                {
+                    Debug.Log("PlayerController znaleziony. Kontynuuję śledzenie.");
+                }
+            }
+
+            yield return new WaitForSeconds(1f); // Sprawdzaj co sekundę
+        }
+    }
     private async Task InitializeUnityServices()
     {
         try
@@ -252,36 +285,41 @@ public class AnalyticsInitializer : MonoBehaviourPunCallbacks
         AnalyticsService.Instance.CustomData("PlayerDied", eventData);
         Debug.Log($"PlayerDied event sent with data: {eventData}");
     }
-
-    public void LogSessionEnd(string disconnectCause)
+        public void StartSessionTracking(PlayerController controller)
     {
-        if (!isTrackingSession) return;
-
-        float sessionEndTime = Time.time;
-        float sessionLength = sessionEndTime - sessionStartTime;
-
-        if (playerController != null)
-        {
-            float averageSpeed = playerController.CurrentSpeed; // Pobranie średniej prędkości
-            float timeInAir = playerController.TimeInAir;       // Pobranie czasu w powietrzu
-            float timeOnGround = playerController.TimeOnGround; // Pobranie czasu na ziemi
-
-            AnalyticsService.Instance.CustomData("SessionEnded", new Dictionary<string, object>
-            {
-                { "session_length", sessionLength },
-                { "end_time", sessionEndTime },
-                { "disconnect_cause", disconnectCause },
-                { "average_speed", averageSpeed },
-                { "time_in_air", timeInAir },
-                { "time_on_ground", timeOnGround }
-            });
-
-            Debug.Log($"Session ended. Length: {sessionLength} seconds. Reason: {disconnectCause}");
-            Debug.Log($"Average speed: {averageSpeed}, Time in air: {timeInAir}, Time on ground: {timeOnGround}");
-        }
-        else
-        {
-            Debug.LogError("PlayerController is missing, cannot log session stats!");
-        }
+        playerController = controller;
+        sessionStartTime = Time.time;
+        isTrackingSession = true;
     }
+
+public void LogSessionEnd(string disconnectCause)
+{
+    if (!isTrackingSession)
+    {
+        Debug.LogWarning("LogSessionEnd: Śledzenie sesji nie jest aktywne.");
+        return;
+    }
+
+    float sessionEndTime = Time.time;
+    float sessionLength = sessionEndTime - sessionStartTime;
+
+    float averageSpeed = playerController.AverageSpeed;
+    float timeInAir = playerController.TimeInAir;
+    float timeOnGround = playerController.TimeOnGround;
+
+    AnalyticsService.Instance.CustomData("SessionEnded", new Dictionary<string, object>
+    {
+        { "session_length", sessionLength },
+        { "end_time", sessionEndTime },
+        { "disconnect_cause", disconnectCause },
+        { "average_speed", averageSpeed },
+        { "time_in_air", timeInAir },
+        { "time_on_ground", timeOnGround }
+    });
+
+    Debug.Log($"Session ended. Length: {sessionLength} seconds. Reason: {disconnectCause}");
+    Debug.Log($"Average speed: {averageSpeed}, Time in air: {timeInAir}, Time on ground: {timeOnGround}");
 }
+
+}
+

@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 199155925044703825}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.02, y: 3.94, z: 24.02}
+  m_LocalPosition: {x: 0.02, y: 3.94, z: 50.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -137,11 +137,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   discPrefab: {fileID: 3678946588746919792, guid: ae7bf2642bda8c44982ac02c4e4f5732, type: 3}
   shootingPoint: {fileID: 8949653290496763778}
-  discSpeed: 300
+  discSpeed: 400
   fireCooldown: 1.2
   shootSound: {fileID: 8300000, guid: a83caa165f1fa1846be459c48c4af045, type: 3}
   weaponSwitchDelay: 0.6
   isActiveWeapon: 0
+  ignoreCollisionTime: 1
 --- !u!114 &5587442779329116970
 MonoBehaviour:
   m_ObjectHideFlags: 0

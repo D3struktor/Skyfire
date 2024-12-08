@@ -23,6 +23,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     // Nowe elementy dla ustawień
     [SerializeField] GameObject settingsPanel;
+    [SerializeField] GameObject howPanel;
     [SerializeField] Slider volumeSlider;
     [SerializeField] AudioMixer audioMixer;
     [SerializeField] Slider sfxVolumeSlider;
@@ -35,7 +36,7 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] private Slider loadingSlider;      // Pasek ładowania
 
     // Symulowane ładowanie
-    [SerializeField] private float fakeLoadingTime = 3.0f;  // Czas trwania symulowanego ładowania
+    [SerializeField] private float fakeLoadingTime = 6.0f;  // Czas trwania symulowanego ładowania
 
     // Declare savedVolume and savedSFXVolume
     private float savedVolume;
@@ -138,52 +139,74 @@ public class Launcher : MonoBehaviourPunCallbacks
         Debug.LogError("Launcher: Create room failed with message " + message);
     }
 
-    public void StartGame()
+public void StartGame()
+{
+    Debug.Log("Launcher: Host setting GameMode to DM for all players.");
+    LogAnalyticsSession();
+
+    // RPC to set game mode for all players
+    photonView.RPC("SetGameMode", RpcTarget.All, "DM");
+        // Zamknij pokój i ustaw go jako niewidoczny
+    if (PhotonNetwork.CurrentRoom != null)
     {
-        PlayerPrefs.SetString("GameMode", "DM");
-        Debug.Log("Launcher: GameMode set to DM.");
+        PhotonNetwork.CurrentRoom.IsOpen = false;    // Zamknięcie pokoju - gracze nie mogą dołączyć
+        PhotonNetwork.CurrentRoom.IsVisible = false; // Ukrycie pokoju z listy
+        Debug.Log("Launcher: Room is now closed and hidden from the lobby.");
+    }
+    // Show loading screen and load the scene
+    ShowLoadingScreen();
+    StartCoroutine(FakeLoadingProgress(1)); // Replace with scene name if needed
 
-            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-            if (analytics != null)
-            {
-                analytics.LogSessionStart();
-            }
+}
 
-        // Pokaż ekran ładowania
-        ShowLoadingScreen();
+public void StartGameTDM()
+{
+    Debug.Log("Launcher: Host setting GameMode to TDM for all players.");
+    LogAnalyticsSession();
 
-        // Symuluj ładowanie paska i załaduj scenę
-        StartCoroutine(FakeLoadingProgress(1));  // Indeks sceny do załadowania
+    // RPC to set game mode for all players
+    photonView.RPC("SetGameMode", RpcTarget.All, "TDM");
+
+    // Zamknij pokój i ustaw go jako niewidoczny
+    if (PhotonNetwork.CurrentRoom != null)
+    {
+        PhotonNetwork.CurrentRoom.IsOpen = false;    // Zamknięcie pokoju - gracze nie mogą dołączyć
+        PhotonNetwork.CurrentRoom.IsVisible = false; // Ukrycie pokoju z listy
+        Debug.Log("Launcher: Room is now closed and hidden from the lobby.");
     }
 
-    public void StartGameTDM()
+    // Show loading screen and load the scene
+    StartCoroutine(FakeLoadingProgress(2)); // Replace with scene name if needed
+}
+
+
+// Centralized RPC for setting game mode
+[PunRPC]
+public void SetGameMode(string mode)
+{
+    SetLocalGameMode(mode);
+}
+
+// Helper to set the game mode locally
+private void SetLocalGameMode(string mode)
+{
+    PlayerPrefs.SetString("GameMode", mode);
+    Debug.Log($"Launcher: GameMode set to {mode}.");
+}
+
+// Helper to log analytics session
+private void LogAnalyticsSession()
+{
+    AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+    if (analytics != null)
     {
-        Debug.Log("Launcher: Host setting GameMode to TDM for all players.");
-
-            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-            if (analytics != null)
-            {
-                analytics.LogSessionStart();
-            }
-
-        // Wywołanie RPC, aby ustawić tryb TDM dla wszystkich graczy
-        photonView.RPC("SetGameModeTDM", RpcTarget.All);
-
-        // Pokaż ekran ładowania
-        ShowLoadingScreen();
-
-        // Symuluj ładowanie paska i załaduj scenę
-        StartCoroutine(FakeLoadingProgress(2));  // Załaduj scenę o indeksie 2
+        analytics.LogSessionStart();
     }
-
-    // RPC, który ustawia tryb gry na TDM dla każdego gracza
-    [PunRPC]
-    public void SetGameModeTDM()
+    else
     {
-        // Ustaw tryb gry na TDM lokalnie
-        PlayerPrefs.SetString("GameMode", "TDM");
-        Debug.Log("Launcher: GameMode set to TDM for all players.");
+        Debug.LogWarning("AnalyticsInitializer not found!");
     }
+}
 
 
     private void ShowLoadingScreen()
@@ -204,35 +227,35 @@ public class Launcher : MonoBehaviourPunCallbacks
     }
 
     // Symulacja ładowania paska postępu z faktycznym ładowaniem sceny
-    private IEnumerator FakeLoadingProgress(int sceneIndex)
+[PunRPC]
+private IEnumerator FakeLoadingProgress(int sceneIndex)
+{
+    float elapsedTime = 0f;
+
+    // Rozpocznij ładowanie sceny w tle
+    PhotonNetwork.LoadLevel(sceneIndex);
+
+    // Zresetuj pasek ładowania do 0%
+    loadingSlider.value = 0f;
+
+    while (elapsedTime < fakeLoadingTime)
     {
-        float elapsedTime = 0f;
+        // Oblicz postęp na podstawie czasu
+        elapsedTime += Time.deltaTime;
+        float progress = Mathf.Clamp01(elapsedTime / fakeLoadingTime);
 
-        // Rozpocznij ładowanie sceny w tle
-        PhotonNetwork.LoadLevel(sceneIndex);
+        // Ustaw wartość paska
+        loadingSlider.value = progress;
 
-        // Zresetuj pasek ładowania do 0%
-        loadingSlider.value = 0f;
-
-        while (elapsedTime < fakeLoadingTime)
+        // Aktualizacja tekstu ładowania
+        if (loadingText != null)
         {
-            // Oblicz postęp na podstawie czasu
-            elapsedTime += Time.deltaTime;
-            float progress = Mathf.Clamp01(elapsedTime / fakeLoadingTime);
-
-            // Ustaw wartość paska
-            loadingSlider.value = progress;
-
-            // Aktualizacja tekstu ładowania
-            if (loadingText != null)
-            {
-                loadingText.text = "Ładowanie... " + (progress * 100f).ToString("F0") + "%";
-            }
-
-            yield return null;  // Czekaj do następnej klatki
+            loadingText.text = "Ładowanie... " + (progress * 100f).ToString("F0") + "%";
         }
-    }
 
+        yield return null;  // Czekaj do następnej klatki
+    }
+}
     public void LeaveRoom()
     {
         Debug.Log("Launcher: Leaving room.");
@@ -301,6 +324,15 @@ public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         settingsPanel.SetActive(false);
     }
+        public void OpenHowToPlay()
+    {
+        howPanel.SetActive(true);
+    }
+
+    public void CloseHowToPlay()
+    {
+        howPanel.SetActive(false);
+    }
 
     public void SetVolume(float volume)
     {
@@ -314,22 +346,28 @@ public override void OnPlayerEnteredRoom(Player newPlayer)
         PlayerPrefs.SetFloat("SFXVolume", volume); // Zapisanie głośności SFX
     }
 
-    public void ExitGame()
+public void ExitGame()
+{
+    Debug.Log("Exit Game pressed. Logging analytics and quitting application.");
+
+    // Log session end
+    AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
+    if (analytics != null)
     {
-        Debug.Log("Exit Game pressed. Logging analytics and quitting application.");
-
-        // Log session end
-        AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-        if (analytics != null)
-        {
-            analytics.LogSessionEnd("PlayerQuit");
-        }
-
-        #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false; // For Unity Editor
-        #else
-            Application.Quit(); // For standalone builds
-        #endif
+        analytics.LogSessionEnd("PlayerQuit");
     }
+    else
+    {
+        Debug.LogWarning("AnalyticsInitializer not found. Exiting without logging analytics.");
+    }
+
+    // Quit the application
+    #if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false; // For Unity Editor
+    #else
+        Application.Quit(); // For standalone builds
+    #endif
+}
+
 
 }

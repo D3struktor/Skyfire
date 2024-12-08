@@ -71,6 +71,8 @@ MonoBehaviour:
   - SyncWeaponTransform
   - RPC_UpdateAirStatus
   - RPC_SetInAir
+  - SetGameMode
+  - FakeLoadingProgress
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

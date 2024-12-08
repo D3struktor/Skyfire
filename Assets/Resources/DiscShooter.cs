@@ -19,6 +19,8 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     private PlayerAmmoManager playerAmmoManager; // Lokalne zarządzanie amunicją dla każdego gracza
     private AmmoUI ammoUI; // UI dla lokalnego gracza
 
+    public float ignoreCollisionTime = 0.5f; // Czas ignorowania kolizji
+
 void Start()
 {
     if (!photonView.IsMine) return; // Tylko lokalny gracz obsługuje broń
@@ -104,13 +106,14 @@ void Start()
         lastShotTime = time;
     }
 
-    void ShootDisc()
+  void ShootDisc()
     {
         if (discPrefab == null || shootingPoint == null)
         {
             Debug.LogError("Prefab dysku lub punkt strzału nie jest przypisany.");
             return;
         }
+        Vector3 spawnPosition = shootingPoint.position + shootingPoint.forward * 0.5f; // Przesuń pocisk o 0.5 jednostki w przód
 
         GameObject disc = PhotonNetwork.Instantiate(discPrefab.name, shootingPoint.position, shootingPoint.rotation);
 

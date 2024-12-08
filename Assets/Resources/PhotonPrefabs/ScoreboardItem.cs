@@ -13,18 +13,29 @@ public class ScoreboardItem : MonoBehaviourPunCallbacks
     public TMP_Text killsText;
     public TMP_Text deathsText;
     public Image background; // Referencja do komponentu Image tła
+    public bool isHeader = false; // Flaga określająca, czy to nagłówek
 
     Player player;
     TDMManager tdmManager;
 
-    public void Initialize(Player player)
-    {
-        this.player = player;
+public void Initialize(Player player, bool isHeader = false)
+{
+    this.isHeader = isHeader;
 
-        usernameText.text = player.NickName;
-        UpdateStats();
-        SetBackgroundColor();
+    if (isHeader)
+    {
+        usernameText.text = "Nickname";
+        killsText.text = "Kills";
+        deathsText.text = "Deaths";
+        return; // Pomijamy dalszą logikę dla nagłówka
     }
+
+    this.player = player;
+    usernameText.text = player.NickName;
+    UpdateStats();
+    SetBackgroundColor();
+}
+
 
 void Start()
 {
@@ -62,6 +73,7 @@ void ClearStats()
 
     void UpdateStats()
     {
+        if (isHeader) return; // Ignoruj, jeśli to nagłówek
         if (player.CustomProperties.TryGetValue("kills", out object kills))
         {
             killsText.text = kills.ToString();
@@ -130,6 +142,7 @@ IEnumerator WaitAndSetColor()
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
     {
+        if (isHeader) return; // Ignoruj, jeśli to nagłówek
         if (targetPlayer == player)
         {
             if (changedProps.ContainsKey("kills") || changedProps.ContainsKey("deaths"))

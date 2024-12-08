@@ -99,7 +99,7 @@ public class TimerManager : MonoBehaviourPunCallbacks
 
         while (currentTime > 0)
         {
-            UpdateTimerUI("Match ended, time remaining");
+            UpdateTimerUI("Match ended");
             yield return new WaitForSeconds(1f);
             currentTime--;
             Debug.Log("Buffer time remaining: " + currentTime);

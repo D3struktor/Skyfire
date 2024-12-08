@@ -14,6 +14,7 @@ public class Scoreboard : MonoBehaviourPunCallbacks
 
     void Start()
     {
+        AddHeader();
         foreach (Player player in PhotonNetwork.PlayerList)
         {
             AddScoreboardItem(player);
@@ -62,4 +63,26 @@ public class Scoreboard : MonoBehaviourPunCallbacks
             canvasGroup.alpha = 0;
         }
     }
+void AddHeader()
+{
+    // Sprawdzamy, czy prefab jest przypisany
+    if (scoreboardItemPrefab == null || container == null)
+    {
+        Debug.LogError("ScoreboardItem prefab or container is not assigned!");
+        return;
+    }
+
+    // Tworzymy nagłówek
+    GameObject header = Instantiate(scoreboardItemPrefab, container);
+    ScoreboardItem headerItem = header.GetComponent<ScoreboardItem>();
+
+    // Ustawiamy dane dla nagłówka
+    headerItem.Initialize(null, true); // Ustaw flagę 'isHeader' na true
+
+    // Opcjonalnie dostosowujemy wygląd nagłówka
+    headerItem.background.color = new Color(0, 0, 0, 0); // Transparentne tło
+}
+
+
+
 }

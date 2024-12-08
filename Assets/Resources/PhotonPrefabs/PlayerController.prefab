@@ -315,6 +315,8 @@ GameObject:
   - component: {fileID: 8804980584807086782}
   - component: {fileID: 6770112243003491435}
   - component: {fileID: 3015179715169506126}
+  - component: {fileID: 115483078803530247}
+  - component: {fileID: 6043914499256115524}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -371,7 +373,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 2000
   field of view: 95
   orthographic: 0
   orthographic size: 5
@@ -506,6 +508,44 @@ MonoBehaviour:
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
+--- !u!114 &115483078803530247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397987462403757845}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b9a305e18de0c04dbd257a21cd47087, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sharedProfile: {fileID: 11400000, guid: 645107d4d324f474787f811762f687ea, type: 2}
+  isGlobal: 1
+  blendDistance: 0
+  weight: 1
+  priority: 0
+--- !u!114 &6043914499256115524
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397987462403757845}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4031477cd9a6e9f4eb76f9df9e052bb8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fogColor: {r: 0.509434, g: 0.509434, b: 0.509434, a: 0.59607846}
+  fogMode: 1
+  fogStartDistance: 300
+  fogEndDistance: 1000
+  maxFogDensity: 1
+  minFogDensity: 0.001
+  adjustFogBasedOnPlayer: 1
+  playerTransform: {fileID: 1177674957338346322}
+  fogAdjustmentRange: 50
 --- !u!1 &410833749712471921
 GameObject:
   m_ObjectHideFlags: 0
@@ -4555,12 +4595,12 @@ MonoBehaviour:
   walkSpeed: 30
   sensitivity: 2
   slideSpeedFactor: 1
-  jetpackForceY: 18
+  jetpackForceY: 15
   jetpackForceX: 0
-  jetpackForceZ: 8
-  jetpackFuelMax: 240
+  jetpackForceZ: 6
+  jetpackFuelMax: 220
   jetpackFuelRegenRate: 30
-  jetpackFuelUsageRate: 60
+  jetpackFuelUsageRate: 65
   jetpackFuelImage: {fileID: 7154005466795292452}
   ui: {fileID: 777493580960644483}
   playerSpeedText: {fileID: 7466355902331747557}
@@ -4603,7 +4643,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61a0a78c6dd3f1340927d202186810bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  discShooterAmmo: 10
+  discShooterAmmo: 12
   grenadeLauncherAmmo: 15
   chaingunAmmo: 100
 --- !u!23 &85265003257965570
