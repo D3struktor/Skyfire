@@ -491,10 +491,6 @@ void RPC_AttachWeaponToPlayer(int weaponViewID)
         {
             healthbarImage.fillAmount = currentHealth / maxHealth; // Update health bar
         }
-            if (!canUseEnergyPack && playerSpeedText != null)
-    {
-        playerSpeedText.text += "\nEnergy Pack Cooldown: " + Mathf.Ceil(energyPackCooldownTimer).ToString() + "s";
-    }
     }
 
     void FixedUpdate()

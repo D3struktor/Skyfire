@@ -96,12 +96,25 @@ public class RoomManager : MonoBehaviourPunCallbacks
         // Dodaj kod do synchronizacji stanu gry, np. pozycje graczy, zdrowie, amunicję itp.
     }
 
-    public override void OnPlayerLeftRoom(Player otherPlayer)
-    {
-        Debug.Log("Player left: " + otherPlayer.NickName);
+public override void OnPlayerLeftRoom(Player otherPlayer)
+{
+    Debug.Log("Player left: " + otherPlayer.NickName);
 
-        // Obsłuż usuwanie gracza z mapy lub inny cleanup
+    // Sprawdź, czy gra została rozpoczęta
+    if (PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("GameStarted") && 
+        (bool)PhotonNetwork.CurrentRoom.CustomProperties["GameStarted"])
+    {
+        Debug.Log("Launcher: Game has started. Room remains hidden even after player left.");
+        return; // Jeśli gra jest rozpoczęta, nic więcej nie robimy
     }
+
+    // Jeśli gra nie jest rozpoczęta, sprawdź liczbę graczy i ewentualnie pokaż pokój
+    if (PhotonNetwork.CurrentRoom.PlayerCount < PhotonNetwork.CurrentRoom.MaxPlayers)
+    {
+        PhotonNetwork.CurrentRoom.IsVisible = true; // Ponownie pokaż pokój
+        Debug.Log("Launcher: Room is no longer full and is now visible in the lobby.");
+    }
+}
 
     public override void OnCreatedRoom()
     {
@@ -110,8 +123,8 @@ public class RoomManager : MonoBehaviourPunCallbacks
         // Ustaw maksymalną liczbę graczy w pokoju
         if (PhotonNetwork.CurrentRoom != null)
         {
-            PhotonNetwork.CurrentRoom.MaxPlayers = 2; // Przykład: maksymalnie 8 graczy
-            Debug.Log("Max players set to: " + PhotonNetwork.CurrentRoom.MaxPlayers);
+            PhotonNetwork.CurrentRoom.MaxPlayers = 8;
         }
+      
     }
 }

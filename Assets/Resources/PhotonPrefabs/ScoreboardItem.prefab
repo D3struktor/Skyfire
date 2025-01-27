@@ -194,6 +194,7 @@ MonoBehaviour:
   killsText: {fileID: 6101339746043745961}
   deathsText: {fileID: 635188680872198139}
   background: {fileID: -7983996643821906966}
+  isHeader: 1
 --- !u!222 &8537729057257870328
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -435,8 +436,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 0
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: d2a62597117b87e43ba2ee4411669acf, type: 2}
-  m_sharedMaterial: {fileID: 7437059997485965527, guid: d2a62597117b87e43ba2ee4411669acf, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 971627f865d70a548b16d3dc36a9d1ec, type: 2}
+  m_sharedMaterial: {fileID: -5243873094881601678, guid: 971627f865d70a548b16d3dc36a9d1ec, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

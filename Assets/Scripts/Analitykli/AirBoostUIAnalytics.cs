@@ -10,7 +10,7 @@ public class AirBoostUIAnalytics : MonoBehaviour
             { "time", Time.time }
         });
 
-        Debug.Log($"Custom event 'AirBoostCharged' sent at time: {Time.time}");
+        
     }
 
     public void OnAirBoostUsed()
@@ -20,6 +20,6 @@ public class AirBoostUIAnalytics : MonoBehaviour
             { "time", Time.time }
         });
 
-        Debug.Log("Custom event 'AirBoostUsedFromUI' sent.");
+        
     }
 }

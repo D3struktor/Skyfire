@@ -1,9 +1,12 @@
 using UnityEngine;
+using Photon.Pun;
 
 public class RagdollActivator : MonoBehaviour
 {
     private Rigidbody[] ragdollRigidbodies;
     private Collider[] ragdollColliders;
+
+    private Collider playerCollider; // Lokalny collider gracza
 
     void Awake()
     {
@@ -11,23 +14,51 @@ public class RagdollActivator : MonoBehaviour
         ragdollRigidbodies = GetComponentsInChildren<Rigidbody>();
         ragdollColliders = GetComponentsInChildren<Collider>();
 
-        // Ustaw ragdolla jako aktywnego od razu, jeśli prefab jest wywoływany bezpośrednio jako ragdoll
+        // Znajdź lokalnego gracza
+        FindLocalPlayerCollider();
+
+        // Ustaw ragdolla jako aktywnego
         ActivateRagdoll();
     }
 
-    public void ActivateRagdoll()
+private void FindLocalPlayerCollider()
+{
+    foreach (var player in FindObjectsOfType<PlayerController>()) // Zmień PlayerController na nazwę Twojej klasy kontrolera gracza
     {
-        // Ustaw fizykę ragdolla
-        foreach (Rigidbody rb in ragdollRigidbodies)
+        var photonView = player.GetComponent<PhotonView>();
+        if (photonView != null && photonView.IsMine) // Tylko lokalny gracz
         {
-            rb.isKinematic = false; // Wyłącz isKinematic, aby aktywować fizykę
-            rb.detectCollisions = true;
-        }
-
-        // Włącz Collidery
-        foreach (Collider col in ragdollColliders)
-        {
-            col.enabled = true;
+            playerCollider = player.GetComponent<Collider>();
+            if (playerCollider == null)
+            {
+                Debug.LogError("PlayerController does not have a Collider component!");
+            }
+            return;
         }
     }
+    Debug.LogError("Local player not found!");
+}
+
+
+public void ActivateRagdoll()
+{
+    foreach (Rigidbody rb in ragdollRigidbodies)
+    {
+        rb.isKinematic = false; // Aktywuj fizykę ragdolla
+        rb.detectCollisions = true;
+    }
+
+    foreach (Collider col in ragdollColliders)
+    {
+        col.enabled = true;
+
+        // Ignoruj kolizje między ragdollem a lokalnym graczem
+        if (playerCollider != null)
+        {
+            Physics.IgnoreCollision(col, playerCollider, true);
+            Debug.Log($"Ignoring collision between {col.gameObject.name} and {playerCollider.gameObject.name}");
+        }
+    }
+}
+
 }

@@ -27,8 +27,10 @@ public void Initialize(Player player, bool isHeader = false)
         usernameText.text = "Nickname";
         killsText.text = "Kills";
         deathsText.text = "Deaths";
-        return; // Pomijamy dalszą logikę dla nagłówka
+        Debug.Log($"[ScoreboardItem] Nagłówek ustawiony: {usernameText.text}, {killsText.text}, {deathsText.text}");
+        return;
     }
+
 
     this.player = player;
     usernameText.text = player.NickName;
@@ -39,6 +41,8 @@ public void Initialize(Player player, bool isHeader = false)
 
 void Start()
 {
+
+    
     // Znajdź instancję TDMManager na scenie
     tdmManager = FindObjectOfType<TDMManager>();
 
@@ -47,9 +51,10 @@ void Start()
         Debug.LogError("[ScoreboardItem] TDMManager not found in the scene.");
     }
 
-    // Wyczyść początkowe statystyki
-    ClearStats();
-
+    if (!isHeader) // Wyczyszczone statystyki TYLKO dla graczy, nie dla nagłówka
+    {
+        ClearStats();
+    }
     // Dodaj opóźnienie 5 sekund przed ustawieniem koloru i aktualizacją statystyk
     StartCoroutine(WaitAndSetColor(1.5f));
 }

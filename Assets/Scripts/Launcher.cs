@@ -275,25 +275,37 @@ private IEnumerator FakeLoadingProgress(int sceneIndex)
         MenuManager.Instance.OpenMenu("title");
     }
 
-    public override void OnRoomListUpdate(List<RoomInfo> roomList)
+public override void OnRoomListUpdate(List<RoomInfo> roomList)
+{
+    foreach (Transform trans in roomListContent)
     {
-        foreach (Transform trans in roomListContent)
+        Destroy(trans.gameObject);
+    }
+
+    for (int i = 0; i < roomList.Count; i++)
+    {
+        // Pomijaj pokoje, które są pełne lub usunięte z listy
+        if (roomList[i].RemovedFromList || roomList[i].PlayerCount >= roomList[i].MaxPlayers)
         {
-            Destroy(trans.gameObject);
+            continue;
         }
 
-        for (int i = 0; i < roomList.Count; i++)
-        {
-            if (roomList[i].RemovedFromList)
-                continue;
-            Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().SetUp(roomList[i]);
-        }
+        Instantiate(roomListItemPrefab, roomListContent).GetComponent<RoomListItem>().SetUp(roomList[i]);
     }
+}
 
 public override void OnPlayerEnteredRoom(Player newPlayer)
 {
     // Dodaj nowego gracza do listy graczy
     Instantiate(PlayerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().SetUp(newPlayer);
+
+
+    //sprawdz czy maks players
+        if (PhotonNetwork.CurrentRoom.PlayerCount >= PhotonNetwork.CurrentRoom.MaxPlayers)
+    {
+        PhotonNetwork.CurrentRoom.IsVisible = false; // Ukryj pokój z listy
+        Debug.Log("Launcher: Room is now full and has been hidden from the lobby.");
+    }
 
     // Sprawdź, czy tryb gry został ustawiony w CustomProperties pokoju
     if (PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("GameMode"))

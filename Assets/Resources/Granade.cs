@@ -28,6 +28,7 @@ public class Grenade : MonoBehaviourPunCallbacks
 
     public float throwForce = 10f; // Siła rzutu granatem
 public Vector3 throwDirection = new Vector3(1f, 1f, 0f); // Kierunek rzutu (w tym przypadku w prawo z lekkim nachyleniem w górę)
+Rigidbody rb;
 
 
 void Start()
@@ -44,12 +45,8 @@ void Start()
     Debug.Log("Grenade created by player: " + owner.NickName);
 
     // Apply force to the grenade for parabolic throw
-    Rigidbody rb = GetComponent<Rigidbody>();
-    if (rb != null)
-    {
-        Vector3 force = throwDirection.normalized * throwForce;
-        rb.AddForce(force, ForceMode.Impulse); // Dodanie siły wyrzutu
-    }
+
+   rb = GetComponent<Rigidbody>();
 
     // Temporarily ignore collisions with the owner
     PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
@@ -63,6 +60,12 @@ void Start()
         }
     }
 }
+    void FixedUpdate()
+    {
+        // Jeśli chcesz większą kontrolę, możesz dodać własną siłę przyciągania
+        Vector3 customGravity = new Vector3(0, -9.81f, 0); // Zmodyfikowana siła grawitacji
+        rb.AddForce(customGravity, ForceMode.Acceleration);
+    }
 
 
     void ResetCollision()
