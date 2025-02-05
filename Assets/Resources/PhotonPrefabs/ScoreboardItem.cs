@@ -48,7 +48,7 @@ void Start()
 
     if (tdmManager == null)
     {
-        Debug.LogError("[ScoreboardItem] TDMManager not found in the scene.");
+        Debug.LogWarning("[ScoreboardItem] TDMManager not found in the scene.");
     }
 
     if (!isHeader) // Wyczyszczone statystyki TYLKO dla graczy, nie dla nagłówka
@@ -117,7 +117,7 @@ void SetBackgroundColor()
     {
         // Kolor domyślny, jeśli nie znaleziono drużyny
         background.color = new Color(0, 0, 0, 0.25f); // Kolor domyślny
-        Debug.LogWarning($"[ScoreboardItem] Brak przypisanego koloru dla gracza {player.NickName}, ustawiono domyślny kolor tła.");
+        Debug.Log($"[ScoreboardItem] Brak przypisanego koloru dla gracza {player.NickName}, ustawiono domyślny kolor tła.");
 
         // Ponowna próba pobrania drużyny po krótkim czasie
         StartCoroutine(WaitAndSetColor());
@@ -140,7 +140,7 @@ IEnumerator WaitAndSetColor()
     }
     else
     {
-        Debug.LogWarning($"[ScoreboardItem] Ponownie nie udało się ustawić koloru tła dla {player.NickName}, zachowano domyślny kolor.");
+        Debug.Log($"[ScoreboardItem] Ponownie nie udało się ustawić koloru tła dla {player.NickName}, zachowano domyślny kolor.");
     }
 }
 

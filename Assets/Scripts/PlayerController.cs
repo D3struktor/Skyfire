@@ -100,7 +100,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private float mouseX;
     private float mouseY;
-    private bool isGrounded = true;
+    // private bool isGrounded = true;
 
     [SerializeField] private Transform headPos;
     [SerializeField] Transform Cam = null;
@@ -1045,21 +1045,19 @@ private IEnumerator DestroyRagdollAfterDelay(GameObject ragdoll, float delay)
         // Użycie Energy Packa
         if (Input.GetKeyDown(KeyCode.E) && !isColliding && canUseEnergyPack && currentJetpackFuel >= energyPackFuelCost)
         {
+            
             isUsingEnergyPack = true;
             energyPackTimer = energyPackDuration;
             canUseEnergyPack = false;
             energyPackCooldownTimer = energyPackCooldown;
-
-            // Logowanie zdarzenia analitycznego
-            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-            analytics?.LogEnergypackUsed(transform.position, Time.time);
-
-            Debug.Log("Energy Pack aktywowany.");
+            audioSource.PlayOneShot(energyPackSound);
+            
         }
 
         // Działanie Energy Packa
         if (isUsingEnergyPack)
         {
+            
             energyPackTimer -= Time.deltaTime;
 
             // Zużycie paliwa
