@@ -699,41 +699,33 @@ void HandleJetpack()
         }
     }
 
-    void ApplySlidingPhysics()
+void ApplySlidingPhysics()
+{
+    RaycastHit hit;
+    if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
     {
-        // Debug.Log("Apply Slide !");
-        
-        RaycastHit hit;
-        if (Physics.Raycast(transform.position, Vector3.down, out hit, groundCheckDistance))
+        Vector3 slopeDirection = Vector3.ProjectOnPlane(rb.velocity, hit.normal).normalized;
+        float slopeFactor = Vector3.Dot(hit.normal, transform.up); // To jest cos(θ)
+        float slopeAngleSin = Mathf.Sqrt(1 - Mathf.Pow(slopeFactor, 2)); // Dokładniejsze sin(θ)
+
+        float slideSpeed = 1;
+        if (slopeFactor > 0)
         {
-            Vector3 slopeDirection = Vector3.ProjectOnPlane(rb.velocity, hit.normal).normalized;
-            float slopeFactor = Vector3.Dot(hit.normal, transform.up);
-            float slideSpeed = 1;//rb.velocity.magnitude; // ???
-
-            // Debugging slope direction and factor
-            // Debug.Log("Slope Direction: " + slopeDirection);
-            // Debug.Log("Slope Factor: " + slopeFactor);
-
-            if (slopeFactor > 0)
-            {
-                slideSpeed *= 1 + (slideSpeedFactor * (1 - slopeFactor)); 
-            }
-            else if (slopeFactor < 0)
-            {
-                slideSpeed *= 1 - (slideSpeedFactor * Mathf.Abs(slopeFactor)); 
-            }
-
-            slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
-            rb.AddForce( slopeDirection * slideSpeed * 1.3f, ForceMode.Acceleration); // Increase sliding speed by 1.5 times
-
-            // Apply additional force to maintain or increase speed while skiing
-            Vector3 appliedForce = slopeDirection * skiAcceleration;
-            rb.AddForce(appliedForce, ForceMode.Acceleration);
-
-            // Debugging applied force
-            // Debug.Log("Applied Force: " + appliedForce);
+            slideSpeed *= 1 + (slideSpeedFactor * slopeAngleSin); 
         }
+        else if (slopeFactor < 0)
+        {
+            slideSpeed *= 1 - (slideSpeedFactor * slopeAngleSin); 
+        }
+
+        slideSpeed = Mathf.Max(slideSpeed, minSkiSpeed); // Ensure minimum speed
+        rb.AddForce(slopeDirection * slideSpeed * 1.3f, ForceMode.Acceleration); // Increase sliding speed
+
+        Vector3 appliedForce = slopeDirection * skiAcceleration;
+        rb.AddForce(appliedForce, ForceMode.Acceleration);
     }
+}
+
 
     void CapSpeed()
     {

@@ -92,7 +92,8 @@ MonoBehaviour:
   muzzleFlash: {fileID: 1316534502646517140, guid: eb0f3fa517e094845bf3bfca3f82f2da, type: 3}
   bulletSpeed: 1000
   rotatingPart: {fileID: 8681884974902803592}
-  rotationSpeed: 1000
+  maxRotationSpeed: 1000
+  coolDownSpeed: 500
   maxSpread: 0.06
   minSpread: 0
   shootSound: {fileID: 8300000, guid: 7ba0434dacd4c6a4bb43440a436177c7, type: 3}
