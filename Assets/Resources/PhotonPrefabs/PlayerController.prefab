@@ -5904,6 +5904,22 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2437072546136146033, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
+      propertyPath: m_Pitch
+      value: 0.21
+      objectReference: {fileID: 0}
+    - target: {fileID: 2437072546136146033, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
+      propertyPath: Priority
+      value: 174
+      objectReference: {fileID: 0}
+    - target: {fileID: 2437072546136146033, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
+      propertyPath: m_PlayOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2437072546136146033, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
+      propertyPath: panLevelCustomCurve.m_Curve.Array.data[0].value
+      value: 0.803
+      objectReference: {fileID: 0}
     - target: {fileID: 2774998165520054979, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0
@@ -6031,7 +6047,7 @@ PrefabInstance:
     - target: {fileID: 7360729226522929084, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
       propertyPath: audioSource
       value: 
-      objectReference: {fileID: -4434769870592432629}
+      objectReference: {fileID: 1405841136324134532}
     - target: {fileID: 7360729226522929084, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
       propertyPath: hookFailSound
       value: 
@@ -6121,6 +6137,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
+--- !u!82 &1405841136324134532 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 2437072546136146033, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
+  m_PrefabInstance: {fileID: 3625597266384258805}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4914466092225885492 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8530668022042817473, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}

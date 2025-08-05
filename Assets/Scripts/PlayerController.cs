@@ -252,7 +252,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     void Look()
     {
         pitch -= Input.GetAxisRaw("Mouse Y") * sensitivity;
-        pitch = Mathf.Clamp(pitch, -85.0f, 90.0f);
+        pitch = Mathf.Clamp(pitch, -84.0f, 90.0f);
         yaw += Input.GetAxisRaw("Mouse X") * sensitivity;
         transform.rotation = Quaternion.Euler(0, yaw, 0);
         playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0, 0);

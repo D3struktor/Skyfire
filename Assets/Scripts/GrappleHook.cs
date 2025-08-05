@@ -5,7 +5,6 @@ public class GrappleHook : MonoBehaviourPun
 {
     private int ownerViewID;
     private bool attached = false;
-
     private float maxRange = 60f;
     private Vector3 launchPosition;
 
@@ -20,19 +19,18 @@ public class GrappleHook : MonoBehaviourPun
     {
         if (!attached && Vector3.Distance(transform.position, launchPosition) > maxRange)
         {
-            PhotonNetwork.Destroy(gameObject); // Auto-destrukcja jeśli za daleko
+            PhotonNetwork.Destroy(gameObject);
         }
     }
 
     void OnCollisionEnter(Collision collision)
     {
         if (attached) return;
+
         attached = true;
 
         if (photonView.IsMine)
-        {
             photonView.RPC("NotifyAttachHook", RpcTarget.All, transform.position);
-        }
 
         FreezeHook();
     }
@@ -63,3 +61,4 @@ public class GrappleHook : MonoBehaviourPun
         }
     }
 }
+
