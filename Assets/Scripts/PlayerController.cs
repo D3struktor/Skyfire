@@ -41,6 +41,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     public GameObject primaryWeaponPrefab;  // Primary weapon prefab
     public GameObject grenadeLauncherPrefab;  // Grenade launcher prefab
     public GameObject chaingunPrefab;  // Chaingun prefab
+    public GameObject grapplerPrefab;  // Grappler prefab
     private GameObject currentWeapon;
     private DiscShooter discShooter;
     private GrenadeLauncher grenadeLauncher;
@@ -111,13 +112,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
     //medale
     private MedalDisplay medalDisplay;
 
-    private AnalyticsInitializer analyticsInitializer; //ważne
-    public GameObject analyticsManagerObject; //ważne
-
-    //jetpack analyzer
-    public bool isJetpackActive = false; // Flaga do sprawdzania, czy jetpack jest aktywny
-    public Vector3 jetpackStartPosition;
-
     private float timeInAir = 0f;
     private float timeOnGround = 0f;
     private float cumulativeSpeed = 0f; // Sum of all speed samples
@@ -150,22 +144,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
     PV.Owner.TagObject = this;
     Debug.Log("TagObject ustawiony dla gracza: " + PV.Owner.NickName);
 
-    // Inicjalizacje tylko dla lokalnego gracza
-    if (PV.IsMine)
-    {
-        Debug.Log("Jestem właścicielem tego obiektu PhotonView: " + PV.Owner.NickName);
-
-        // Pobranie AnalyticsInitializer z Hierarchii
-        AnalyticsInitializer analyticsInitializer = FindObjectOfType<AnalyticsInitializer>();
-        if (analyticsInitializer != null)
-        {
-            analyticsInitializer.LogSessionStart();
-        }
-        else
-        {
-            Debug.LogError("AnalyticsInitializer nie znaleziono!");
-        }
-    }
         Cursor.lockState = CursorLockMode.Locked;
         currentJetpackFuel = jetpackFuelMax;
 
@@ -304,6 +282,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
             EquipWeapon(weaponSlot);
             UpdateWeaponProperty(weaponSlot);
         }
+        if (Input.GetKeyDown(KeyCode.Alpha4))
+        {
+            weaponSlot = 4;
+            EquipWeapon(weaponSlot);
+            UpdateWeaponProperty(weaponSlot);
+        }
 
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (scroll != 0)
@@ -311,9 +295,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
             weaponSlot -= (int)Mathf.Sign(scroll);
             if (weaponSlot < 1)
             {
-                weaponSlot = 3; // Assuming you have 3 weapon slots
+                weaponSlot = 4; // Assuming you have 3 weapon slots
             }
-            else if (weaponSlot > 3)
+            else if (weaponSlot > 4)
             {
                 weaponSlot = 1;
             }
@@ -338,6 +322,7 @@ void EquipWeapon(int slot)
         1 => primaryWeaponPrefab,
         2 => grenadeLauncherPrefab,
         3 => chaingunPrefab,
+        4 => grapplerPrefab,
         _ => null
     };
 
@@ -407,6 +392,20 @@ void ConfigureWeaponComponents(int slot)
             }
         }
     }
+    else if (slot == 4)
+    {
+        GrappleGun grappler = currentWeapon.GetComponent<GrappleGun>();
+        if (grappler != null)
+        {
+            Debug.Log("Grappler equipped.");
+            // Możesz dodać dodatkową logikę jeśli trzeba
+        }
+        else
+        {
+            Debug.LogWarning("GrapplerGun component not found on equipped weapon!");
+        }
+    }
+
 
     UpdateAmmoUI();
 }
@@ -565,19 +564,6 @@ void HandleJetpack()
     // Sprawdzanie, czy jetpack może być używany
     if (canUseJetpack && currentJetpackFuel > 0 && (Input.GetMouseButton(1) || Input.GetKey(KeyCode.Space)))
     {
-        // Jetpack właśnie został aktywowany
-        if (!isJetpackActive)
-        {
-            isJetpackActive = true;
-            jetpackStartPosition = transform.position;
-
-            // Logowanie rozpoczęcia jetpacka
-            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-            analytics?.LogJetpackStart(jetpackStartPosition, Time.time);
-
-            Debug.Log("JetpackStart: Jetpack został aktywowany.");
-        }
-
         // Działanie jetpacka
         Vector3 jetpackDirection = transform.forward * jetpackForceZ + transform.right * jetpackForceX + Vector3.up * jetpackForceY;
         rb.AddForce(jetpackDirection, ForceMode.Acceleration);
@@ -593,18 +579,6 @@ void HandleJetpack()
     }
     else
     {
-        // Jetpack przestaje być aktywny
-        if (isJetpackActive)
-        {
-            isJetpackActive = false;
-
-            // Logowanie zakończenia jetpacka
-            AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-            analytics?.LogJetpackEnd(transform.position, Time.time);
-
-            Debug.Log("JetpackEnd: Jetpack został wyłączony.");
-        }
-
         // Zatrzymywanie dźwięku
         if (audioSource.clip == jetpackSound && audioSource.isPlaying)
         {
@@ -866,9 +840,6 @@ void Die()
 {
 if (!isAlive) return; // Jeśli gracz już nie żyje, zakończ metodę
 isAlive = false; // Ustaw flagę na false, aby oznaczyć, że gracz zginął
-
-AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-analytics?.LogPlayerDied(transform.position, currentHealth, Time.time);
 
 // Sprawdzenie, czy ten obiekt jest kontrolowany przez lokalnego gracza
 PhotonView photonView = GetComponent<PhotonView>();

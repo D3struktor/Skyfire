@@ -73,6 +73,14 @@ MonoBehaviour:
   - RPC_SetInAir
   - SetGameMode
   - FakeLoadingProgress
+  - SyncInitialVelocity
+  - NotifyOwner
+  - RPC_NotifyAttached
+  - ReleaseHook
+  - ShootHook
+  - StartPull
+  - StopPull
+  - NotifyAttachHook
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

@@ -17,21 +17,8 @@ public class PauseMenu : MonoBehaviourPunCallbacks
     [SerializeField] private Slider sfxVolumeSlider;
     [SerializeField] private AudioMixer SFXMixer;
 
-     private AnalyticsInitializer analyticsInitializer; //ważne
-    public GameObject analyticsManagerObject; //ważne
-
     private void Start()
     {
-        // Pobranie AnalyticsInitializer z Hierarchii
-        AnalyticsInitializer analyticsInitializer = FindObjectOfType<AnalyticsInitializer>();
-        if (analyticsInitializer != null)
-        {
-            analyticsInitializer.LogSessionStart();
-        }
-        else
-        {
-            Debug.LogError("AnalyticsInitializer nie znaleziono!");
-        }
         // Upewnij się, że menu pauzy jest wyłączone na początku
         if (pauseMenuUI != null)
         {
@@ -133,14 +120,6 @@ public class PauseMenu : MonoBehaviourPunCallbacks
 
     public void ExitGame()
     {
-        Debug.Log("Exit Game pressed. Logging analytics and quitting application.");
-
-        // Log session end
-        AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-        if (analytics != null)
-        {
-            analytics.LogSessionEnd("PlayerQuit");
-        }
 
         #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false; // For Unity Editor

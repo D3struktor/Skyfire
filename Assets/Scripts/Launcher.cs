@@ -42,9 +42,6 @@ public class Launcher : MonoBehaviourPunCallbacks
     private float savedVolume;
     private float savedSFXVolume;
 
-     private AnalyticsInitializer analyticsInitializer; //ważne
-    public GameObject analyticsManagerObject; //ważne
-
     void Awake()
     {
         Instance = this;  
@@ -52,17 +49,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 
     void Start()
     {
-                // Pobranie AnalyticsInitializer z Hierarchii
-        AnalyticsInitializer analyticsInitializer = FindObjectOfType<AnalyticsInitializer>();
-        if (analyticsInitializer != null)
-        {
-            analyticsInitializer.LogSessionStart();
-        }
-        else
-        {
-            Debug.LogError("AnalyticsInitializer nie znaleziono!");
-        }
-        
+       
         Debug.Log("Launcher: Connecting to Master");
         PhotonNetwork.ConnectUsingSettings();
         Cursor.lockState = CursorLockMode.None;
@@ -142,7 +129,7 @@ public class Launcher : MonoBehaviourPunCallbacks
 public void StartGame()
 {
     Debug.Log("Launcher: Host setting GameMode to DM for all players.");
-    LogAnalyticsSession();
+    
 
     // RPC to set game mode for all players
     photonView.RPC("SetGameMode", RpcTarget.All, "DM");
@@ -162,7 +149,7 @@ public void StartGame()
 public void StartGameTDM()
 {
     Debug.Log("Launcher: Host setting GameMode to TDM for all players.");
-    LogAnalyticsSession();
+   
 
     // RPC to set game mode for all players
     photonView.RPC("SetGameMode", RpcTarget.All, "TDM");
@@ -194,19 +181,6 @@ private void SetLocalGameMode(string mode)
     Debug.Log($"Launcher: GameMode set to {mode}.");
 }
 
-// Helper to log analytics session
-private void LogAnalyticsSession()
-{
-    AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-    if (analytics != null)
-    {
-        analytics.LogSessionStart();
-    }
-    else
-    {
-        Debug.LogWarning("AnalyticsInitializer not found!");
-    }
-}
 
 
     private void ShowLoadingScreen()
@@ -360,19 +334,6 @@ public override void OnPlayerEnteredRoom(Player newPlayer)
 
 public void ExitGame()
 {
-    Debug.Log("Exit Game pressed. Logging analytics and quitting application.");
-
-    // Log session end
-    AnalyticsInitializer analytics = FindObjectOfType<AnalyticsInitializer>();
-    if (analytics != null)
-    {
-        analytics.LogSessionEnd("PlayerQuit");
-    }
-    else
-    {
-        Debug.LogWarning("AnalyticsInitializer not found. Exiting without logging analytics.");
-    }
-
     // Quit the application
     #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false; // For Unity Editor
