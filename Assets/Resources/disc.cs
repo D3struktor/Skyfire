@@ -33,14 +33,36 @@ public class Disc : MonoBehaviourPunCallbacks
             initialVelocity = rb.velocity;
             photonView.RPC("SyncInitialVelocity", RpcTarget.Others, initialVelocity);
         }
-
-        ownerCollider = FindOwnerCollider();
-        if (ownerCollider != null)
+        if (PhotonNetwork.LocalPlayer == owner)
         {
-            Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, true);
-            StartCoroutine(EnableCollisionAfterDelay(GetComponent<Collider>(), ownerCollider, ignoreCollisionTime));
+            StartCoroutine(TemporarilyIgnoreOwnerCollision());
+        }
+
+    }
+
+    private IEnumerator TemporarilyIgnoreOwnerCollision()
+{
+    Collider discCollider = GetComponent<Collider>();
+    PlayerController playerController = FindObjectsOfType<PlayerController>()
+        .FirstOrDefault(p => p.photonView.Owner == owner);
+
+    if (playerController != null)
+    {
+        Collider[] playerColliders = playerController.GetComponentsInChildren<Collider>();
+        foreach (var col in playerColliders)
+        {
+            Physics.IgnoreCollision(discCollider, col, true);
+        }
+
+        yield return new WaitForSeconds(ignoreCollisionTime);
+
+        foreach (var col in playerColliders)
+        {
+            Physics.IgnoreCollision(discCollider, col, false);
         }
     }
+}
+
 
     [PunRPC]
     private void SyncInitialVelocity(Vector3 velocity)
@@ -49,22 +71,22 @@ public class Disc : MonoBehaviourPunCallbacks
         initialVelocity = velocity;
     }
 
-    private Collider FindOwnerCollider()
-    {
-        PlayerController playerController = FindObjectsOfType<PlayerController>()
-            .FirstOrDefault(p => p.photonView.Owner == owner);
+    // private Collider FindOwnerCollider()
+    // {
+    //     PlayerController playerController = FindObjectsOfType<PlayerController>()
+    //         .FirstOrDefault(p => p.photonView.Owner == owner);
 
-        return playerController?.GetComponent<Collider>();
-    }
+    //     return playerController?.GetComponent<Collider>();
+    // }
 
-    IEnumerator EnableCollisionAfterDelay(Collider discCollider, Collider ownerCollider, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (discCollider && ownerCollider)
-        {
-            Physics.IgnoreCollision(discCollider, ownerCollider, false);
-        }
-    }
+    // IEnumerator EnableCollisionAfterDelay(Collider discCollider, Collider ownerCollider, float delay)
+    // {
+    //     yield return new WaitForSeconds(delay);
+    //     if (discCollider && ownerCollider)
+    //     {
+    //         Physics.IgnoreCollision(discCollider, ownerCollider, false);
+    //     }
+    // }
 
     void Update()
     {

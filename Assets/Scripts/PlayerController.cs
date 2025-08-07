@@ -527,19 +527,26 @@ void RPC_AttachWeaponToPlayer(int weaponViewID)
 
 void Movement()
 {
+    Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
+    Vector3 forward = transform.forward * axis.x;
+    Vector3 right = transform.right * axis.y;
+    Vector3 moveDir = (forward + right).normalized;
+
     if (isColliding)
     {
-        Vector2 axis = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
-        
-        // Używamy transform.forward i transform.right, zamiast forward kamery
-        Vector3 forward = transform.forward * axis.x;
-        Vector3 right = transform.right * axis.y;
-        Vector3 wishDirection = (forward + right).normalized * walkSpeed;
-
-        wishDirection.y = rb.velocity.y; // Zachowaj pionową prędkość (grawitację)
+        Vector3 wishDirection = moveDir * walkSpeed;
+        wishDirection.y = rb.velocity.y;
         rb.velocity = wishDirection;
+    }
+    else
+    {
+        // W powietrzu – lekka kontrola przez dodawanie siły
+        rb.AddForce(moveDir * (walkSpeed * 0.35f), ForceMode.Acceleration);
+    }
 
-        // Aktualizacja animacji na podstawie wartości ruchu
+    // Animacje tylko na ziemi
+    if (isColliding)
+    {
         UpdateAnimations(axis);
     }
 }

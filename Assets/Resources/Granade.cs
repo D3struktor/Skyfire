@@ -3,6 +3,8 @@ using Photon.Pun;
 using Photon.Realtime;
 using System.Linq;
 using UnityEngine.Audio;
+using System.Collections;
+
 
 public class Grenade : MonoBehaviourPunCallbacks
 {
@@ -31,55 +33,73 @@ public Vector3 throwDirection = new Vector3(1f, 1f, 0f); // Kierunek rzutu (w ty
 Rigidbody rb;
 
 
-void Start()
-{
-    Debug.Log("Grenade instantiated, will explode in " + explosionDelay + " seconds if nothing happens.");
-    timeSinceLaunch = Time.time;
-    Invoke("Explode", explosionDelay); // Ustawienie wybuchu po 5 sekundach
-
-    // Get the PhotonView component
-    PhotonView photonView = GetComponent<PhotonView>();
-
-    // Get the owner of the grenade
-    owner = photonView.Owner;
-    Debug.Log("Grenade created by player: " + owner.NickName);
-
-    // Apply force to the grenade for parabolic throw
-
-   rb = GetComponent<Rigidbody>();
-
-    // Temporarily ignore collisions with the owner
-    PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
-    if (playerController != null)
+    void Start()
     {
-        Collider ownerCollider = playerController.GetComponent<Collider>();
-        if (ownerCollider != null)
+        Debug.Log("Grenade instantiated, will explode in " + explosionDelay + " seconds if nothing happens.");
+        timeSinceLaunch = Time.time;
+        Invoke("Explode", explosionDelay); // Ustawienie wybuchu po 5 sekundach
+
+        // Get the PhotonView component
+        PhotonView photonView = GetComponent<PhotonView>();
+
+        // Get the owner of the grenade
+        owner = photonView.Owner;
+        Debug.Log("Grenade created by player: " + owner.NickName);
+
+        // Apply force to the grenade for parabolic throw
+
+        rb = GetComponent<Rigidbody>();
+
+        // Tymczasowo ignoruj kolizję z właścicielem (tylko lokalnie u niego)
+        if (PhotonNetwork.LocalPlayer == owner)
         {
-            Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, true);
-            Invoke("ResetCollision", ignoreCollisionTime); // Ignore collisions for the specified time
+            StartCoroutine(TemporarilyIgnoreOwnerCollision());
         }
+
     }
-}
     void FixedUpdate()
     {
         // Jeśli chcesz większą kontrolę, możesz dodać własną siłę przyciągania
         Vector3 customGravity = new Vector3(0, -9.81f, 0); // Zmodyfikowana siła grawitacji
         rb.AddForce(customGravity, ForceMode.Acceleration);
     }
-
-
-    void ResetCollision()
+    private IEnumerator TemporarilyIgnoreOwnerCollision()
     {
-        PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
+        Collider grenadeCollider = GetComponent<Collider>();
+        PlayerController playerController = FindObjectsOfType<PlayerController>()
+            .FirstOrDefault(p => p.photonView.Owner == owner);
+
         if (playerController != null)
         {
-            Collider ownerCollider = playerController.GetComponent<Collider>();
-            if (ownerCollider != null)
+            Collider[] playerColliders = playerController.GetComponentsInChildren<Collider>();
+            foreach (var col in playerColliders)
             {
-                Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, false);
+                Physics.IgnoreCollision(grenadeCollider, col, true);
+            }
+
+            yield return new WaitForSeconds(ignoreCollisionTime);
+
+            foreach (var col in playerColliders)
+            {
+                Physics.IgnoreCollision(grenadeCollider, col, false);
             }
         }
     }
+
+
+
+    // void ResetCollision()
+    // {
+    //     PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
+    //     if (playerController != null)
+    //     {
+    //         Collider ownerCollider = playerController.GetComponent<Collider>();
+    //         if (ownerCollider != null)
+    //         {
+    //             Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, false);
+    //         }
+    //     }
+    // }
 
     void OnCollisionEnter(Collision collision)
     {
