@@ -81,6 +81,8 @@ MonoBehaviour:
   - StartPull
   - StopPull
   - NotifyAttachHook
+  - RPC_Latched
+  - RPC_ReleaseHook
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

@@ -1,282 +1,350 @@
-// ✅ GRAPPLE GUN (z poprawkami)
+// ✅ GrappleGun.cs – PUN + FSM + SOFT TETHER (bez teleportów)
+// LPM: strzał → trzymanie = skracanie → puszczenie = odczep
 
 using UnityEngine;
 using Photon.Pun;
 using System.Collections;
 
+[RequireComponent(typeof(PhotonView))]
 public class GrappleGun : MonoBehaviourPun
 {
-    [Header("Prefabs and comps")]
-    public GameObject hookPrefab;
-    public Transform firePoint;
-    public LineRenderer lineRenderer;
+    [Header("Refs")]
+    public GameObject hookPrefab;          // prefab: PhotonView + Rigidbody + Collider (+ PhotonRigidbodyView/TransformView)
+    public Transform firePoint;            // u ownera: FP socket; u zdalnych: np. ręka 3P
+    public LineRenderer lineRenderer;      // rope FX (działa też u zdalnych)
     public Material ropeMaterial;
-    public Rigidbody playerRb;
+    public Rigidbody playerRb;             // RB gracza (autorytet tylko u ownera)
 
-    [Header("Hook Param")]
+    [Header("Hook Params")]
     public float hookSpeed = 200f;
-    public float maxHookDistance = 80f;
-    public float pullForce = 25f;
-    public float shortenSpeed = 20f;
+    public float maxHookDistance = 80f;    // zasięg haka
 
-    [Header("Elastic Pendulum")]
-    public float stretchForceMultiplier = 4f;
-    public float forceClamp = 150f;
+    [Header("Timing")]
+    public float reelInDelay = 0.50f;      // opóźnienie zanim wolno skracać linkę
+    public float releaseDelay = 0.15f;     // drobny delay na odklejenie (korutyny)
 
-    [Header("GroundCheck")]
-    public float groundCheckDistance = 1.2f;
-    public LayerMask groundLayerMask = -1;
+    [Header("Tether Tuning")]
+    public float autoTensionAccel = 6f;    // delikatne, stałe przyciąganie gdy jest luz
+    public float holdShortenSpeed = 6f;    // tempo skracania liny przy trzymaniu (m/s)
+    public float slackRatio = 1.02f;       // startowy luz względem dystansu po zaczepieniu (np. 2%)
+    public float tautEpsilon = 0.05f;      // próg uznania „lina napięta”
+    public bool horizontalTensionOnGroundHook = true; // gdy hak niżej, ciągnij raczej horyzontalnie
 
-    [Header("Sounds")]
+    [Header("Audio")]
     public AudioClip hookFailSound;
     public AudioClip hookDetachSound;
     public AudioSource audioSource;
 
+    // --- runtime ---
     private GameObject currentHook;
     private SpringJoint joint;
     private Vector3 hookPoint;
-    private bool isGrappling = false;
-    private bool hookAttached = false;
     private Camera cam;
 
-    private bool hasFired = false;
-    private bool pulling = false;
-    private bool detachQueued = false;
+    private bool canReelIn = false;        // po reelInDelay
+    private bool pulling = false;          // trzymanie LPM = skracanie
 
-    private Vector3 residualForce = Vector3.zero;
-    private float residualDamp = 6f;
-    private float releaseDelay = 0.15f;
+    // Rope FX dla zdalnych (bez fizyki)
+    private bool ropeActiveRemote = false;
+    private Vector3 remoteHookPoint;
+
+    private enum GrappleState { Idle, Fired, Latched, Pulling, Released }
+    private GrappleState currentState = GrappleState.Idle;
 
     void Start()
     {
-        if (!photonView.IsMine) return;
-
+        if (playerRb == null) playerRb = GetComponentInParent<Rigidbody>();
         cam = Camera.main;
 
-        if (playerRb == null)
-            playerRb = GetComponentInParent<Rigidbody>();
-
-        if (playerRb == null)
-            Debug.LogError("❌ Brakuje Rigidbody na graczu! Podłącz go ręcznie.");
-    }
-
-    void Update()
-    {
-        if (!photonView.IsMine) return;
-
-        // Strzał hakiem
-        if (Input.GetMouseButtonDown(0))
+        // bezpieczna konfiguracja RB
+        if (playerRb != null)
         {
-            if (!hookAttached && !hasFired)
-            {
-                hasFired = true;
-                Vector3 origin = firePoint.position;
-                Vector3 dir = cam.transform.forward;
-                photonView.RPC("ShootHook", RpcTarget.All, origin, dir);
-            }
-            else if (hookAttached)
-            {
-                detachQueued = true;
-            }
+            playerRb.interpolation = RigidbodyInterpolation.Interpolate;
+            playerRb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            playerRb.maxAngularVelocity = 50f;
         }
-
-        // Trzymanie = przyciąganie
-        if (Input.GetMouseButton(0) && hookAttached)
-        {
-            pulling = true;
-        }
-        else
-        {
-            pulling = false;
-        }
-
-        // Oderwanie haka po puszczeniu przycisku (nie w trakcie trzymania)
-        if (detachQueued && Input.GetMouseButtonUp(0))
-        {
-            detachQueued = false;
-            photonView.RPC("ReleaseHook", RpcTarget.All);
-
-            if (audioSource != null && hookDetachSound != null)
-                audioSource.PlayOneShot(hookDetachSound);
-        }
-    }
-
-    void FixedUpdate()
-    {
-        if (!photonView.IsMine || (!isGrappling && residualForce == Vector3.zero)) return;
-
-        Vector3 toHook = hookPoint - playerRb.position;
-        float currentDistance = toHook.magnitude;
-
-        bool isGrounded = Physics.Raycast(playerRb.position + Vector3.up * 0.1f, Vector3.down, groundCheckDistance, groundLayerMask);
-        float verticalFactor = Mathf.Clamp01(toHook.normalized.y);
-        float forceMultiplier = isGrounded ? 0.3f : 1f;
-
-        if (isGrappling && joint != null)
-        {
-            if (pulling && currentDistance >= joint.maxDistance - 0.1f)
-            {
-                joint.maxDistance = Mathf.Max(joint.minDistance + 1f, joint.maxDistance - shortenSpeed * Time.fixedDeltaTime);
-            }
-
-            float stretchRatio = Mathf.Clamp01((currentDistance - joint.maxDistance) / joint.maxDistance);
-            float dynamicForce = pullForce * (1f + stretchRatio * stretchForceMultiplier);
-            dynamicForce = Mathf.Clamp(dynamicForce, 0f, forceClamp);
-
-            Vector3 appliedForce = toHook.normalized * dynamicForce * forceMultiplier * (1f + verticalFactor);
-            playerRb.AddForce(appliedForce, ForceMode.Acceleration);
-            residualForce = appliedForce;
-        }
-        else if (residualForce.magnitude > 0.1f)
-        {
-            playerRb.AddForce(residualForce, ForceMode.Force);
-            residualForce = Vector3.Lerp(residualForce, Vector3.zero, Time.fixedDeltaTime * residualDamp);
-        }
-    }
-
-    [PunRPC]
-    void ShootHook(Vector3 position, Vector3 direction)
-    {
-        if (hookPrefab == null)
-        {
-            Debug.LogError("❌ Brakuje hookPrefab!");
-            return;
-        }
-
-        if (currentHook != null)
-            PhotonNetwork.Destroy(currentHook);
-
-        currentHook = PhotonNetwork.Instantiate(hookPrefab.name, position, Quaternion.LookRotation(direction));
-
-        if (photonView.IsMine)
-            StartCoroutine(HookFailTimeout());
-
-        Rigidbody rb = currentHook.GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            Debug.LogError("❌ Hook prefab nie ma Rigidbody.");
-            return;
-        }
-
-        Vector3 biasedDirection = (direction.normalized + Vector3.down * 0.15f).normalized;
-        rb.useGravity = true;
-        rb.AddForce(biasedDirection * hookSpeed, ForceMode.Impulse);
-
-        Collider[] playerColliders = GetComponentsInChildren<Collider>();
-        Collider hookCollider = currentHook.GetComponent<Collider>();
-        foreach (var col in playerColliders)
-            if (hookCollider != null && col != null)
-                Physics.IgnoreCollision(hookCollider, col);
-
-        GrappleHook hookScript = currentHook.GetComponent<GrappleHook>();
-        if (hookScript == null)
-        {
-            Debug.LogError("❌ Brak skryptu GrappleHook.");
-            return;
-        }
-
-        hookScript.Init(photonView.ViewID, maxHookDistance);
-        hookAttached = true;
 
         if (lineRenderer != null)
         {
-            lineRenderer.enabled = true;
-            lineRenderer.positionCount = 2;
+            lineRenderer.enabled = false;
+            lineRenderer.positionCount = 0;
             lineRenderer.textureMode = LineTextureMode.Tile;
-            lineRenderer.material = ropeMaterial;
+            if (ropeMaterial) lineRenderer.material = ropeMaterial;
         }
     }
 
-    public void AttachHook(Vector3 point)
+void Update()
+{
+    // zdalni – tylko rope FX
+    if (!photonView.IsMine)
     {
-        isGrappling = true;
-        hookPoint = point;
+        if (ropeActiveRemote && lineRenderer != null && firePoint != null)
+            DrawRope(firePoint.position, remoteHookPoint);
+        return;
+    }
 
+    switch (currentState)
+    {
+        case GrappleState.Idle:
+            if (Input.GetMouseButtonDown(0))
+                FireHook();
+            break;
+
+        case GrappleState.Fired:
+            // nic – czekamy na OnHookLatched
+            break;
+
+        case GrappleState.Latched:
+            // priorytet: szybki klik = odczep
+            if (Input.GetMouseButtonDown(0))
+            {
+                pulling = false;
+                ReleaseLocal();
+                break;
+            }
+
+            // trzymanie = skracanie (bez odczepu)
+            if (Input.GetMouseButton(0))
+            {
+                pulling = true;
+                if (canReelIn) currentState = GrappleState.Pulling;
+            }
+            else
+            {
+                pulling = false; // tylko przestajemy skracać
+            }
+            break;
+
+        case GrappleState.Pulling:
+            // puszczenie LPM = przestań skracać, ale zostań zaczepiony
+            if (!Input.GetMouseButton(0))
+            {
+                pulling = false;
+                currentState = GrappleState.Latched;
+            }
+            // brak innych akcji – „pulling nic”
+            break;
+
+        case GrappleState.Released:
+            pulling = false;
+            break;
+    }
+}
+
+
+    void FixedUpdate()
+    {
+        if (!photonView.IsMine) return;
+        if (joint == null) return;
+        if (currentState != GrappleState.Latched && currentState != GrappleState.Pulling) return;
+
+        Vector3 toHook = hookPoint - playerRb.position;
+        float dist = toHook.magnitude;
+        if (dist < 1e-4f) return;
+
+        Vector3 dir = toHook / dist;
+
+        // === SOFT TETHER (sprężyna + tłumienie), bez teleportów ===
+
+        // [A] Sprężyna + tłumienie tylko gdy przekroczony „nominal” (maxDistance)
+        if (dist > joint.maxDistance)
+        {
+            float extension = dist - joint.maxDistance;
+
+            // k: twardość linki (80–200), c: tłumienie krytyczne
+            float k = 120f;
+            float m = playerRb.mass;
+            float c = 2f * Mathf.Sqrt(k * m);
+
+            // v>0: do haka, v<0: od haka – tłumimy tylko od haka
+            float v = Vector3.Dot(playerRb.velocity, dir);
+            float accel = (k * extension + Mathf.Max(-v, 0f) * c) / m;
+            accel = Mathf.Clamp(accel, 0f, 160f);
+
+            playerRb.AddForce(dir * accel, ForceMode.Acceleration); // przyciąga DO haka
+        }
+
+        // [B] Lekkie auto-napięcie gdy jest luz (dla „żyjącej” liny)
+        if (dist < joint.maxDistance - tautEpsilon)
+        {
+            Vector3 tensionDir = dir;
+            if (horizontalTensionOnGroundHook && hookPoint.y < playerRb.position.y - 0.2f)
+            {
+                Vector3 flat = Vector3.ProjectOnPlane(dir, Vector3.up);
+                if (flat.sqrMagnitude > 1e-6f) tensionDir = flat.normalized;
+            }
+            playerRb.AddForce(tensionDir * autoTensionAccel, ForceMode.Acceleration);
+        }
+
+        // [C] Skracanie przy trzymaniu (bez turbo-ssania)
+        if (pulling && canReelIn)
+        {
+            joint.maxDistance = Mathf.Max(joint.minDistance + 0.05f,
+                                          joint.maxDistance - holdShortenSpeed * Time.fixedDeltaTime);
+
+            // tnij tylko ruch OD haka (żeby nie „gumkowało” przy skracaniu)
+            float vAway = Vector3.Dot(playerRb.velocity, dir); // <0: od haka
+            if (vAway < 0f) playerRb.velocity -= dir * vAway;
+        }
+    }
+
+    // --- INPUT (owner only) ---
+
+    void FireHook()
+    {
+        if (hookPrefab == null) { Debug.LogError("❌ Brakuje hookPrefab!"); return; }
+        if (currentHook != null) PhotonNetwork.Destroy(currentHook); // pozwala strzelić ponownie po release
+
+        Vector3 origin = firePoint != null ? firePoint.position : transform.position;
+        Vector3 dir = (cam != null ? cam.transform.forward : transform.forward);
+
+        currentHook = PhotonNetwork.Instantiate(hookPrefab.name, origin, Quaternion.LookRotation(dir));
+
+        // snappy prędkość
+        var rb = currentHook.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            Vector3 biased = (dir.normalized + Vector3.down * 0.15f).normalized;
+            rb.velocity = biased * hookSpeed;
+        }
+
+        // ignoruj kolizje z właścicielem
+        var hookCol = currentHook.GetComponent<Collider>();
+        foreach (var col in GetComponentsInChildren<Collider>())
+            if (hookCol && col) Physics.IgnoreCollision(hookCol, col);
+
+        // init hook (owner id + zasięg)
+        var hook = currentHook.GetComponent<GrappleHook>();
+        if (hook != null) hook.Init(photonView.ViewID, maxHookDistance);
+
+        // FX u właściciela
+        if (lineRenderer != null) { lineRenderer.enabled = true; lineRenderer.positionCount = 2; }
+
+        canReelIn = false;
+        pulling = false;
+        currentState = GrappleState.Fired;
+        StartCoroutine(HookFailTimeout());
+    }
+
+    void ReleaseLocal()
+    {
+        photonView.RPC(nameof(RPC_ReleaseHook), RpcTarget.All);
+        if (audioSource && hookDetachSound) audioSource.PlayOneShot(hookDetachSound);
+        currentState = GrappleState.Released;
+    }
+
+    // --- EVENT od GrappleHook po RPC_Latched (wołane na każdym kliencie) ---
+
+    public void OnHookLatched(Vector3 point)
+    {
+        // zapis dla rope FX u wszystkich
+        remoteHookPoint = point;
+        ropeActiveRemote = true;
+
+        // zdalni – tylko FX
+        if (!photonView.IsMine)
+        {
+            if (lineRenderer != null) { lineRenderer.enabled = true; lineRenderer.positionCount = 2; }
+            return;
+        }
+
+        // owner – fizyka + opóźnienie reelingu
+        hookPoint = point;
+        StartCoroutine(OwnerLatchDelayAndJoint());
+    }
+
+    IEnumerator OwnerLatchDelayAndJoint()
+    {
+        yield return new WaitForSeconds(reelInDelay);
+        canReelIn = true;
+        currentState = GrappleState.Latched;
+
+        // joint bez sprężyny, z lekkim luzem
         joint = playerRb.gameObject.AddComponent<SpringJoint>();
         joint.autoConfigureConnectedAnchor = false;
         joint.connectedAnchor = hookPoint;
 
-        float distance = Vector3.Distance(playerRb.position, hookPoint);
-        joint.maxDistance = distance;
-        joint.minDistance = distance * 0.1f;
+        float d = Vector3.Distance(playerRb.position, hookPoint);
+        joint.maxDistance = d * Mathf.Max(1.0f, slackRatio); // np. 1.02
+        joint.minDistance = Mathf.Max(0.1f, d * 0.10f);
+
         joint.spring = 0f;
-        joint.damper = 2f;
-        joint.massScale = 4.5f;
+        joint.damper = 0f;
+        joint.massScale = 1f;
     }
 
     [PunRPC]
-    void ReleaseHook()
+    void RPC_ReleaseHook()
     {
-        if (joint != null)
-            Destroy(joint);
+        // owner niszczy hak
+        if (photonView.IsMine)
+        {
+            if (currentHook != null)
+            {
+                var gh = currentHook.GetComponent<GrappleHook>();
+                if (gh != null) gh.Release();              // parent=null + PhotonNetwork.Destroy
+                else PhotonNetwork.Destroy(currentHook);
+            }
+        }
 
-        if (currentHook != null)
-            PhotonNetwork.Destroy(currentHook);
+        // sprzątanie na wszystkich
+        if (joint != null && photonView.IsMine) Destroy(joint);
 
-        if (lineRenderer != null)
-            lineRenderer.positionCount = 0;
+        ropeActiveRemote = false;
+        if (lineRenderer != null) { lineRenderer.positionCount = 0; lineRenderer.enabled = false; }
 
-        StartCoroutine(DelayedRelease());
-    }
-
-    IEnumerator DelayedRelease()
-    {
-        yield return new WaitForSeconds(releaseDelay);
-        isGrappling = false;
-        hookAttached = false;
+        canReelIn = false;
+        pulling = false;
         hookPoint = Vector3.zero;
-        ResetStates();
+        currentHook = null;
+        StopAllCoroutines();
+
+        currentState = GrappleState.Idle; // od razu możesz strzelać znowu
     }
+
+    // --- VISUALS ---
 
     void LateUpdate()
     {
-        if (currentHook != null && hookAttached)
+        if (lineRenderer == null) return;
+
+        if (photonView.IsMine)
         {
-            DrawRope();
+            if (currentHook != null)
+                DrawRope(firePoint.position, currentHook.transform.position);
+            else if (currentState == GrappleState.Latched || currentState == GrappleState.Pulling)
+                DrawRope(firePoint.position, hookPoint);
         }
-        else if (lineRenderer != null)
+        else if (ropeActiveRemote)
         {
-            lineRenderer.positionCount = 0;
+            DrawRope(firePoint.position, remoteHookPoint);
+        }
+        else
+        {
+            if (lineRenderer.enabled) { lineRenderer.positionCount = 0; lineRenderer.enabled = false; }
         }
     }
 
-    void DrawRope()
+    void DrawRope(Vector3 a, Vector3 b)
     {
-        if (lineRenderer == null || currentHook == null) return;
+        lineRenderer.enabled = true;
+        lineRenderer.positionCount = 2;
+        lineRenderer.SetPosition(0, a);
+        lineRenderer.SetPosition(1, b);
 
-        lineRenderer.SetPosition(0, firePoint.position);
-        lineRenderer.SetPosition(1, currentHook.transform.position);
-
-        float ropeLength = Vector3.Distance(firePoint.position, currentHook.transform.position);
-        lineRenderer.material.mainTextureScale = new Vector2(ropeLength, 1);
-    }
-
-    void ResetStates()
-    {
-        hasFired = false;
-        pulling = false;
-        detachQueued = false;
-        residualForce = Vector3.zero;
+        float ropeLength = Vector3.Distance(a, b);
+        if (lineRenderer.material) lineRenderer.material.mainTextureScale = new Vector2(ropeLength, 1);
     }
 
     IEnumerator HookFailTimeout()
     {
-        float timeout = maxHookDistance / hookSpeed + 0.5f;
+        float timeout = maxHookDistance / Mathf.Max(1f, hookSpeed) + 0.5f;
         yield return new WaitForSeconds(timeout);
 
-        if (!isGrappling)
+        if (currentState == GrappleState.Fired)
         {
-            if (audioSource != null && hookFailSound != null)
-                audioSource.PlayOneShot(hookFailSound);
-
-            ResetStates();
-            hookAttached = false;
-
-            if (currentHook != null)
-                PhotonNetwork.Destroy(currentHook);
-
-            if (lineRenderer != null)
-                lineRenderer.positionCount = 0;
+            if (audioSource && hookFailSound) audioSource.PlayOneShot(hookFailSound);
+            ReleaseLocal();
         }
     }
 }

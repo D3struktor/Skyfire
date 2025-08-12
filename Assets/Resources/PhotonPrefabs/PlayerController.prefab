@@ -4571,10 +4571,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   walkSpeed: 30
   sensitivity: 2
-  slideSpeedFactor: 1
-  jetpackForceY: 12
+  jetpackForceY: 25
   jetpackForceX: 0
-  jetpackForceZ: 4
+  jetpackForceZ: 6.5
   jetpackFuelMax: 200
   jetpackFuelRegenRate: 27
   jetpackFuelUsageRate: 45
@@ -4583,15 +4582,69 @@ MonoBehaviour:
   playerSpeedText: {fileID: 7466355902331747557}
   speedImage: {fileID: 638150575947084372}
   healthbarImage: {fileID: 6290300555053531270}
-  groundCheckDistance: 10
-  skiAcceleration: 1.1
+  skiLandingCooldownTime: 0.06
+  landingGuardTime: 0.08
+  landingKeepFactor: 0.9
+  landingMaxTurnDeg: 35
+  groundNormalSmooth: 0.35
+  groundProbeRadius: 0.16
+  groundProbeSide: 0.35
+  slideGroundGrace: 0.2
+  normalSmooth: 0.5
+  airGravityMultiplier: 3.5
+  airTerminalDownSpeed: 300
+  slideKey: 304
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  groundCheckDistance: 1.1
+  skiAcceleration: 35
   minSkiSpeed: 25
-  groundDrag: 0.1
-  airDrag: 0.01
+  groundDrag: 0.05
+  airDrag: 0.02
   slidingDrag: 0
   endDrag: 0.1
   dragTransitionTime: 0.5
-  maxSpeed: 200
+  slideSpeedFactor: 2.2
+  minSlopeAngle: 2
+  maxSpeed: 300
+  skiMaxFullRetainAngle: 39.8
+  skiNormalDamping: 0.013
+  skiMaxLossAt90: 0.633
+  skiLossByAngle:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0.15028475
+      outSlope: 0.15028475
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.613403
+      value: 0.09218512
+      inSlope: 0.66656435
+      outSlope: 0.66656435
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.23015769
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 2.3482203
+      outSlope: 2.3482203
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  rebuildLossCurveOnAwake: 1
   primaryWeaponPrefab: {fileID: 887638712416274772, guid: 2c762efac44f16f4aa5184d5766f074f, type: 3}
   grenadeLauncherPrefab: {fileID: 6887392381205261040, guid: 3d8c82d357db5c543af356506c81db94, type: 3}
   chaingunPrefab: {fileID: 2062645146687671931}
@@ -4672,7 +4725,7 @@ CapsuleCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8549866176330816754}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 41cda9c7d5e117d4ba5cffbcbb810485, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -4685,9 +4738,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
-  m_Height: 2.0292969
+  m_Height: 1.9987234
   m_Direction: 1
-  m_Center: {x: 0, y: 0.8729706, z: 0}
+  m_Center: {x: 0, y: 0.8882574, z: 0}
 --- !u!54 &6157084091109305163
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -6049,7 +6102,15 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1405841136324134532}
     - target: {fileID: 7360729226522929084, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
+      propertyPath: tautEpsilon
+      value: 0.03
+      objectReference: {fileID: 0}
+    - target: {fileID: 7360729226522929084, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
       propertyPath: hookFailSound
+      value: 
+      objectReference: {fileID: 8300000, guid: 5f48d2e6d9a7e51499d1fe02bbeb86a2, type: 3}
+    - target: {fileID: 7360729226522929084, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}
+      propertyPath: hookDetachSound
       value: 
       objectReference: {fileID: 8300000, guid: 5f48d2e6d9a7e51499d1fe02bbeb86a2, type: 3}
     - target: {fileID: 7360729226522929084, guid: 42ec124b84acd134fbba4f77e4fc96e1, type: 3}

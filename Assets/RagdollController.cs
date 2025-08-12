@@ -48,17 +48,16 @@ public void ActivateRagdoll()
         rb.detectCollisions = true;
     }
 
-    foreach (Collider col in ragdollColliders)
-    {
-        col.enabled = true;
+    // foreach (Collider col in ragdollColliders)
+    // {
+    //     col.enabled = true;
 
-        // Ignoruj kolizje między ragdollem a lokalnym graczem
-        if (playerCollider != null)
-        {
-            Physics.IgnoreCollision(col, playerCollider, true);
-            Debug.Log($"Ignoring collision between {col.gameObject.name} and {playerCollider.gameObject.name}");
-        }
-    }
+    //     // Ignoruj kolizje między ragdollem a lokalnym graczem
+    //     if (playerCollider != null)
+    //     {
+    //         Physics.IgnoreCollision(col, playerCollider, true);
+    //     }
+    // }
 }
 
 }

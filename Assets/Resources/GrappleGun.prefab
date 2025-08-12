@@ -743,14 +743,13 @@ MonoBehaviour:
   playerRb: {fileID: 0}
   hookSpeed: 60
   maxHookDistance: 40
-  pullForce: 25
-  shortenSpeed: 20
-  stretchForceMultiplier: 4
-  forceClamp: 150
-  groundCheckDistance: 1.2
-  groundLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
+  reelInDelay: 0.5
+  releaseDelay: 0.15
+  autoTensionAccel: 6
+  holdShortenSpeed: 6
+  slackRatio: 1.02
+  tautEpsilon: 0.05
+  horizontalTensionOnGroundHook: 1
   hookFailSound: {fileID: 0}
   hookDetachSound: {fileID: 0}
   audioSource: {fileID: 0}
