@@ -279,13 +279,13 @@ MonoBehaviour:
   grenadePrefab: {fileID: 3678946588746919792, guid: 4d6346f552b633043a343c4d03f5fa1d, type: 3}
   shootingPoint: {fileID: 2434285912294249829}
   grenadeSpeed: 160
-  grenadeGravity: 200
-  grenadeDrag: 0.6
+  inheritVelocityFactor: 0.6
+  grenadeDrag: 0.5
   grenadeAngularDrag: 0
   fireCooldown: 1
   shootSound: {fileID: 8300000, guid: 0ac737ba5454f1b4b88ef8da54fb1c87, type: 3}
-  weaponSwitchDelay: 0.5
   isActiveWeapon: 0
+  weaponSwitchDelay: 0.5
 --- !u!114 &-3149084861772172437
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -255,21 +255,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   explosionEffect: {fileID: 7819775807870019735, guid: f916833a9285b1244b9a2a6ef531b2a5, type: 3}
-  blastRadius: 12
-  explosionForce: 3000
-  explosionDelay: 4
-  collisionExplosionDelay: 1.5
-  speedThreshold: 120
-  maxDamage: 95
   explosionSound: {fileID: 8300000, guid: 573b34f3927d254498187674b6f6246e, type: 3}
   bounceSound: {fileID: 8300000, guid: 563fdef6c5127104cac10d48ab107284, type: 3}
   sfxMixerGroup: {fileID: -1483086409508410553, guid: c00fde4c2f64f9c458d4bc18c9e4d1d2, type: 2}
   explosionSoundRange: 350
   bounceSoundRange: 200
   minDistance: 100
+  blastRadius: 13
+  explosionForce: 2200
+  maxDamage: 95
+  armTime: 0.02
+  airFuseTime: 2.3
+  impactFuseMin: 0.8
+  impactFuseMax: 1.2
+  highSpeedDetonate: 100
   ignoreCollisionTime: 0.6
-  throwForce: 150
-  throwDirection: {x: 0, y: -0.00000001, z: 0}
+  ownerProtectTime: 0.2
+  useCustomGravity: 1
+  customGravity: {x: 0, y: -12, z: 0}
+  spinRandomTorque: 3
 --- !u!136 &5379180120573130739
 CapsuleCollider:
   m_ObjectHideFlags: 0

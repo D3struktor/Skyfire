@@ -183,8 +183,12 @@ MonoBehaviour:
   shootingPoint: {fileID: 0}
   discSpeed: 300
   fireCooldown: 1.2
-  shootSound: {fileID: 8300000, guid: a83caa165f1fa1846be459c48c4af045, type: 3}
   weaponSwitchDelay: 0.6
+  inheritVelocityFactor: 0.2
+  shootSound: {fileID: 8300000, guid: a83caa165f1fa1846be459c48c4af045, type: 3}
+  discRotationSpeed: 360
+  attachedDisc: {fileID: 0}
+  ignoreCollisionTime: 0.25
   isActiveWeapon: 0
 --- !u!114 &7174898040385898609
 MonoBehaviour:

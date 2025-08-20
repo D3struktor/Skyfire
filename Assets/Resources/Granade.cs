@@ -5,253 +5,256 @@ using System.Linq;
 using UnityEngine.Audio;
 using System.Collections;
 
-
-public class Grenade : MonoBehaviourPunCallbacks
+public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
 {
-    public GameObject explosionEffect; // Efekt eksplozji
-    public float blastRadius = 5f; // Promień wybuchu
-    public float explosionForce = 700f; // Siła wybuchu
-    public float explosionDelay = 5f; // Opóźnienie przed wybuchem granatu, jeśli nic nie dotknął
-    public float collisionExplosionDelay = 3f; // Opóźnienie przed wybuchem granatu po kolizji
-    public float speedThreshold = 100f; // Prędkość granatu, powyżej której wybucha natychmiast
-    public float maxDamage = 100f; // Maksymalne obrażenia granatu
-    public AudioClip explosionSound; // Dźwięk eksplozji
-    public AudioClip bounceSound; // Dźwięk odbicia
+    [Header("Efekt i Audio")]
+    public GameObject explosionEffect;
+    public AudioClip explosionSound;
+    public AudioClip bounceSound;
     [SerializeField] private AudioMixerGroup sfxMixerGroup;
+    public float explosionSoundRange = 200f;
+    public float bounceSoundRange = 50f;
+    public float minDistance = 1f;
 
-    public float explosionSoundRange = 20f; // Zasięg słyszalności dźwięku eksplozji
-    public float bounceSoundRange = 10f; // Zasięg słyszalności dźwięku odbicia
-    public float minDistance = 1f; // Minimalna odległość dla pełnej głośności
-    [SerializeField] private float ignoreCollisionTime = 0.2f; // Czas ignorowania kolizji z graczem
+    [Header("Wybuch i Obrażenia")]
+    public float blastRadius = 8f;
+    public float explosionForce = 900f;
+    public float maxDamage = 100f;
 
-    private bool hasExploded = false; // Flaga, aby upewnić się, że wybuch jest synchronizowany tylko raz
-    private float timeSinceLaunch;
+    [Header("Timing jak w Tribes")]
+    public float armTime = 0.25f;                 // czas uzbrojenia – przed nim nie detonuje na impakcie
+    public float airFuseTime = 2.3f;              // bezpiecznik w powietrzu (jeśli nic nie dotknęło)
+    public float impactFuseMin = 0.8f;            // krótki bezpiecznik po pierwszym odbiciu
+    public float impactFuseMax = 1.2f;
+    public float highSpeedDetonate = 25f;         // szybka detonacja przy bardzo szybkim impakcie (po uzbrojeniu)
+
+    [Header("Ochrona właściciela")]
+    [SerializeField] private float ignoreCollisionTime = 0.2f; // ignorowanie kolizji z właścicielem
+    public float ownerProtectTime = 0.2f;                       // brak obrażeń dla właściciela po starcie
+
+    [Header("Trajektoria / Fizyka")]
+    public bool useCustomGravity = false;
+    public Vector3 customGravity = new Vector3(0, -9.81f, 0);
+    public float spinRandomTorque = 3f;           // lekki losowy spin
+
+    private Rigidbody rb;
+    private bool hasExploded = false;
+    private float spawnTime;
+    private float firstCollisionTime = -1f;
+
     private Player owner;
+    private int ownerActorNumber = -1;
 
-    public float throwForce = 10f; // Siła rzutu granatem
-public Vector3 throwDirection = new Vector3(1f, 1f, 0f); // Kierunek rzutu (w tym przypadku w prawo z lekkim nachyleniem w górę)
-Rigidbody rb;
+    // dane z InstantiationData
+    private Vector3 initialVelocity;
 
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+        spawnTime = Time.time;
+
+        // Bouncy physic material dla „tribesowego” odbicia (jeśli collider nie ma przypisanego)
+        var col = GetComponent<Collider>();
+        if (col != null && (col.material == null || col.material.bounciness < 0.4f))
+        {
+            var mat = new PhysicMaterial("GrenadeBounce")
+            {
+                bounciness = 0.55f,
+                bounceCombine = PhysicMaterialCombine.Maximum,
+                frictionCombine = PhysicMaterialCombine.Minimum,
+                dynamicFriction = 0f,
+                staticFriction = 0f
+            };
+            col.material = mat;
+        }
+    }
+
+    public void OnPhotonInstantiate(PhotonMessageInfo info)
+    {
+        // Odczytujemy startową prędkość i właściciela z InstantiationData (ustawione w launcherze)
+        var data = photonView.InstantiationData;
+        if (data != null && data.Length >= 2)
+        {
+            initialVelocity = (Vector3)data[0];
+            ownerActorNumber = (int)data[1];
+        }
+
+        owner = PhotonNetwork.CurrentRoom != null && ownerActorNumber != -1
+            ? PhotonNetwork.CurrentRoom.GetPlayer(ownerActorNumber)
+            : photonView.Owner;
+
+        // Ustaw startową prędkość i spin na wszystkich klientach
+        if (rb != null)
+        {
+            rb.velocity = initialVelocity;
+            rb.AddTorque(Random.insideUnitSphere * spinRandomTorque, ForceMode.VelocityChange);
+        }
+
+        // Startowy bezpiecznik w powietrzu
+        Invoke(nameof(Explode), airFuseTime);
+
+        // Krótko ignorujemy kolizje z właścicielem lokalnie u niego
+        if (PhotonNetwork.LocalPlayer == owner)
+            StartCoroutine(TemporarilyIgnoreOwnerCollision());
+    }
 
     void Start()
     {
-        Debug.Log("Grenade instantiated, will explode in " + explosionDelay + " seconds if nothing happens.");
-        timeSinceLaunch = Time.time;
-        Invoke("Explode", explosionDelay); // Ustawienie wybuchu po 5 sekundach
-
-        // Get the PhotonView component
-        PhotonView photonView = GetComponent<PhotonView>();
-
-        // Get the owner of the grenade
-        owner = photonView.Owner;
-        Debug.Log("Grenade created by player: " + owner.NickName);
-
-        // Apply force to the grenade for parabolic throw
-
-        rb = GetComponent<Rigidbody>();
-
-        // Tymczasowo ignoruj kolizję z właścicielem (tylko lokalnie u niego)
-        if (PhotonNetwork.LocalPlayer == owner)
-        {
-            StartCoroutine(TemporarilyIgnoreOwnerCollision());
-        }
-
+        // Jeżeli z jakiegoś powodu nie dostaliśmy InstantiationData (fallback)
+        if (owner == null) owner = photonView.Owner;
+        if (rb == null) rb = GetComponent<Rigidbody>();
     }
+
     void FixedUpdate()
     {
-        // Jeśli chcesz większą kontrolę, możesz dodać własną siłę przyciągania
-        Vector3 customGravity = new Vector3(0, -9.81f, 0); // Zmodyfikowana siła grawitacji
-        rb.AddForce(customGravity, ForceMode.Acceleration);
+        if (useCustomGravity && rb != null)
+            rb.AddForce(customGravity, ForceMode.Acceleration);
     }
+
     private IEnumerator TemporarilyIgnoreOwnerCollision()
     {
         Collider grenadeCollider = GetComponent<Collider>();
-        PlayerController playerController = FindObjectsOfType<PlayerController>()
-            .FirstOrDefault(p => p.photonView.Owner == owner);
+        var playerController = FindObjectsOfType<PlayerController>()
+            .FirstOrDefault(p => p.photonView != null && p.photonView.Owner == owner);
 
-        if (playerController != null)
+        if (playerController != null && grenadeCollider != null)
         {
-            Collider[] playerColliders = playerController.GetComponentsInChildren<Collider>();
-            foreach (var col in playerColliders)
-            {
-                Physics.IgnoreCollision(grenadeCollider, col, true);
-            }
-
+            var playerColliders = playerController.GetComponentsInChildren<Collider>();
+            foreach (var c in playerColliders) Physics.IgnoreCollision(grenadeCollider, c, true);
             yield return new WaitForSeconds(ignoreCollisionTime);
-
-            foreach (var col in playerColliders)
-            {
-                Physics.IgnoreCollision(grenadeCollider, col, false);
-            }
+            foreach (var c in playerColliders) Physics.IgnoreCollision(grenadeCollider, c, false);
         }
     }
 
-
-
-    // void ResetCollision()
-    // {
-    //     PlayerController playerController = FindObjectsOfType<PlayerController>().FirstOrDefault(p => p.photonView.Owner == owner);
-    //     if (playerController != null)
-    //     {
-    //         Collider ownerCollider = playerController.GetComponent<Collider>();
-    //         if (ownerCollider != null)
-    //         {
-    //             Physics.IgnoreCollision(GetComponent<Collider>(), ownerCollider, false);
-    //         }
-    //     }
-    // }
-
     void OnCollisionEnter(Collision collision)
     {
+        if (hasExploded) return;
+
         PlayBounceSound();
 
-        Debug.Log("Grenade collided with " + collision.gameObject.name + " at time: " + (Time.time - timeSinceLaunch) + " seconds.");
+        float t = Time.time - spawnTime;
 
-        // Check if the grenade collided with a player
-        if (collision.gameObject.GetComponent<PlayerController>() != null)
+        // Trafienie gracza?
+        var hitPlayer = collision.collider.GetComponentInParent<PlayerController>();
+        if (hitPlayer != null)
         {
-            Debug.Log("Grenade hit a player, exploding immediately.");
+            // jeśli to właściciel i wciąż w okienku ochrony – nie detonujemy
+            if (hitPlayer.photonView != null &&
+                hitPlayer.photonView.Owner != null &&
+                hitPlayer.photonView.Owner == owner &&
+                t < ownerProtectTime)
+            {
+                return;
+            }
+
+            // Detonacja na graczu tylko po uzbrojeniu
+            if (t >= armTime)
+            {
+                Explode();
+                return;
+            }
+        }
+
+        // Detonacja natychmiast przy bardzo szybkim impakcie (po uzbrojeniu)
+        if (rb != null && rb.velocity.magnitude >= highSpeedDetonate && t >= armTime)
+        {
             Explode();
             return;
         }
 
-        if (!hasExploded)
+        // Po pierwszym odbiciu ustawiamy krótki fuse i kasujemy „air fuse”
+        if (firstCollisionTime < 0f)
         {
-            CancelInvoke("Explode");
-
-            float grenadeSpeed = GetComponent<Rigidbody>().velocity.magnitude;
-            Debug.Log("Grenade speed: " + grenadeSpeed);
-
-            if (grenadeSpeed > speedThreshold)
-            {
-                Debug.Log("Grenade speed > " + speedThreshold + " units, grenade will explode immediately.");
-                Explode();
-            }
-            else
-            {
-                float timeSinceCollision = Time.time - timeSinceLaunch;
-                float remainingTime = collisionExplosionDelay - timeSinceCollision;
-
-                if (remainingTime <= 0)
-                {
-                    Debug.Log("Time since launch is more than " + collisionExplosionDelay + " seconds, grenade will explode immediately.");
-                    Explode();
-                }
-                else
-                {
-                    Debug.Log("Grenade collided, will explode in " + remainingTime + " seconds.");
-                    Invoke("Explode", remainingTime);
-                }
-            }
+            firstCollisionTime = Time.time;
+            CancelInvoke(nameof(Explode));
+            float fuse = Random.Range(impactFuseMin, impactFuseMax);
+            Invoke(nameof(Explode), fuse);
         }
     }
 
     void Explode()
     {
-        if (!hasExploded)
-        {
-            hasExploded = true;
-            Debug.Log("Grenade exploded.");
-            photonView.RPC("RPC_Explode", RpcTarget.All);
-        }
+        if (hasExploded) return;
+        hasExploded = true;
+        photonView.RPC(nameof(RPC_Explode), RpcTarget.All);
     }
 
     [PunRPC]
     void RPC_Explode()
     {
-        // Tworzymy efekt eksplozji w miejscu zderzenia
-        GameObject explosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
-        explosion.transform.localScale = new Vector3(2f, 2f, 2f); // Set the scale to 2,2,2
+        // efekt
+        if (explosionEffect)
+        {
+            var explosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
+            Destroy(explosion, 2f);
+        }
 
-        // Usuwamy efekt eksplozji po 2 sekundach
-        Destroy(explosion, 2f);
-
-        // Odtwarzamy dźwięk eksplozji
         PlayExplosionSound();
 
-        // Aplikujemy siłę eksplozji do obiektów w pobliżu
+        // siła i obrażenia
         Collider[] colliders = Physics.OverlapSphere(transform.position, blastRadius);
-        foreach (var nearbyObject in colliders)
+        foreach (var col in colliders)
         {
-            Rigidbody rb = nearbyObject.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                Vector3 explosionDirection = (nearbyObject.transform.position - transform.position).normalized;
-                rb.AddExplosionForce(explosionForce, transform.position, blastRadius);
-            }
+            var body = col.attachedRigidbody;
+            if (body != null)
+                body.AddExplosionForce(explosionForce, transform.position, blastRadius, 0f, ForceMode.Impulse);
 
-            // Apply damage to player if applicable
-            PlayerController player = nearbyObject.GetComponent<PlayerController>();
-            if (player != null)
+            var player = col.GetComponentInParent<PlayerController>();
+            if (player != null && player.photonView != null)
             {
-                float damage = CalculateDamage(nearbyObject.transform.position);
-                player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, owner);
+                // ochrona właściciela przez ułamek sekundy
+                bool isOwner = (owner != null && player.photonView.Owner == owner);
+                if (isOwner && Time.time - spawnTime < ownerProtectTime) continue;
+
+                float dmg = CalculateDamage(player.transform.position);
+                player.photonView.RPC("RPC_TakeDamage", RpcTarget.All, dmg, owner);
             }
         }
 
-        // Zniszcz ten granat na wszystkich klientach lokalnie
-        Destroy(gameObject);
+        // poprawne niszczenie obiektu sieciowego
+        if (photonView.IsMine) PhotonNetwork.Destroy(gameObject);
+        else Destroy(gameObject);
     }
 
     void PlayExplosionSound()
     {
-        if (explosionSound != null)
-        {
-            GameObject soundObject = new GameObject("ExplosionSound");
-            soundObject.transform.position = transform.position;
+        if (explosionSound == null) return;
 
-            AudioSource audioSource = soundObject.AddComponent<AudioSource>();
-            audioSource.clip = explosionSound;
-            audioSource.spatialBlend = 1.0f; // Ensure the sound is 3D
-            audioSource.maxDistance = explosionSoundRange;
-            audioSource.minDistance = minDistance;
+        GameObject go = new GameObject("ExplosionSound");
+        go.transform.position = transform.position;
 
-            // Ustawienie grupy miksera dla AudioSource
-            audioSource.outputAudioMixerGroup = sfxMixerGroup;
+        var src = go.AddComponent<AudioSource>();
+        src.clip = explosionSound;
+        src.spatialBlend = 1f;
+        src.maxDistance = explosionSoundRange;
+        src.minDistance = minDistance;
+        src.outputAudioMixerGroup = sfxMixerGroup;
+        src.Play();
 
-            audioSource.Play();
-
-            // Zniszcz obiekt dźwiękowy po zakończeniu odtwarzania
-            Destroy(soundObject, explosionSound.length);
-        }
-        else
-        {
-            Debug.LogError("Explosion sound not assigned.");
-        }
+        Destroy(go, explosionSound.length);
     }
 
     void PlayBounceSound()
     {
-        if (bounceSound != null)
-        {
-            GameObject bounceSoundObject = new GameObject("BounceSound");
-            bounceSoundObject.transform.position = transform.position;
+        if (bounceSound == null) return;
 
-            AudioSource bounceAudioSource = bounceSoundObject.AddComponent<AudioSource>();
-            bounceAudioSource.clip = bounceSound;
-            bounceAudioSource.spatialBlend = 1.0f; // Ensure the sound is 3D
-            bounceAudioSource.maxDistance = bounceSoundRange;
-            bounceAudioSource.minDistance = minDistance;
+        GameObject go = new GameObject("BounceSound");
+        go.transform.position = transform.position;
 
-            // Ustawienie grupy miksera dla AudioSource
-            bounceAudioSource.outputAudioMixerGroup = sfxMixerGroup;
+        var src = go.AddComponent<AudioSource>();
+        src.clip = bounceSound;
+        src.spatialBlend = 1f;
+        src.maxDistance = bounceSoundRange;
+        src.minDistance = minDistance;
+        src.outputAudioMixerGroup = sfxMixerGroup;
+        src.Play();
 
-            bounceAudioSource.Play();
-
-            // Zniszcz obiekt dźwiękowy po zakończeniu odtwarzania
-            Destroy(bounceSoundObject, bounceSound.length);
-        }
-        else
-        {
-            Debug.LogError("Bounce sound not assigned.");
-        }
+        Destroy(go, bounceSound.length);
     }
-
 
     float CalculateDamage(Vector3 targetPosition)
     {
-        float explosionDistance = Vector3.Distance(transform.position, targetPosition);
-        float damage = Mathf.Clamp(maxDamage * (1 - explosionDistance / blastRadius), 1f, maxDamage);
-        return damage;
+        float d = Vector3.Distance(transform.position, targetPosition);
+        return Mathf.Clamp(maxDamage * (1f - d / blastRadius), 1f, maxDamage);
     }
 }

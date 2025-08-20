@@ -254,12 +254,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   explosionEffect: {fileID: 443653445314069269, guid: 7e3e8e2f6ecdbb04a982af0a14f2d887, type: 3}
   blastRadius: 10
-  explosionForce: 250
+  explosionForce: 1500
   maxDamage: 200
   explosionSound: {fileID: 8300000, guid: 3beb91d2cbf601649be11b2a6f5c2759, type: 3}
-  ignoreCollisionTime: 10
+  flightLoopClip: {fileID: 8300000, guid: d564efaefe51efb4188b6bd62e3dc8a7, type: 3}
   sfxMixerGroup: {fileID: -1483086409508410553, guid: c00fde4c2f64f9c458d4bc18c9e4d1d2, type: 2}
   soundMaxDistance: 200
+  flightMinPitch: 0.85
+  flightMaxPitch: 1.35
+  flightMaxSpeedReference: 80
+  flightMinVolume: 0.08
+  flightMaxVolume: 0.8
+  flightFadeOutTime: 0.15
+  dopplerLevel: 2
+  ignoreCollisionTime: 0.2
+  selfDamageGraceTime: 0.35
+  viewerLerp: 0.5
+  faceVelMinSpeed: 1
 --- !u!136 &5379180120573130739
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -329,6 +340,7 @@ MonoBehaviour:
   OwnershipTransfer: 0
   observableSearch: 2
   ObservedComponents:
+  - {fileID: 1425421641249161587}
   - {fileID: 4455583888837830225}
   sceneViewId: 0
   InstantiationId: 0
@@ -390,8 +402,8 @@ AudioSource:
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 0.5613898
-      value: 0.656358
+      time: 0.6008185
+      value: 0.66693234
       inSlope: -1.4187558
       outSlope: -1.4187558
       tangentMode: 0

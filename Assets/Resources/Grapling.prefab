@@ -425,7 +425,7 @@ Transform:
   m_GameObject: {fileID: 5633525092494633525}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.014}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -449,9 +449,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hookPrefab: {fileID: 0}
   firePoint: {fileID: 5880898785157636586}
-  hookSpeed: 50
   lineRenderer: {fileID: 4943121413114550436}
   ropeMaterial: {fileID: 2100000, guid: 5587091f7e24bae4d9915b488a0730ef, type: 2}
+  playerRb: {fileID: 0}
+  hookSpeed: 50
+  maxHookDistance: 80
+  reelInDelay: 0.5
+  releaseDelay: 0.15
+  autoTensionAccel: 6
+  holdShortenSpeed: 6
+  slackRatio: 1.02
+  tautEpsilon: 0.05
+  horizontalTensionOnGroundHook: 1
+  hookFailSound: {fileID: 0}
+  hookDetachSound: {fileID: 0}
+  audioSource: {fileID: 0}
 --- !u!114 &4871216140495799254
 MonoBehaviour:
   m_ObjectHideFlags: 0
