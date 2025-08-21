@@ -4,28 +4,28 @@ using System.Collections;
 
 public class FadeInOnStart : MonoBehaviour
 {
-    [SerializeField] private Image fadePanel;  // Obraz panelu, który przyciemnia ekran
-    [SerializeField] private float fadeDuration = 2f;  // Czas trwania efektu wygaszania
-    [SerializeField] private float initialDelay = 1f;  // Czas, przez jaki ekran jest całkowicie czarny
+    [SerializeField] private Image fadePanel;  // Panel image that darkens the screen
+    [SerializeField] private float fadeDuration = 2f;  // Duration of fade effect
+    [SerializeField] private float initialDelay = 1f;  // Time the screen stays fully black
 
     private void Start()
     {
-        // Ustaw początkowy stan na całkowicie czarny (alpha = 1)
+        // Set initial state to fully black (alpha = 1)
         fadePanel.color = new Color(0, 0, 0, 1);
 
-        // Rozpocznij wygaszanie po początkowym opóźnieniu
+        // Start fading after the initial delay
         StartCoroutine(FadeIn());
     }
 
-    // Korutyna do płynnego zmniejszania alpha
+    // Coroutine to smoothly decrease alpha
     private IEnumerator FadeIn()
     {
-        // Odczekaj ustalony czas z pełnym czarnym ekranem
+        // Wait for the specified time with full black screen
         yield return new WaitForSeconds(initialDelay);
 
         float timeElapsed = 0f;
 
-        // Dopóki alpha panelu jest większe niż 0, zmniejszaj ją stopniowo
+        // While the panel alpha is greater than 0, decrease it gradually
         while (timeElapsed < fadeDuration)
         {
             timeElapsed += Time.deltaTime;
@@ -34,8 +34,8 @@ public class FadeInOnStart : MonoBehaviour
             yield return null;
         }
 
-        // Na koniec ustaw alpha na 0, aby panel całkowicie zniknął
+        // Finally set alpha to 0 so the panel disappears completely
         fadePanel.color = new Color(0, 0, 0, 0);
-        fadePanel.gameObject.SetActive(false);  // Wyłącz panel po wygaszeniu
+        fadePanel.gameObject.SetActive(false);  // Disable panel after fade
     }
 }

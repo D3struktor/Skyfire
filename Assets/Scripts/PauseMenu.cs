@@ -11,7 +11,7 @@ public class PauseMenu : MonoBehaviourPunCallbacks
     public static bool isPaused = false;
     public GameObject pauseMenuUI;
 
-    // Suwaki głośności
+    // Volume sliders
     [SerializeField] private Slider volumeSlider;
     [SerializeField] private AudioMixer audioMixer;
     [SerializeField] private Slider sfxVolumeSlider;
@@ -19,7 +19,7 @@ public class PauseMenu : MonoBehaviourPunCallbacks
 
     private void Start()
     {
-        // Upewnij się, że menu pauzy jest wyłączone na początku
+        // Ensure pause menu is disabled at start
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(false);
@@ -29,7 +29,7 @@ public class PauseMenu : MonoBehaviourPunCallbacks
             Debug.LogError("PauseMenuUI is not assigned!");
         }
 
-        // Inicjalizacja suwaków głośności z zapisanymi ustawieniami
+        // Initialize volume sliders with saved settings
         InitializeVolumeSliders();
     }
 
@@ -52,7 +52,7 @@ public class PauseMenu : MonoBehaviourPunCallbacks
     {
         if (pauseMenuUI != null)
         {
-            pauseMenuUI.SetActive(true); // Pokaż menu pauzy
+            pauseMenuUI.SetActive(true); // Show pause menu
         }
 
         isPaused = true;
@@ -64,7 +64,7 @@ public class PauseMenu : MonoBehaviourPunCallbacks
     {
         if (pauseMenuUI != null)
         {
-            pauseMenuUI.SetActive(false); // Ukryj menu pauzy
+            pauseMenuUI.SetActive(false); // Hide pause menu
         }
 
         isPaused = false;
@@ -74,11 +74,11 @@ public class PauseMenu : MonoBehaviourPunCallbacks
 
     private void InitializeVolumeSliders()
     {
-        // Pobierz zapisaną głośność i ustaw suwaki
+        // Get saved volume and set sliders
         float savedVolume = PlayerPrefs.GetFloat("Volume", 0.5f);
         float savedSFXVolume = PlayerPrefs.GetFloat("SFXVolume", 0.5f);
 
-        // Ustawienie wartości suwaków i nasłuchiwanie zmian
+        // Set slider values and listen for changes
         if (volumeSlider != null)
         {
             volumeSlider.value = savedVolume;
@@ -91,18 +91,18 @@ public class PauseMenu : MonoBehaviourPunCallbacks
         }
     }
 
-    // Metoda do ustawiania głównej głośności
+    // Method for setting master volume
     public void SetVolume(float volume)
     {
-        audioMixer.SetFloat("MasterVolume", Mathf.Log10(volume) * 20); // Ustaw głośność w AudioMixer
-        PlayerPrefs.SetFloat("Volume", volume); // Zapisz głośność
+        audioMixer.SetFloat("MasterVolume", Mathf.Log10(volume) * 20); // Set volume in AudioMixer
+        PlayerPrefs.SetFloat("Volume", volume); // Save volume
     }
 
-    // Metoda do ustawiania głośności efektów dźwiękowych
+    // Method for setting sound effects volume
     public void SetSFXVolume(float volume)
     {
-        SFXMixer.SetFloat("SFXVolume", Mathf.Log10(volume) * 20); // Ustaw głośność SFX w AudioMixer
-        PlayerPrefs.SetFloat("SFXVolume", volume); // Zapisz głośność SFX
+        SFXMixer.SetFloat("SFXVolume", Mathf.Log10(volume) * 20); // Set SFX volume in AudioMixer
+        PlayerPrefs.SetFloat("SFXVolume", volume); // Save SFX volume
     }
 
     public void ExitToLobby()

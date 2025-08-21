@@ -3,69 +3,69 @@ using Photon.Pun;
 
 public class HealthRestorePoint : MonoBehaviour
 {
-    public float healthRestorePercentage = 0.16f; // 16% zdrowia
-    public float ammoRestorePercentage = 0.16f;   // 16% amunicji
-    public float restoreCooldown = 60f;           // Czas odnowienia po zebraniu (60 sekund)
-    public AudioClip pickupSound;                 // Dźwięk podniesienia
+    public float healthRestorePercentage = 0.16f; // 16% health
+    public float ammoRestorePercentage = 0.16f;   // 16% ammo
+    public float restoreCooldown = 60f;           // Cooldown after pickup (60 seconds)
+    public AudioClip pickupSound;                 // Pickup sound
     private Rigidbody rb;
     private PhotonView photonView;
-    private bool isAvailable = true;              // Sprawdza, czy pickup jest dostępny
-    public int volumeBoostFactor = 5;             // Jak wiele razy odtworzyć dźwięk, aby go wzmocnić (500% = 5x)
+    private bool isAvailable = true;              // Checks if pickup is available
+    public int volumeBoostFactor = 5;             // How many times to play sound to boost it (500% = 5x)
 
     void Start()
     {
-        // Inicjalizujemy PhotonView
+        // Initialize PhotonView
         photonView = GetComponent<PhotonView>();
         if (photonView == null)
         {
             Debug.LogError("[HealthRestorePoint] PhotonView jest null. Upewnij się, że PhotonView jest przypisany do tego obiektu.");
         }
 
-        // Dodaj Rigidbody, jeśli nie ma
+        // Add Rigidbody if missing
         rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
             rb = gameObject.AddComponent<Rigidbody>();
         }
 
-        rb.useGravity = false; // Wyłączamy grawitację
-        rb.isKinematic = true; // Ustawiamy obiekt jako kinematyczny (nie podlega fizyce)
+        rb.useGravity = false; // Disable gravity
+        rb.isKinematic = true; // Make object kinematic (no physics)
     }
 
     // void Update()
     // {
-    //     // Obracanie obiektu wokół jego własnej osi lokalnej
-    //     transform.Rotate(Vector3.up * 50 * Time.deltaTime, Space.Self); // Space.Self zapewnia, że obrót dotyczy lokalnego układu współrzędnych obiektu
+    //     // Rotate object around its local axis
+    //     transform.Rotate(Vector3.up * 50 * Time.deltaTime, Space.Self); // Space.Self ensures rotation uses local coordinates
     // }
 
-    // Funkcja wywoływana, gdy gracz wejdzie w trigger
+    // Function called when player enters the trigger
     void OnTriggerEnter(Collider other)
     {
-        if (!isAvailable) return; // Sprawdź, czy pickup jest dostępny
+        if (!isAvailable) return; // Check if pickup is available
 
         PlayerController player = other.GetComponent<PlayerController>();
-        if (player != null && player.photonView.IsMine)  // Tylko lokalny gracz
+        if (player != null && player.photonView.IsMine)  // Only local player
         {
-            Debug.Log("Restore point zebrany przez: " + player.name);
+            Debug.Log("Restore point collected by: " + player.name);
 
-            // Wzmocnij dźwięk przez wielokrotne odtworzenie
+            // Boost sound by playing multiple times
             if (pickupSound != null)
             {
-                Debug.Log("Odtwarzanie dźwięku z pickupSound z wzmocnieniem.");
+                Debug.Log("Playing pickupSound with boost.");
                 for (int i = 0; i < volumeBoostFactor; i++)
                 {
-                    AudioSource.PlayClipAtPoint(pickupSound, transform.position, 1.0f); // Odtwarzanie dźwięku 5 razy
+                    AudioSource.PlayClipAtPoint(pickupSound, transform.position, 1.0f); // Play sound 5 times
                 }
             }
             else
             {
-                Debug.LogWarning("Brak dźwięku do odtworzenia.");
+                Debug.LogWarning("No sound to play.");
             }
 
-            // Odnawiamy zdrowie
+            // Restore health
             player.RestoreHealthOverTime(healthRestorePercentage, 3f);
 
-            // Odnawiamy amunicję
+            // Restore ammo
             PlayerAmmoManager ammoManager = player.GetComponent<PlayerAmmoManager>();
             if (ammoManager != null)
             {
@@ -73,10 +73,10 @@ public class HealthRestorePoint : MonoBehaviour
             }
             else
             {
-                Debug.LogError("Brak komponentu PlayerAmmoManager na obiekcie gracza.");
+                Debug.LogError("PlayerAmmoManager component missing on player object.");
             }
 
-            // Wywołujemy cooldown i ukrywamy pickup (cały obiekt z dziećmi)
+            // Trigger cooldown and hide pickup (entire object with children)
             photonView.RPC("ActivateCooldown", RpcTarget.AllBuffered);
         }
     }
@@ -85,20 +85,20 @@ public class HealthRestorePoint : MonoBehaviour
     [PunRPC]
     public void ActivateCooldown()
     {
-        if (isAvailable) // Sprawdzamy, czy pickup był dostępny
+        if (isAvailable) // Check if pickup was available
         {
-            isAvailable = false; // Ustawiamy, że pickup jest niedostępny
-            Debug.Log("Ukrywanie HealthRestorePoint");
-            gameObject.SetActive(false); // Wyłączamy cały obiekt
-            Invoke(nameof(ResetPickup), restoreCooldown); // Przywracamy po cooldownie (60 sekund)
+            isAvailable = false; // Mark pickup as unavailable
+            Debug.Log("Hiding HealthRestorePoint");
+            gameObject.SetActive(false); // Disable whole object
+            Invoke(nameof(ResetPickup), restoreCooldown); // Restore after cooldown (60 seconds)
         }
     }
 
-    // Funkcja przywracająca dostępność pickup'a
+    // Function that restores pickup availability
     private void ResetPickup()
     {
-        Debug.Log("Resetowanie HealthRestorePoint");
+        Debug.Log("Resetting HealthRestorePoint");
         isAvailable = true;
-        gameObject.SetActive(true); // Ponownie pokazujemy pickup
+        gameObject.SetActive(true); // Show pickup again
     }
 }

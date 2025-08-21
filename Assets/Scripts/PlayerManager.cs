@@ -27,17 +27,17 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             Debug.LogError("PhotonView is missing from PlayerController.");
         }
 
-        // Znajdź kamerę i przypisz ją do lokalnego gracza
+        // Find the camera and assign it to the local player
         if (PV.IsMine)
         {
-            playerCamera = Camera.main; // Pobieramy główną kamerę
+            playerCamera = Camera.main; // Grab the main camera
             if (playerCamera == null)
             {
                 Debug.LogError("No main camera found in the scene.");
             }
             else
             {
-                playerCamera.gameObject.SetActive(true); // Aktywujemy kamerę dla lokalnego gracza
+                playerCamera.gameObject.SetActive(true); // Activate the camera for the local player
             }
         }
     }
@@ -79,24 +79,24 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
         Transform spawnpoint = null;
 
-        // Sprawdzamy tryb gry
+        // Check game mode
         string gameMode = PlayerPrefs.GetString("GameMode");
         Debug.Log($"PlayerManager: Current GameMode is {gameMode}");
 
         if (gameMode == "TDM")
         {
-            // Używamy systemu spawnowania dla TDM
+            // Use spawn system for TDM
             SpawnManagerTDM spawnManagerTDM = FindObjectOfType<SpawnManagerTDM>();
             if (spawnManagerTDM != null)
             {
                 Debug.Log("PlayerManager: SpawnManagerTDM found.");
 
-                // Pobieramy punkt respawnu na podstawie drużyny
+                // Get respawn point based on team
                 spawnpoint = spawnManagerTDM.GetSpawnPoint(PhotonNetwork.LocalPlayer);
 
                 if (spawnpoint != null)
                 {
-                    Debug.Log($"PlayerManager: Spawn point found at {spawnpoint.position} for player {PhotonNetwork.LocalPlayer.NickName} in TDM mode.");
+                Debug.Log($"PlayerManager: Spawn point found at {spawnpoint.position} for player {PhotonNetwork.LocalPlayer.NickName} in TDM mode.");
                 }
                 else
                 {
@@ -112,7 +112,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            // Standardowe spawnowanie dla innych trybów gry
+            // Standard spawning for other game modes
             spawnpoint = SpawnManager.Instance.GetSpawnpoint();
 
             if (spawnpoint != null)
@@ -121,12 +121,12 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             }
             else
             {
-                Debug.LogError($"PlayerManager: No valid spawn point found for player {PhotonNetwork.LocalPlayer.NickName} in non-TDM mode.");
+                    Debug.LogError($"PlayerManager: No valid spawn point found for player {PhotonNetwork.LocalPlayer.NickName} in non-TDM mode.");
                 return;
             }
         }
 
-        // Tworzymy kontroler gracza w wybranym punkcie respawn dla WSZYSTKICH graczy
+        // Create player controller at chosen respawn point for ALL players
         if (spawnpoint != null && controller == null)
         {
             Debug.Log($"PlayerManager: Instantiating PlayerController prefab for {PhotonNetwork.LocalPlayer.NickName} at spawn point {spawnpoint.position}.");
@@ -137,17 +137,17 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             Debug.LogWarning($"PlayerManager: Controller already exists for {PhotonNetwork.LocalPlayer.NickName}, skipping creation.");
         }
 
-        // Obsługujemy kamerę tylko dla lokalnego gracza (kamera jest przypisywana tylko lokalnemu graczowi)
+        // Handle camera only for the local player (camera assigned only locally)
         if (PV.IsMine && playerCamera != null)
         {
-            playerCamera.transform.SetParent(null); // Ustawiamy kamerę jako niezależną (nie przypisaną do kontrolera)
-            playerCamera.transform.position = controller.transform.position + new Vector3(0, 1.6f, 0); // Umieszczamy kamerę nad graczem
-            playerCamera.transform.rotation = Quaternion.identity; // Zerujemy rotację kamery
+            playerCamera.transform.SetParent(null); // Make camera independent (not attached to controller)
+            playerCamera.transform.position = controller.transform.position + new Vector3(0, 1.6f, 0); // Place camera above the player
+            playerCamera.transform.rotation = Quaternion.identity; // Reset camera rotation
 
             Debug.Log($"PlayerManager: Camera assigned and positioned for {PhotonNetwork.LocalPlayer.NickName}.");
         }
 
-        // Przypisanie koloru gracza w trybie TDM
+        // Assign player color in TDM mode
         if (PlayerPrefs.GetString("GameMode") == "TDM")
         {
             TDMManager tdmManager = FindObjectOfType<TDMManager>();
@@ -155,10 +155,10 @@ public class PlayerManager : MonoBehaviourPunCallbacks
             {
                 Debug.Log("PlayerManager: TDMManager found.");
 
-                // Pobieramy drużynę od razu po stworzeniu kontrolera
+                // Get team immediately after creating controller
                 SpawnpointTDM.TeamColor playerTeam = tdmManager.GetPlayerTeam(PhotonNetwork.LocalPlayer);
 
-                // Ustawiamy kolor w zależności od drużyny
+                // Set color based on team
                 if (playerTeam == SpawnpointTDM.TeamColor.Red)
                 {
                     color = Color.red;
@@ -170,7 +170,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
                 Debug.Log($"PlayerManager: Player {PhotonNetwork.LocalPlayer.NickName} assigned color {color} based on team {playerTeam}.");
 
-                // Ustawiamy kolor natychmiast
+                // Set player color immediately
                 SetPlayerColor(controller, color);
             }
             else
@@ -184,7 +184,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
     {
         if (playerController != null)
         {
-            // Ustawiamy kolor od razu na modelu gracza i synchronizujemy z innymi klientami
+            // Immediately set the player model color and synchronize with other clients
             playerController.GetComponent<PhotonView>().RPC("SetPlayerColor", RpcTarget.AllBuffered, color.r, color.g, color.b);
             Debug.Log($"PlayerManager: Set player color to RGBA({color.r}, {color.g}, {color.b}, {color.a})");
         }
@@ -192,11 +192,11 @@ public class PlayerManager : MonoBehaviourPunCallbacks
 
 public void Die()
 {
-    Debug.Log($"Die() wywołane dla {PhotonNetwork.LocalPlayer.NickName} (IsMine: {PV.IsMine}, IsAlive: {isAlive})");
+    Debug.Log($"Die() called for {PhotonNetwork.LocalPlayer.NickName} (IsMine: {PV.IsMine}, IsAlive: {isAlive})");
 
     if (!PV.IsMine || !isAlive)
     {
-        Debug.LogWarning("Die() wywołane, ale PV.IsMine == false lub gracz już nie żyje.");
+        Debug.LogWarning("Die() called but PV.IsMine == false or player already dead.");
         return;
     }
 
@@ -242,35 +242,35 @@ public void RecordDeath(Player killer)
         PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
         Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} died. Total deaths: {deaths}.");
 
-        // Sprawdź, czy gracz nie zabił samego siebie i czy gracz nie zabił kolegi z drużyny
+        // Check that the player did not kill themselves or a teammate
         if (killer != null && killer != PhotonNetwork.LocalPlayer)
         {
             TDMManager tdmManager = FindObjectOfType<TDMManager>();
             if (tdmManager != null)
             {
-                // Pobieramy drużynę gracza (ofiary) i zabójcy
+                // Get the victim's and killer's teams
                 SpawnpointTDM.TeamColor victimTeam = tdmManager.GetPlayerTeam(PhotonNetwork.LocalPlayer);
                 SpawnpointTDM.TeamColor killerTeam = tdmManager.GetPlayerTeam(killer);
 
-                // Sprawdzamy, czy zabójca nie jest w tej samej drużynie co ofiara (team kill)
+                // Check if the killer is on the same team as the victim (team kill)
                 if (victimTeam == killerTeam)
                 {
                     Debug.Log($"PlayerManager: {killer.NickName} killed a teammate {PhotonNetwork.LocalPlayer.NickName}. Removing a kill.");
 
-                    // Odjęcie punktu za zabójstwo dla zabójcy w przypadku team kill
+                    // Remove a kill point from the killer in case of a team kill
                     PlayerManager teamKillPM = Find(killer);
                     if (teamKillPM != null)
                     {
                         teamKillPM.PV.RPC(nameof(RemoveKill), teamKillPM.PV.Owner);
                     }
-                    return; // Nie zaliczamy normalnego zabójstwa, bo to team kill
+                    return; // Do not count a normal kill because it's a team kill
                 }
 
-                // Zwiększenie licznika zabójstw drużyny zabójcy
+                // Increase the killer's team kill count
                 tdmManager.AddKillToTeam(killerTeam);
             }
 
-            // Przyznanie zabójstwa dla zabójcy (jeśli nie jest to team kill)
+            // Award the kill to the killer (if not a team kill)
             PlayerManager killerPM = Find(killer);
             if (killerPM != null)
             {
@@ -301,53 +301,53 @@ public void RemoveKill()
     [PunRPC]
     public void UpdateKillFeed(string killerName, string victimName)
     {
-        // Wywołanie funkcji dodawania wpisu do kill feeda
+        // Call the function that adds an entry to the kill feed
         KillFeedManager.Instance.AddKillFeedEntry(killerName, victimName);
     }
 
  [PunRPC]
 public void AddKill()
 {
-    Debug.Log($"AddKill wywołane dla {PhotonNetwork.LocalPlayer.NickName}");
+    Debug.Log($"AddKill called for {PhotonNetwork.LocalPlayer.NickName}");
     if (!PV.IsMine) return;
 
     kills++;
     Hashtable hash = new Hashtable { { "kills", kills } };
     PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-    Debug.Log($"Zaktualizowano zabójstwa dla {PhotonNetwork.LocalPlayer.NickName}: {kills}");
+    Debug.Log($"Updated kills for {PhotonNetwork.LocalPlayer.NickName}: {kills}");
 }
 
 
  public static PlayerManager Find(Player player)
 {
-    Debug.Log($"Szukam PlayerManager dla gracza {player.NickName}");
+    Debug.Log($"Searching for PlayerManager for player {player.NickName}");
     var manager = FindObjectsOfType<PlayerManager>().ToList().SingleOrDefault(x => x.PV.Owner == player);
     if (manager == null)
     {
-        Debug.LogError($"Nie znaleziono PlayerManager dla {player.NickName}");
+        Debug.LogError($"PlayerManager not found for {player.NickName}");
     }
     return manager;
 }
 
 public void ReportKill(Player killedPlayer)
 {
-    Debug.Log("Wywołano ReportKill");
+    Debug.Log("ReportKill called");
     if (PV.IsMine)
     {
         var killedPlayerManager = Find(killedPlayer);
         if (killedPlayerManager != null)
         {
-            Debug.Log($"Znaleziono PlayerManager dla {killedPlayer.NickName}, wywołuję RecordDeath");
+            Debug.Log($"Found PlayerManager for {killedPlayer.NickName}, invoking RecordDeath");
             killedPlayerManager.RecordDeath(PhotonNetwork.LocalPlayer);
         }
         else
         {
-            Debug.LogError($"Nie znaleziono PlayerManager dla {killedPlayer.NickName}");
+            Debug.LogError($"PlayerManager not found for {killedPlayer.NickName}");
         }
     }
     else
     {
-        Debug.LogWarning("ReportKill wywołane, ale PV.IsMine == false");
+        Debug.LogWarning("ReportKill called but PV.IsMine == false");
     }
 }
 
@@ -371,10 +371,10 @@ public void ReportKill(Player killedPlayer)
 
         if (tdmManager != null)
         {
-            // Pobieramy drużynę i ustawiamy kolor na podstawie drużyny
+            // Retrieve team and set color based on it
             SpawnpointTDM.TeamColor playerTeam = tdmManager.GetPlayerTeam(PhotonNetwork.LocalPlayer);
 
-            // Ustawiamy kolor w zależności od drużyny
+            // Set color based on team
             if (playerTeam == SpawnpointTDM.TeamColor.Red)
             {
                 color = Color.red;

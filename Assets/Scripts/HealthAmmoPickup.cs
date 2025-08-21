@@ -3,32 +3,32 @@ using Photon.Pun;
 
 public class HealthAmmoPickup : MonoBehaviour
 {
-    public float healthRestorePercentage = 0.16f; // 16% zdrowia
-    public float ammoRestorePercentage = 0.16f;  // 16% amunicji
-    public AudioClip pickupSound;  // Dźwięk podniesienia
+    public float healthRestorePercentage = 0.16f; // 16% health
+    public float ammoRestorePercentage = 0.16f;  // 16% ammo
+    public AudioClip pickupSound;  // Pickup sound
     private Rigidbody rb;
     private AudioSource audioSource; // Komponent AudioSource
     private PhotonView photonView;   // Dodajemy PhotonView
 
     void Start()
     {
-        // Inicjalizujemy PhotonView
+        // Initialize PhotonView
         photonView = GetComponent<PhotonView>();
         if (photonView == null)
         {
             Debug.LogError("[HealthAmmoPickup] PhotonView jest null. Upewnij się, że PhotonView jest przypisany do tego obiektu.");
         }
 
-        // Dodaj Rigidbody, jeśli nie ma
+        // Add Rigidbody if missing
         rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
             rb = gameObject.AddComponent<Rigidbody>();
         }
 
-        rb.useGravity = true;        // Włącz grawitację
-        rb.isKinematic = false;      // Wyłącz kinematykę, aby fizyka działała
-        rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // Aby uniknąć przenikania przez obiekty
+        rb.useGravity = true;        // Enable gravity
+        rb.isKinematic = false;      // Disable kinematic for physics
+        rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // Avoid tunneling
 
         // Dodaj lub znajdź AudioSource
         audioSource = GetComponent<AudioSource>();
@@ -36,38 +36,38 @@ public class HealthAmmoPickup : MonoBehaviour
         {
             audioSource = gameObject.AddComponent<AudioSource>();
         }
-        audioSource.spatialBlend = 1.0f;  // Ustaw przestrzenność dźwięku (3D)
+        audioSource.spatialBlend = 1.0f;  // Set sound spatialization (3D)
     }
 
-    // Funkcja, która wywoła się po kolizji z ziemią
+    // Function called when colliding with the ground
     void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.CompareTag("Ground")) // Sprawdź, czy pickup dotknął ziemi
+        if (collision.gameObject.CompareTag("Ground")) // Check if pickup touched the ground
         {
-            // Zatrzymaj ruch po dotknięciu ziemi
-            rb.isKinematic = true; // Ustaw Rigidbody na kinematyczny, aby zatrzymać ruch
+            // Stop movement after touching the ground
+            rb.isKinematic = true; // Make Rigidbody kinematic to stop movement
         }
     }
 
-    // Funkcja wywoływana, gdy gracz wejdzie w trigger
+    // Function called when a player enters the trigger
     void OnTriggerEnter(Collider other)
     {
-        // Sprawdzamy, czy obiekt, który wszedł w trigger, to gracz
+        // Check if the object entering the trigger is a player
         PlayerController player = other.GetComponent<PlayerController>();
         if (player != null && player.photonView.IsMine)  // Tylko lokalny gracz
         {
-            Debug.Log("Pickup zebrany przez: " + player.name);
+            Debug.Log("Pickup collected by: " + player.name);
 
-            // Odtwórz dźwięk lokalnie dla gracza przed zniszczeniem obiektu
+            // Play sound locally for the player before destroying the object
             if (pickupSound != null)
             {
                 AudioSource.PlayClipAtPoint(pickupSound, transform.position);
             }
 
-            // Odnawiamy zdrowie
+            // Restore health
             player.RestoreHealthOverTime(0.3f, 3f);
 
-            // Odnawiamy amunicję
+            // Restore ammo
             PlayerAmmoManager ammoManager = player.GetComponent<PlayerAmmoManager>();
             if (ammoManager != null)
             {
@@ -75,11 +75,11 @@ public class HealthAmmoPickup : MonoBehaviour
             }
             else
             {
-                Debug.LogError("Brak komponentu PlayerAmmoManager na obiekcie gracza.");
+                Debug.LogError("PlayerAmmoManager component missing on player object.");
             }
 
-            // Zamiast bezpośrednio niszczyć pickup, zlecamy to MasterClientowi przez RPC
-            photonView.RPC("DestroyPickup", RpcTarget.MasterClient); // Używamy photonView
+            // Instead of directly destroying the pickup, delegate to MasterClient via RPC
+            photonView.RPC("DestroyPickup", RpcTarget.MasterClient); // Use photonView
         }
     }
 
@@ -88,7 +88,7 @@ public class HealthAmmoPickup : MonoBehaviour
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            Debug.Log("MasterClient: Zniszczenie pickup");
+            Debug.Log("MasterClient: Destroying pickup");
             PhotonNetwork.Destroy(gameObject);
         }
     }
