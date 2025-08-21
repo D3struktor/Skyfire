@@ -13,17 +13,17 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     public float weaponSwitchDelay = 1f;
 
     [Header("Ballistics")]
-    [Range(0f, 1f)] public float inheritVelocityFactor = 0.5f; // część prędkości gracza dodawana do dysku
+    [Range(0f, 1f)] public float inheritVelocityFactor = 0.5f; // portion of player velocity added to the disc
 
     [Header("Audio")]
     public AudioClip shootSound;
 
     [Header("UX")]
-    public float discRotationSpeed = 360f; // obrót dekoracyjnego „attachedDisc”
+    public float discRotationSpeed = 360f; // rotation of decorative attachedDisc
     public GameObject attachedDisc;
 
     [Header("Safety windows")]
-    public float ignoreCollisionTime = 0.25f; // lokalne ignorowanie z ownerem (spójne z Disc)
+    public float ignoreCollisionTime = 0.25f; // locally ignore the owner (same as Disc)
 
     [Header("Integration")]
     public bool isActiveWeapon = false;
@@ -43,10 +43,10 @@ public class DiscShooter : MonoBehaviourPunCallbacks
 
         Transform playerRoot = transform.root;
         playerAmmoManager = playerRoot.GetComponent<PlayerAmmoManager>();
-        if (!playerAmmoManager) Debug.LogWarning("DiscShooter: brak PlayerAmmoManager na obiekcie gracza.");
+        if (!playerAmmoManager) Debug.LogWarning("DiscShooter: missing PlayerAmmoManager on the player object.");
 
         ammoUI = FindObjectOfType<AmmoUI>();
-        if (!ammoUI) Debug.LogWarning("DiscShooter: brak AmmoUI w scenie.");
+        if (!ammoUI) Debug.LogWarning("DiscShooter: no AmmoUI in the scene.");
 
         if (!attachedDisc)
             attachedDisc = FindDiscInChildren(transform);
@@ -93,7 +93,7 @@ public class DiscShooter : MonoBehaviourPunCallbacks
     {
         if (!discPrefab || !shootingPoint)
         {
-            Debug.LogError("DiscShooter: brak prefab'u dysku albo shootingPoint.");
+            Debug.LogError("DiscShooter: missing disc prefab or shootingPoint.");
             return;
         }
 
@@ -108,14 +108,14 @@ public class DiscShooter : MonoBehaviourPunCallbacks
             return;
         }
 
-        // dziedziczenie prędkości gracza
+        // inherit player velocity
         var playerRb = transform.root.GetComponent<Rigidbody>();
         Vector3 inherited = (playerRb ? playerRb.velocity : Vector3.zero) * inheritVelocityFactor;
 
-        // startowa prędkość: kierunek strzału + dziedziczona
+        // initial velocity: shoot direction + inherited
         discRB.velocity = shootingPoint.forward * discSpeed + inherited;
 
-        // krótkie ignorowanie kolizji z właścicielem po stronie local (dodatkowa asekuracja)
+        // briefly ignore collisions with the owner on the local side (extra safety)
         StartCoroutine(IgnoreCollisionTemporarilyLocal(discGO));
 
         PlayShootSound();

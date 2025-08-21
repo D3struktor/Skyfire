@@ -5,10 +5,10 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class TDMManager : MonoBehaviourPunCallbacks
 {
-    private int nextTeamIndex = 0; // Indeks do przydzielania drużyn z naprzemiennym podziałem
+    private int nextTeamIndex = 0; // Index for alternating team assignment
     private PhotonView pv;
 
-    // Dodane liczniki zabójstw dla drużyn
+    // Added kill counters for teams
     public int redTeamKills = 0;
     public int blueTeamKills = 0;
 
@@ -18,11 +18,11 @@ public class TDMManager : MonoBehaviourPunCallbacks
 
         if (pv == null)
         {
-            Debug.LogError("[TDMManager] PhotonView jest null w Awake! Upewnij się, że PhotonView jest przypisany do obiektu TDMManager.");
+            Debug.LogError("[TDMManager] PhotonView is null in Awake! Ensure PhotonView is assigned to TDMManager object.");
         }
         else
         {
-            Debug.Log("[TDMManager] PhotonView poprawnie zainicjalizowany.");
+            Debug.Log("[TDMManager] PhotonView initialized correctly.");
         }
     }
 
@@ -30,12 +30,12 @@ public class TDMManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            Debug.Log("[TDMManager] Master Client przypisuje drużyny.");
+            Debug.Log("[TDMManager] Master Client assigning teams.");
             AssignTeamsToAllPlayers();
         }
         else
         {
-            Debug.Log("[TDMManager] Nie jestem Master Clientem, czekamy.");
+            Debug.Log("[TDMManager] Not Master Client, waiting.");
         }
     }
 
@@ -45,11 +45,11 @@ public class TDMManager : MonoBehaviourPunCallbacks
         {
             if (!player.CustomProperties.ContainsKey("PlayerTeam"))
             {
-                AssignTeamToPlayer(player); // Przypisujemy drużynę (Red lub Blue)
+                AssignTeamToPlayer(player); // Assign team (Red or Blue)
             }
             else
             {
-                Debug.Log($"[TDMManager] Gracz {player.NickName} już ma przypisaną drużynę ({player.CustomProperties["PlayerTeam"]}).");
+                Debug.Log($"[TDMManager] Player {player.NickName} already has team ({player.CustomProperties["PlayerTeam"]}).");
             }
         }
     }
@@ -58,21 +58,21 @@ public class TDMManager : MonoBehaviourPunCallbacks
     {
         if (player == null)
         {
-            Debug.LogError("[TDMManager] Gracz jest null!");
+            Debug.LogError("[TDMManager] Player is null!");
             return;
         }
 
-        // Naprzemienne przypisywanie drużyn Red i Blue
+        // Alternate assignment of Red and Blue teams
         SpawnpointTDM.TeamColor assignedTeam = nextTeamIndex % 2 == 0 ? SpawnpointTDM.TeamColor.Red : SpawnpointTDM.TeamColor.Blue;
         nextTeamIndex++;
 
-        // Przypisujemy drużynę do CustomProperties gracza
+        // Assign team to player's CustomProperties
         Hashtable playerProperties = new Hashtable { { "PlayerTeam", assignedTeam } };
-        player.SetCustomProperties(playerProperties); // Synchronizujemy drużynę
+        player.SetCustomProperties(playerProperties); // Synchronize team
 
-        Debug.Log($"[TDMManager] Gracz {player.NickName} otrzymał drużynę: {assignedTeam}");
+        Debug.Log($"[TDMManager] Player {player.NickName} assigned team: {assignedTeam}");
 
-        // Synchronizujemy drużynę do wszystkich klientów
+        // Sync team to all clients
         pv.RPC("SyncPlayerTeam", RpcTarget.AllBuffered, player.ActorNumber, (int)assignedTeam);
     }
 
@@ -83,16 +83,16 @@ public class TDMManager : MonoBehaviourPunCallbacks
 
         if (player != null)
         {
-            // Synchronizujemy drużynę na wszystkich klientach
+            // Synchronize team on all clients
             SpawnpointTDM.TeamColor teamColor = (SpawnpointTDM.TeamColor)team;
             Hashtable playerProperties = new Hashtable { { "PlayerTeam", teamColor } };
             player.SetCustomProperties(playerProperties);
 
-            Debug.Log($"[TDMManager] Zsynchronizowano drużynę gracza {player.NickName}: {teamColor}");
+            Debug.Log($"[TDMManager] Synced team for player {player.NickName}: {teamColor}");
         }
         else
         {
-            Debug.LogError($"[TDMManager] Nie znaleziono gracza z ActorNumber: {actorNumber}.");
+            Debug.LogError($"[TDMManager] Player with ActorNumber {actorNumber} not found.");
         }
     }
 
@@ -103,11 +103,11 @@ public class TDMManager : MonoBehaviourPunCallbacks
             return (SpawnpointTDM.TeamColor)teamObj;
         }
 
-        // Zwracamy domyślną drużynę, jeśli gracz nie ma przypisanej drużyny
+        // Return default team if player has none
         return SpawnpointTDM.TeamColor.Red;
     }
 
-    // Dodane metody do aktualizacji zabójstw drużyn
+    // Methods for updating team kills
     public void AddKillToTeam(SpawnpointTDM.TeamColor team)
     {
         if (team == SpawnpointTDM.TeamColor.Red)
@@ -119,7 +119,7 @@ public class TDMManager : MonoBehaviourPunCallbacks
             blueTeamKills++;
         }
 
-        // Synchronizacja wyników między wszystkimi klientami
+        // Synchronize scores across all clients
         pv.RPC("SyncTeamKills", RpcTarget.AllBuffered, redTeamKills, blueTeamKills);
     }
 
@@ -129,6 +129,6 @@ public class TDMManager : MonoBehaviourPunCallbacks
         redTeamKills = redKills;
         blueTeamKills = blueKills;
 
-        Debug.Log($"[TDMManager] Zsynchronizowano zabójstwa: Red Team: {redTeamKills}, Blue Team: {blueTeamKills}");
+        Debug.Log($"[TDMManager] Synced kills: Red Team: {redTeamKills}, Blue Team: {blueTeamKills}");
     }
 }

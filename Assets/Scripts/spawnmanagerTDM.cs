@@ -5,56 +5,56 @@ using System.Linq;
 
 public class SpawnManagerTDM : MonoBehaviour
 {
-    private SpawnpointTDM[] spawnpoints; // Wszystkie dostępne punkty spawn w TDM
+    private SpawnpointTDM[] spawnpoints; // All available spawn points in TDM
     private TDMManager tdmManager;
 
     void Start()
     {
-        // Pobierz wszystkie komponenty typu SpawnpointTDM z obiektów dzieci
+        // Get all SpawnpointTDM components from child objects
         spawnpoints = GetComponentsInChildren<SpawnpointTDM>();
 
-        // Znajdź TDMManager w scenie
+        // Find TDMManager in the scene
         tdmManager = FindObjectOfType<TDMManager>();
 
         if (tdmManager == null)
         {
-            Debug.LogError("TDMManager nie został znaleziony w scenie!");
+            Debug.LogError("TDMManager not found in the scene!");
         }
     }
 
-    // Funkcja do znalezienia odpowiedniego punktu spawn na podstawie drużyny gracza
+    // Find appropriate spawn point based on player's team
     public Transform GetSpawnPoint(Player player)
     {
-        // Pobierz drużynę gracza (TeamColor) z TDMManager
-        SpawnpointTDM.TeamColor playerTeam = tdmManager.GetPlayerTeam(player); // Używamy TeamColor, a nie Color
+        // Get player's team (TeamColor) from TDMManager
+        SpawnpointTDM.TeamColor playerTeam = tdmManager.GetPlayerTeam(player); // Use TeamColor, not Color
 
-        // Filtruj punkty respawn zależnie od drużyny gracza (Red lub Blue)
+        // Filter spawn points based on player's team (Red or Blue)
         var availableSpawnPoints = spawnpoints.Where(sp => sp.teamColor == playerTeam).ToArray();
 
         if (availableSpawnPoints.Length == 0)
         {
-            Debug.LogError($"Nie znaleziono punktów respawn dla drużyny: {playerTeam}");
+            Debug.LogError($"No respawn points found for team: {playerTeam}");
             return null;
         }
 
-        // Wybierz losowy punkt respawn z dostępnych
+        // Choose a random respawn point from available ones
         int randomIndex = Random.Range(0, availableSpawnPoints.Length);
         return availableSpawnPoints[randomIndex].transform;
     }
 
-    // Respawn gracza w odpowiednim punkcie
+    // Respawn player at appropriate point
     public void RespawnPlayer(Player player)
     {
         Transform spawnPoint = GetSpawnPoint(player);
 
         if (spawnPoint != null)
         {
-            // Tworzymy gracza w wybranym punkcie respawn
+            // Spawn the player at chosen respawn point
             PhotonNetwork.Instantiate("PlayerPrefab", spawnPoint.position, spawnPoint.rotation);
         }
         else
         {
-            Debug.LogError("Brak dostępnych punktów respawn. Nie można odrodzić gracza.");
+            Debug.LogError("No available respawn points. Cannot respawn player.");
         }
     }
 }

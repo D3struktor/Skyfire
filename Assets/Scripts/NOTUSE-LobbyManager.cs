@@ -4,7 +4,7 @@ using Photon.Realtime;
 
 public class LobbyManager : MonoBehaviourPunCallbacks
 {
-    private string roomName = "GlobalRoom";  // Nazwa pokoju, do którego wszyscy będą dołączać
+    private string roomName = "GlobalRoom";  // Name of the room everyone will join
 
     void Start()
     {
@@ -26,7 +26,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     public void JoinOrCreateRoom()
     {
         Debug.Log("Attempting to join or create the room...");
-        RoomOptions roomOptions = new RoomOptions { MaxPlayers = 4 };  // Można dostosować maksymalną liczbę graczy
+        RoomOptions roomOptions = new RoomOptions { MaxPlayers = 4 };  // Adjust max players as needed
         PhotonNetwork.JoinOrCreateRoom(roomName, roomOptions, TypedLobby.Default);
     }
 

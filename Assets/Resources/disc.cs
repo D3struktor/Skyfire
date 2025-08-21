@@ -15,18 +15,18 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
 
     [Header("Audio")]
     public AudioClip explosionSound;
-    public AudioClip flightLoopClip;                 // ⬅️ nowy: loop w locie
+    public AudioClip flightLoopClip;                 // new: loop during flight
     [SerializeField] public UnityEngine.Audio.AudioMixerGroup sfxMixerGroup;
     public float soundMaxDistance = 200f;
 
     [Header("Flight loop tuning")]
-    public float flightMinPitch = 0.85f;             // najniższy pitch
-    public float flightMaxPitch = 1.35f;             // najwyższy pitch
-    public float flightMaxSpeedReference = 80f;      // prędkość, przy której pitch ≈ max
+    public float flightMinPitch = 0.85f;             // lowest pitch
+    public float flightMaxPitch = 1.35f;             // highest pitch
+    public float flightMaxSpeedReference = 80f;      // speed at which pitch ≈ max
     public float flightMinVolume = 0.08f;
     public float flightMaxVolume = 0.8f;
-    public float flightFadeOutTime = 0.15f;          // wygaszenie przed eksplozją
-    public float dopplerLevel = 2.0f;                // efekt Dopplera (0–5)
+    public float flightFadeOutTime = 0.15f;          // fade-out before explosion
+    public float dopplerLevel = 2.0f;                // Doppler effect (0–5)
 
     [Header("Safety windows")]
     public float ignoreCollisionTime = 0.25f;
@@ -97,10 +97,10 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
             netTime = PhotonNetwork.Time;
         }
 
-        // start loopu lotu (na KAŻDYM kliencie, to dźwięk przestrzenny)
+        // start flight loop on EVERY client (spatial sound)
         SetupFlightLoop();
 
-        // ignoruj ownera chwilę na wszystkich
+        // briefly ignore the owner on all clients
         StartCoroutine(TemporarilyIgnoreOwnerCollision());
     }
 
@@ -119,7 +119,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
             }
         }
 
-        // aktualizacja pitch/volume wg prędkości
+        // update pitch/volume based on speed
         UpdateFlightLoopParams();
     }
 
@@ -171,7 +171,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
 
     IEnumerator FadeOutFlightThenExplode(Vector3 point)
     {
-        // fade-out loopu
+        // fade out the loop
         if (flightAS && flightAS.isPlaying && !flightFadingOut)
         {
             flightFadingOut = true;
@@ -212,7 +212,7 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
             {
                 if (pc.photonView.Owner == owner && InGrace())
                 {
-                    ApplyExplosionForce(pc, explosionPosition); // rocket-jump bez dmg
+                    ApplyExplosionForce(pc, explosionPosition); // rocket jump without damage
                     continue;
                 }
 
@@ -296,14 +296,14 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
         flightAS.spatialBlend = 1f;                        // 3D
         flightAS.maxDistance = soundMaxDistance;
         flightAS.rolloffMode = AudioRolloffMode.Linear;
-        flightAS.dopplerLevel = dopplerLevel;              // 🔥 Doppler
-        flightAS.velocityUpdateMode = AudioVelocityUpdateMode.Dynamic; // używaj Rigidbody do prędkości
+        flightAS.dopplerLevel = dopplerLevel;              // Doppler effect
+        flightAS.velocityUpdateMode = AudioVelocityUpdateMode.Dynamic; // use Rigidbody velocity
         flightAS.outputAudioMixerGroup = sfxMixerGroup;
 
-        // mały random w fazie, by uniknąć „kolegialnego” phasingu wielu dysków
+        // slight random phase to avoid "chorus" phasing of many discs
         flightAS.time = Random.Range(0f, flightAS.clip.length);
 
-        // start z minimalną głośnością — Update ustawi docelową
+        // start with minimal volume — Update sets target
         flightAS.volume = flightMinVolume;
         flightAS.pitch = flightMinPitch;
         flightAS.Play();
@@ -313,15 +313,15 @@ public class Disc : MonoBehaviourPunCallbacks, IPunObservable
     {
         if (!flightAS || !flightAS.isPlaying) return;
 
-        // bierz prędkość realną (u ownera z rb, u widzów z netVel)
+        // take real speed (rb for owner, netVel for viewers)
         float speed = photonView.IsMine ? rb.velocity.magnitude : netVel.magnitude;
 
-        // pitch rośnie z prędkością (clamp 0..1)
+        // pitch rises with speed (clamped 0..1)
         float k = Mathf.Clamp01(speed / Mathf.Max(0.001f, flightMaxSpeedReference));
         float targetPitch = Mathf.Lerp(flightMinPitch, flightMaxPitch, k);
         float targetVol   = Mathf.Lerp(flightMinVolume, flightMaxVolume, k);
 
-        // lekkie wygładzenie
+        // slight smoothing
         flightAS.pitch = Mathf.Lerp(flightAS.pitch, targetPitch, 0.2f);
         flightAS.volume = Mathf.Lerp(flightAS.volume, targetVol, 0.2f);
     }

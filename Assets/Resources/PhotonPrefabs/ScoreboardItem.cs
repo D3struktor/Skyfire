@@ -12,8 +12,8 @@ public class ScoreboardItem : MonoBehaviourPunCallbacks
     public TMP_Text usernameText;
     public TMP_Text killsText;
     public TMP_Text deathsText;
-    public Image background; // Referencja do komponentu Image tła
-    public bool isHeader = false; // Flaga określająca, czy to nagłówek
+    public Image background; // Reference to the Image component for background
+    public bool isHeader = false; // Flag indicating whether this is a header
 
     Player player;
     TDMManager tdmManager;
@@ -27,7 +27,7 @@ public void Initialize(Player player, bool isHeader = false)
         usernameText.text = "Nickname";
         killsText.text = "Kills";
         deathsText.text = "Deaths";
-        Debug.Log($"[ScoreboardItem] Nagłówek ustawiony: {usernameText.text}, {killsText.text}, {deathsText.text}");
+        Debug.Log($"[ScoreboardItem] Header set: {usernameText.text}, {killsText.text}, {deathsText.text}");
         return;
     }
 
@@ -43,7 +43,7 @@ void Start()
 {
 
     
-    // Znajdź instancję TDMManager na scenie
+    // Find the TDMManager instance in the scene
     tdmManager = FindObjectOfType<TDMManager>();
 
     if (tdmManager == null)
@@ -51,17 +51,17 @@ void Start()
         Debug.LogWarning("[ScoreboardItem] TDMManager not found in the scene.");
     }
 
-    if (!isHeader) // Wyczyszczone statystyki TYLKO dla graczy, nie dla nagłówka
+    if (!isHeader) // Clear stats ONLY for players, not for the header
     {
         ClearStats();
     }
-    // Dodaj opóźnienie 5 sekund przed ustawieniem koloru i aktualizacją statystyk
+    // Add delay before setting color and updating stats
     StartCoroutine(WaitAndSetColor(1.5f));
 }
 
 void ClearStats()
 {
-    // Resetowanie wyświetlanych wartości dla zabójstw i zgonów
+    // Reset displayed values for kills and deaths
     killsText.text = "0";
     deathsText.text = "0";
     Debug.Log("Statystyki zostały zresetowane.");
@@ -72,20 +72,20 @@ void ClearStats()
     {
         yield return new WaitForSeconds(waitTime);
 
-        SetBackgroundColor(); // Ustaw kolor tła po 5 sekundach
+        SetBackgroundColor(); // Set background color after delay
     }
 
 
     void UpdateStats()
     {
-        if (isHeader) return; // Ignoruj, jeśli to nagłówek
+        if (isHeader) return; // Ignore if this is the header
         if (player.CustomProperties.TryGetValue("kills", out object kills))
         {
             killsText.text = kills.ToString();
         }
         else
         {
-            killsText.text = "0"; // Default value if "kills" is missing
+            killsText.text = "0"; // Default if "kills" is missing
         }
 
         if (player.CustomProperties.TryGetValue("deaths", out object deaths))
@@ -94,32 +94,32 @@ void ClearStats()
         }
         else
         {
-            deathsText.text = "0"; // Default value if "deaths" is missing
+            deathsText.text = "0"; // Default if "deaths" is missing
         }
 
-        Debug.Log($"[ScoreboardItem] Zaktualizowano statystyki dla {player.NickName}: Kills = {killsText.text}, Deaths = {deathsText.text}");
+        Debug.Log($"[ScoreboardItem] Updated stats for {player.NickName}: Kills = {killsText.text}, Deaths = {deathsText.text}");
     }
 
 void SetBackgroundColor()
 {
     if (tdmManager != null && player.CustomProperties.TryGetValue("PlayerTeam", out object teamObj))
     {
-        // Pobieramy drużynę gracza z CustomProperties
+        // Retrieve the player's team from CustomProperties
         SpawnpointTDM.TeamColor playerTeam = (SpawnpointTDM.TeamColor)teamObj;
 
-        // Ustawiamy kolor w zależności od drużyny
+        // Set color based on team
         Color playerColor = playerTeam == SpawnpointTDM.TeamColor.Red ? Color.red : Color.blue;
         background.color = playerColor;
 
-        Debug.Log($"[ScoreboardItem] Ustawiono kolor tła dla {player.NickName} w drużynie {playerTeam}: {playerColor}");
+        Debug.Log($"[ScoreboardItem] Set background color for {player.NickName} in team {playerTeam}: {playerColor}");
     }
     else
     {
-        // Kolor domyślny, jeśli nie znaleziono drużyny
-        background.color = new Color(0, 0, 0, 0.25f); // Kolor domyślny
-        Debug.Log($"[ScoreboardItem] Brak przypisanego koloru dla gracza {player.NickName}, ustawiono domyślny kolor tła.");
+        // Default color if team not found
+        background.color = new Color(0, 0, 0, 0.25f); // Default color
+        Debug.Log($"[ScoreboardItem] No color assigned for {player.NickName}, using default background color.");
 
-        // Ponowna próba pobrania drużyny po krótkim czasie
+        // Retry fetching the team after a short delay
         StartCoroutine(WaitAndSetColor());
     }
 }
@@ -127,7 +127,7 @@ void SetBackgroundColor()
 
 IEnumerator WaitAndSetColor()
 {
-    // Poczekaj chwilę (np. 0.5 sekundy) i spróbuj ponownie
+    // Wait briefly (e.g., 0.5 seconds) and try again
     yield return new WaitForSeconds(0.5f);
 
     if (player.CustomProperties.TryGetValue("PlayerColor", out object colorObj))
@@ -136,18 +136,18 @@ IEnumerator WaitAndSetColor()
         Color playerColor = new Color(colorVector.x, colorVector.y, colorVector.z);
         background.color = playerColor;
 
-        Debug.Log($"[ScoreboardItem] Ponownie ustawiono kolor tła dla {player.NickName}: {playerColor}");
+        Debug.Log($"[ScoreboardItem] Set background color again for {player.NickName}: {playerColor}");
     }
     else
     {
-        Debug.Log($"[ScoreboardItem] Ponownie nie udało się ustawić koloru tła dla {player.NickName}, zachowano domyślny kolor.");
+        Debug.Log($"[ScoreboardItem] Could not set background color again for {player.NickName}, kept default color.");
     }
 }
 
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
     {
-        if (isHeader) return; // Ignoruj, jeśli to nagłówek
+        if (isHeader) return; // Ignore if this is the header
         if (targetPlayer == player)
         {
             if (changedProps.ContainsKey("kills") || changedProps.ContainsKey("deaths"))

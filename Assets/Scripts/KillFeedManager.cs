@@ -6,9 +6,9 @@ using Photon.Pun;
 
 public class KillFeedManager : MonoBehaviourPunCallbacks
 {
-    [SerializeField] Transform feedContainer;      // Gdzie będą dodawane nowe wpisy
-    [SerializeField] GameObject killFeedItemPrefab; // Prefab dla pojedynczego wpisu
-    [SerializeField] float entryLifetime = 5f;     // Jak długo wpis będzie widoczny (np. 5 sekund)
+    [SerializeField] Transform feedContainer;      // Container for new entries
+    [SerializeField] GameObject killFeedItemPrefab; // Prefab for a single entry
+    [SerializeField] float entryLifetime = 5f;     // How long an entry remains visible (e.g., 5 seconds)
 
     public static KillFeedManager Instance;
 
@@ -24,21 +24,21 @@ public class KillFeedManager : MonoBehaviourPunCallbacks
         }
     }
 
-    // Funkcja, która wywoływana jest po zabójstwie
+    // Function called after a kill
     public void AddKillFeedEntry(string killerName, string victimName)
     {
-        // Instancjonowanie nowego wpisu w panelu kill feeda
+        // Instantiate new entry in the kill feed panel
         GameObject entry = Instantiate(killFeedItemPrefab, feedContainer);
 
-        // Pobieranie komponentu TextMeshPro do aktualizacji tekstu
+        // Get TextMeshPro component to update text
         TMP_Text entryText = entry.GetComponent<TMP_Text>();
         entryText.text = $"{killerName} killed {victimName}";
 
-        // Automatyczne usunięcie wpisu po pewnym czasie
+        // Automatically remove entry after some time
         StartCoroutine(RemoveAfterDelay(entry, entryLifetime));
     }
 
-    // Korutyna, która usuwa wpis po określonym czasie
+    // Coroutine that removes entry after a delay
     IEnumerator RemoveAfterDelay(GameObject entry, float delay)
     {
         yield return new WaitForSeconds(delay);

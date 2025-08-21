@@ -4,10 +4,10 @@ using UnityEngine.UI;
 
 public class TeamKillDisplay : MonoBehaviour
 {
-    public TextMeshProUGUI redTeamText;        // Tekst dla drużyny czerwonej (TextMesh Pro)
-    public TextMeshProUGUI blueTeamText;       // Tekst dla drużyny niebieskiej (TextMesh Pro)
-    public Image redTeamBackground;            // Tło dla tekstu czerwonej drużyny
-    public Image blueTeamBackground;           // Tło dla tekstu niebieskiej drużyny
+    public TextMeshProUGUI redTeamText;        // Text for the red team (TextMesh Pro)
+    public TextMeshProUGUI blueTeamText;       // Text for the blue team (TextMesh Pro)
+    public Image redTeamBackground;            // Background for the red team text
+    public Image blueTeamBackground;           // Background for the blue team text
 
     private TDMManager tdmManager;
 
@@ -19,16 +19,16 @@ public class TeamKillDisplay : MonoBehaviour
             Debug.LogError("TDMManager not found in the scene!");
         }
 
-        // Opcjonalnie można ustawić kolory tła
-        redTeamBackground.color = new Color(1f, 0f, 0f, 0.5f);  // Czerwony, półprzezroczysty
-        blueTeamBackground.color = new Color(0f, 0f, 1f, 0.5f); // Niebieski, półprzezroczysty
+        // Optionally set background colors
+        redTeamBackground.color = new Color(1f, 0f, 0f, 0.5f);  // Red, semi-transparent
+        blueTeamBackground.color = new Color(0f, 0f, 1f, 0.5f); // Blue, semi-transparent
     }
 
     void Update()
     {
         if (tdmManager != null)
         {
-            // Aktualizacja liczby fragów drużyny czerwonej i niebieskiej
+            // Update the red and blue team frag counts
             redTeamText.text = $"{tdmManager.redTeamKills}";
             blueTeamText.text = $"{tdmManager.blueTeamKills}";
         }

@@ -7,7 +7,7 @@ using System.Collections;
 
 public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
 {
-    [Header("Efekt i Audio")]
+    [Header("Effects and Audio")]
     public GameObject explosionEffect;
     public AudioClip explosionSound;
     public AudioClip bounceSound;
@@ -16,26 +16,26 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
     public float bounceSoundRange = 50f;
     public float minDistance = 1f;
 
-    [Header("Wybuch i Obrażenia")]
+    [Header("Explosion and Damage")]
     public float blastRadius = 8f;
     public float explosionForce = 900f;
     public float maxDamage = 100f;
 
-    [Header("Timing jak w Tribes")]
-    public float armTime = 0.25f;                 // czas uzbrojenia – przed nim nie detonuje na impakcie
-    public float airFuseTime = 2.3f;              // bezpiecznik w powietrzu (jeśli nic nie dotknęło)
-    public float impactFuseMin = 0.8f;            // krótki bezpiecznik po pierwszym odbiciu
+    [Header("Tribes-style Timing")]
+    public float armTime = 0.25f;                 // arming time – before this it won't detonate on impact
+    public float airFuseTime = 2.3f;              // air fuse if nothing is hit
+    public float impactFuseMin = 0.8f;            // short fuse after the first bounce
     public float impactFuseMax = 1.2f;
-    public float highSpeedDetonate = 25f;         // szybka detonacja przy bardzo szybkim impakcie (po uzbrojeniu)
+    public float highSpeedDetonate = 25f;         // fast detonation on very high impact speed (after arming)
 
-    [Header("Ochrona właściciela")]
-    [SerializeField] private float ignoreCollisionTime = 0.2f; // ignorowanie kolizji z właścicielem
-    public float ownerProtectTime = 0.2f;                       // brak obrażeń dla właściciela po starcie
+    [Header("Owner Protection")]
+    [SerializeField] private float ignoreCollisionTime = 0.2f; // ignore collisions with the owner
+    public float ownerProtectTime = 0.2f;                       // no damage to the owner shortly after spawn
 
-    [Header("Trajektoria / Fizyka")]
+    [Header("Trajectory / Physics")]
     public bool useCustomGravity = false;
     public Vector3 customGravity = new Vector3(0, -9.81f, 0);
-    public float spinRandomTorque = 3f;           // lekki losowy spin
+    public float spinRandomTorque = 3f;           // light random spin
 
     private Rigidbody rb;
     private bool hasExploded = false;
@@ -45,7 +45,7 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
     private Player owner;
     private int ownerActorNumber = -1;
 
-    // dane z InstantiationData
+    // data from InstantiationData
     private Vector3 initialVelocity;
 
     void Awake()
@@ -53,7 +53,7 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
         rb = GetComponent<Rigidbody>();
         spawnTime = Time.time;
 
-        // Bouncy physic material dla „tribesowego” odbicia (jeśli collider nie ma przypisanego)
+        // Bouncy physics material for a Tribes-like bounce (if no material is assigned)
         var col = GetComponent<Collider>();
         if (col != null && (col.material == null || col.material.bounciness < 0.4f))
         {
@@ -71,7 +71,7 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
 
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
-        // Odczytujemy startową prędkość i właściciela z InstantiationData (ustawione w launcherze)
+        // Read starting velocity and owner from InstantiationData (set in the launcher)
         var data = photonView.InstantiationData;
         if (data != null && data.Length >= 2)
         {
@@ -83,24 +83,24 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
             ? PhotonNetwork.CurrentRoom.GetPlayer(ownerActorNumber)
             : photonView.Owner;
 
-        // Ustaw startową prędkość i spin na wszystkich klientach
+        // Set initial velocity and spin on all clients
         if (rb != null)
         {
             rb.velocity = initialVelocity;
             rb.AddTorque(Random.insideUnitSphere * spinRandomTorque, ForceMode.VelocityChange);
         }
 
-        // Startowy bezpiecznik w powietrzu
+        // Initial air fuse
         Invoke(nameof(Explode), airFuseTime);
 
-        // Krótko ignorujemy kolizje z właścicielem lokalnie u niego
+        // Briefly ignore collisions with the owner locally for them
         if (PhotonNetwork.LocalPlayer == owner)
             StartCoroutine(TemporarilyIgnoreOwnerCollision());
     }
 
     void Start()
     {
-        // Jeżeli z jakiegoś powodu nie dostaliśmy InstantiationData (fallback)
+        // Fallback if InstantiationData was not received
         if (owner == null) owner = photonView.Owner;
         if (rb == null) rb = GetComponent<Rigidbody>();
     }
@@ -134,11 +134,11 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
 
         float t = Time.time - spawnTime;
 
-        // Trafienie gracza?
+        // Did we hit a player?
         var hitPlayer = collision.collider.GetComponentInParent<PlayerController>();
         if (hitPlayer != null)
         {
-            // jeśli to właściciel i wciąż w okienku ochrony – nie detonujemy
+            // if it is the owner and still in the protection window – do not detonate
             if (hitPlayer.photonView != null &&
                 hitPlayer.photonView.Owner != null &&
                 hitPlayer.photonView.Owner == owner &&
@@ -147,7 +147,7 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
                 return;
             }
 
-            // Detonacja na graczu tylko po uzbrojeniu
+            // Detonate on a player only after arming
             if (t >= armTime)
             {
                 Explode();
@@ -155,14 +155,14 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
             }
         }
 
-        // Detonacja natychmiast przy bardzo szybkim impakcie (po uzbrojeniu)
+        // Detonate immediately on very fast impact (after arming)
         if (rb != null && rb.velocity.magnitude >= highSpeedDetonate && t >= armTime)
         {
             Explode();
             return;
         }
 
-        // Po pierwszym odbiciu ustawiamy krótki fuse i kasujemy „air fuse”
+        // After the first bounce set a short fuse and cancel the air fuse
         if (firstCollisionTime < 0f)
         {
             firstCollisionTime = Time.time;
@@ -182,7 +182,7 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
     [PunRPC]
     void RPC_Explode()
     {
-        // efekt
+        // visual effect
         if (explosionEffect)
         {
             var explosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
@@ -191,7 +191,7 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
 
         PlayExplosionSound();
 
-        // siła i obrażenia
+        // force and damage
         Collider[] colliders = Physics.OverlapSphere(transform.position, blastRadius);
         foreach (var col in colliders)
         {
@@ -202,7 +202,7 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
             var player = col.GetComponentInParent<PlayerController>();
             if (player != null && player.photonView != null)
             {
-                // ochrona właściciela przez ułamek sekundy
+                // protect the owner for a fraction of a second
                 bool isOwner = (owner != null && player.photonView.Owner == owner);
                 if (isOwner && Time.time - spawnTime < ownerProtectTime) continue;
 
@@ -211,7 +211,7 @@ public class Grenade : MonoBehaviourPunCallbacks, IPunInstantiateMagicCallback
             }
         }
 
-        // poprawne niszczenie obiektu sieciowego
+        // proper destruction of the network object
         if (photonView.IsMine) PhotonNetwork.Destroy(gameObject);
         else Destroy(gameObject);
     }

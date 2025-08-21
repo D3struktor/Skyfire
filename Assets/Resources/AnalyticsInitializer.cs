@@ -22,7 +22,7 @@ public class AnalyticsInitializer : MonoBehaviourPunCallbacks
     private bool wasGrounded = true;
 
     public PlayerController playerController;
-    private bool isTrackingSession = false; // Flaga do rozpoczęcia śledzenia
+    private bool isTrackingSession = false; // Flag to begin tracking
 
     private void Update()
     {
@@ -36,7 +36,7 @@ public class AnalyticsInitializer : MonoBehaviourPunCallbacks
         
         private void TrackSpeed()
     {
-        // Śledzenie prędkości gracza
+        // Track player speed
         Rigidbody rb = GetComponent<Rigidbody>();
         if (rb != null)
         {
@@ -48,7 +48,7 @@ public class AnalyticsInitializer : MonoBehaviourPunCallbacks
 
         private bool IsMapScene()
     {
-        // Sprawdza, czy bieżąca scena to map1 lub map2
+        // Check if the current scene is map1 or map2
         string currentSceneName = SceneManager.GetActiveScene().name;
         return currentSceneName == "map1" || currentSceneName == "map2";
     }
@@ -56,7 +56,7 @@ public class AnalyticsInitializer : MonoBehaviourPunCallbacks
 
        private void TrackAirAndGroundTime()
     {
-        // Sprawdzanie, czy gracz jest na ziemi (załóżmy, że masz zmienną `isGrounded`)
+        // Check whether the player is on the ground (assumes an `isGrounded` variable)
         bool isGrounded = CheckIfGrounded();
 
         if (isGrounded)
@@ -79,41 +79,41 @@ public class AnalyticsInitializer : MonoBehaviourPunCallbacks
 
         private bool CheckIfGrounded()
     {
-        // Twoja logika określania, czy gracz jest na ziemi
-        // Na przykład raycast lub zmienna z PlayerController
-        return true; // Zmień na swoją implementację
+        // Your logic for determining if the player is on the ground
+        // For example a raycast or a variable from PlayerController
+        return true; // Replace with your implementation
     }
 
 private async void Start()
 {
-    // Znajdź PlayerController na scenie
+    // Find the PlayerController in the scene
     playerController = FindObjectOfType<PlayerController>();
     if (playerController == null)
     {
-        Debug.LogWarning("PlayerController nie został znaleziony. Będzie szukany na każdej załadowanej scenie.");
+        Debug.LogWarning("PlayerController not found. It will be searched for on each loaded scene.");
     }
 
-    // Utrzymaj AnalyticsInitializer między scenami
+    // Keep AnalyticsInitializer between scenes
     DontDestroyOnLoad(gameObject);
-    StartCoroutine(CheckPlayerController()); // Regularne sprawdzanie gracza
+    StartCoroutine(CheckPlayerController()); // Regularly check for the player
 
-    // Subskrybuj zdarzenie ładowania sceny
+    // Subscribe to the scene loading event
     SceneManager.sceneLoaded += OnSceneLoaded;
 
-    // Inicjalizacja Unity Services (Analytics itp.)
+    // Initialize Unity Services (Analytics etc.)
     if (!isInitialized)
     {
         await InitializeUnityServices();
         isInitialized = true;
     }
 
-    // Ustaw czas rozpoczęcia sesji
+    // Set the session start time
     sessionStartTime = Time.time;
-    LogSessionStart(); // Rejestracja rozpoczęcia sesji
+    LogSessionStart(); // Log the session start
 }
         private void OnDestroy()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded; // Odsubskrybujemy zdarzenie
+        SceneManager.sceneLoaded -= OnSceneLoaded; // Unsubscribe from the event
     }
 private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
 {
@@ -122,37 +122,37 @@ private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
 
 private IEnumerator WaitAndFindPlayerController(Scene scene)
 {
-    yield return new WaitForSeconds(6f); // Odczekaj 0.5 sekundy na załadowanie sceny
+    yield return new WaitForSeconds(6f); // Wait a moment for the scene to load
 
     playerController = FindObjectOfType<PlayerController>();
     if (playerController == null)
     {
-        Debug.LogWarning($"PlayerController nie znaleziony na scenie: {scene.name}. Śledzenie sesji może być ograniczone.");
+        Debug.LogWarning($"PlayerController not found in scene: {scene.name}. Session tracking may be limited.");
         yield break; // Zakończ korutynę zamiast używać return
     }
 
-    // Rozpocznij śledzenie sesji
+    // Start tracking the session
     isTrackingSession = true;
     sessionStartTime = Time.time;
 
-    Debug.Log($"PlayerController znaleziony na scenie: {scene.name}. Śledzenie sesji rozpoczęte.");
+    Debug.Log($"PlayerController found in scene: {scene.name}. Session tracking started.");
 }
     private IEnumerator CheckPlayerController()
     {
-        while (true) // Pętla nieskończona, działa przez cały czas trwania gry
+        while (true) // Endless loop running for the duration of the game
         {
-            if (playerController == null) // Sprawdź, czy gracz istnieje
+            if (playerController == null) // Check if the player exists
             {
-                Debug.LogWarning("PlayerController nie istnieje. Szukam nowego gracza...");
-                playerController = FindObjectOfType<PlayerController>(); // Próbuj znaleźć nowego PlayerController
+                Debug.LogWarning("PlayerController does not exist. Searching for a new player...");
+                playerController = FindObjectOfType<PlayerController>(); // Try to find a new PlayerController
 
                 if (playerController != null)
                 {
-                    Debug.Log("PlayerController znaleziony. Kontynuuję śledzenie.");
+                    Debug.Log("PlayerController found. Continuing tracking.");
                 }
             }
 
-            yield return new WaitForSeconds(1f); // Sprawdzaj co sekundę
+            yield return new WaitForSeconds(1f); // Check every second
         }
     }
     private async Task InitializeUnityServices()
@@ -224,7 +224,7 @@ private IEnumerator WaitAndFindPlayerController(Scene scene)
 
     //     Debug.Log($"Session ended. Length: {sessionLength} seconds. Reason: {cause}");
     // }
-    //jetpack start
+    // jetpack start
     public void LogJetpackStart(Vector3 position, float time)
     {
         var eventData = new Dictionary<string, object>
@@ -239,7 +239,7 @@ private IEnumerator WaitAndFindPlayerController(Scene scene)
         Debug.Log($"JetpackStart event sent with data: {eventData}");
     }
 
-    // Jetpack koniec
+    // jetpack end
     public void LogJetpackEnd(Vector3 position, float time)
     {
         var eventData = new Dictionary<string, object>
@@ -255,7 +255,7 @@ private IEnumerator WaitAndFindPlayerController(Scene scene)
     }
 
 
-    //Czy uzywaja energypacka i gdzie
+    // Whether the energypack is used and where
     public void LogEnergypackUsed(Vector3 position, float time)
     {
         var eventData = new Dictionary<string, object>
@@ -270,7 +270,7 @@ private IEnumerator WaitAndFindPlayerController(Scene scene)
         Debug.Log($"EnergypackUsed event sent with data: {eventData}");
     }
 
-    // Smierc gracza
+    // Player death
     public void LogPlayerDied(Vector3 position, float health, float time)
     {
         var eventData = new Dictionary<string, object>
@@ -296,7 +296,7 @@ public void LogSessionEnd(string disconnectCause)
 {
     if (!isTrackingSession)
     {
-        Debug.LogWarning("LogSessionEnd: Śledzenie sesji nie jest aktywne.");
+        Debug.LogWarning("LogSessionEnd: Session tracking is not active.");
         return;
     }
 

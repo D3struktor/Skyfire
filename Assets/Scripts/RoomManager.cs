@@ -41,7 +41,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
         {
             Debug.Log("MasterClient starting the game.");
             
-            // Zamknięcie pokoju i ukrycie go z listy
+            // Close and hide the room from the lobby list
             if (PhotonNetwork.CurrentRoom != null)
             {
                 PhotonNetwork.CurrentRoom.IsOpen = false;
@@ -73,22 +73,22 @@ public class RoomManager : MonoBehaviourPunCallbacks
         }
     }
 
-    // Metoda wywoływana, gdy nowy gracz dołącza do pokoju
+    // Method called when a new player joins the room
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         Debug.Log("New player joined: " + newPlayer.NickName);
 
-        // Synchronizacja stanu gry lub wysłanie powiadomień do innych graczy
+        // Synchronize game state or send notifications to other players
         foreach (Player player in PhotonNetwork.PlayerList)
         {
             Debug.Log("Player in room: " + player.NickName);
         }
 
-        // Wysłanie danych do nowego gracza
+        // Send data to the new player
         photonView.RPC("SyncPlayerData", newPlayer);
     }
 
-    // RPC do synchronizacji danych dla nowego gracza
+    // RPC to synchronize data for the new player
     [PunRPC]
     public void SyncPlayerData()
     {
@@ -100,18 +100,18 @@ public override void OnPlayerLeftRoom(Player otherPlayer)
 {
     Debug.Log("Player left: " + otherPlayer.NickName);
 
-    // Sprawdź, czy gra została rozpoczęta
+    // Check whether the game has started
     if (PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("GameStarted") && 
         (bool)PhotonNetwork.CurrentRoom.CustomProperties["GameStarted"])
     {
         Debug.Log("Launcher: Game has started. Room remains hidden even after player left.");
-        return; // Jeśli gra jest rozpoczęta, nic więcej nie robimy
+        return; // If the game has started, do nothing further
     }
 
-    // Jeśli gra nie jest rozpoczęta, sprawdź liczbę graczy i ewentualnie pokaż pokój
+    // If the game has not started, check player count and potentially show the room
     if (PhotonNetwork.CurrentRoom.PlayerCount < PhotonNetwork.CurrentRoom.MaxPlayers)
     {
-        PhotonNetwork.CurrentRoom.IsVisible = true; // Ponownie pokaż pokój
+        PhotonNetwork.CurrentRoom.IsVisible = true; // Make the room visible again
         Debug.Log("Launcher: Room is no longer full and is now visible in the lobby.");
     }
 }

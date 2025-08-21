@@ -2,25 +2,25 @@
 
 public class FpsControllerInput : MonoBehaviour
 {
-    // Pobierz osie ruchu (Vertical dla przód/tył i Horizontal dla prawo/lewo)
+    // Get movement axes (Vertical for forward/backward and Horizontal for right/left)
     public Vector2 GetMoveAxis()
     {
         return new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal")).normalized;
     }
 
-    // Pobierz osie myszy (X dla obrót w poziomie, Y dla obrót w pionie)
+    // Get mouse axes (X for horizontal rotation, Y for vertical rotation)
     public Vector2 GetMouseAxis()
     {
         return new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
     }
 
-    // Sprawdzenie, czy wciśnięto klawisz sprintu
+    // Check whether the sprint key is pressed
     public bool GetSprint()
     {
         return Input.GetKey(KeyCode.LeftShift);
     }
 
-    // Sprawdzenie, czy wciśnięto klawisz skoku
+    // Check whether the jump key is pressed
     public bool Jump()
     {
         return Input.GetKeyDown(KeyCode.Space);

@@ -10,20 +10,20 @@ public class TriangleCorner : MaskableGraphic
     {
         vh.Clear();
 
-        // Definiowanie wierzchołków trójkąta
+        // Define triangle vertices
         UIVertex vertex = UIVertex.simpleVert;
         vertex.color = triangleColor;
 
-        vertex.position = new Vector3(0, size); // lewy górny
+        vertex.position = new Vector3(0, size); // top left
         vh.AddVert(vertex);
 
-        vertex.position = new Vector3(size, size); // prawy górny
+        vertex.position = new Vector3(size, size); // top right
         vh.AddVert(vertex);
 
-        vertex.position = new Vector3(0, 0); // lewy dolny
+        vertex.position = new Vector3(0, 0); // bottom left
         vh.AddVert(vertex);
 
-        // Dodanie indeksów trójkąta
+        // Add triangle indices
         vh.AddTriangle(0, 1, 2);
     }
 }
