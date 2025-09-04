@@ -18,5 +18,6 @@ Dokumentacja: [Design document](https://drive.google.com/file/d/1uEY4UUehbGR6kQk
    - Open `Assets/Scenes/Menu.unity` and press **Play**.
 4. To build:
    - CTRL + B
+     
 Autorzy / Authors:
 - D3struktor
