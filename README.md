@@ -17,9 +17,6 @@ Dokumentacja: [Design document](https://drive.google.com/file/d/1uEY4UUehbGR6kQk
 3. To run in the editor:
    - Open `Assets/Scenes/Menu.unity` and press **Play**.
 4. To build:
-   - Go to **File → Build Settings…**
-   - Add the desired scenes to the build.
-   - Click **Build** and choose the output directory.
-
+   - CTRL + B
 Autorzy / Authors:
 - D3struktor
