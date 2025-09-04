@@ -11,7 +11,7 @@ Dokumentacja: [Design document](https://drive.google.com/file/d/1uEY4UUehbGR6kQk
 ## Running and Building / Uruchomienie i build
 1. Clone the repository:
    ```bash
-   git clone <[repo-url](https://github.com/D3struktor/Skyfire.git)>
+   git clone <https://github.com/D3struktor/Skyfire.git>
    ```
 2. Open the project with Unity **2023.2.20f1**.
 3. To run in the editor:
