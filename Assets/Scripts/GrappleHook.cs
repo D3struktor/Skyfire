@@ -10,7 +10,7 @@ public class GrappleHook : MonoBehaviourPun
     private Vector3 launchPosition;
     private Transform hookedObject;
 
-    [Tooltip("Warstwy, których hak MA NIE łapać (np. Player, Projectiles)")]
+    [Tooltip("Layers the hook should NOT latch onto (e.g., Player, Projectiles)")]
     public LayerMask ignoreLayers;
 
     public void Init(int viewID, float maxDistance)
@@ -32,20 +32,20 @@ public class GrappleHook : MonoBehaviourPun
     {
         if (attached) return;
 
-        // Filtr kolizji (odpowiednik ShouldHit)
+        // Collision filter (equivalent of ShouldHit)
         if (((1 << collision.gameObject.layer) & ignoreLayers) != 0)
             return;
 
         attached = true;
 
-        // Przyczep do dynamicznego obiektu (odpowiednik SetBase)
+        // Attach to a dynamic object (equivalent of SetBase)
         hookedObject = collision.transform;
         transform.SetParent(hookedObject, true);
 
-        // Zamroź hak lokalnie
+        // Freeze the hook locally
         FreezeHook();
 
-        // Poinformuj WSZYSTKICH (z buforowaniem) o punkcie zaczepienia i ID obiektu
+        // Inform EVERYONE (buffered) about the latch point and object ID
         int targetId = -1;
         var targetPv = hookedObject.GetComponentInParent<PhotonView>();
         if (targetPv != null) targetId = targetPv.ViewID;
@@ -56,7 +56,7 @@ public class GrappleHook : MonoBehaviourPun
     [PunRPC]
     void RPC_Latched(Vector3 point, int attachedToID, int shooterViewID)
     {
-        // Ustaw rodzica również u pozostałych klientów (jeśli obiekt ma PhotonView)
+        // Set the parent for other clients as well (if the object has a PhotonView)
         if (attachedToID != -1)
         {
             var target = PhotonView.Find(attachedToID);
@@ -64,13 +64,13 @@ public class GrappleHook : MonoBehaviourPun
                 transform.SetParent(target.transform, true);
         }
 
-        // Znajdź grapplera właściciela i powiadom o zaczepieniu.
+        // Find the owner's grappler and notify it about the latch.
         var shooter = PhotonView.Find(shooterViewID);
         if (shooter != null)
         {
             var gun = shooter.GetComponentInChildren<GrappleGun>();
             if (gun != null)
-                gun.OnHookLatched(point); // Fizyka tylko u właściciela; reszta – rope FX
+                gun.OnHookLatched(point); // Physics only on owner; others only rope FX
         }
     }
 
@@ -88,7 +88,7 @@ public class GrappleHook : MonoBehaviourPun
         if (col) col.enabled = false;
     }
 
-    // Wywołuj TYLKO przez właściciela
+    // Call ONLY by the owner
     public void Release()
     {
         transform.SetParent(null);

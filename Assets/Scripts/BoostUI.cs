@@ -3,52 +3,52 @@ using UnityEngine.UI;
 
 public class BoostUI : MonoBehaviour
 {
-    public Image boostIcon; // Ikona boosta
-    public AudioSource rechargeSound; // AudioSource dla dźwięku końca ładowania
+    public Image boostIcon; // Boost icon
+    public AudioSource rechargeSound; // AudioSource for recharge sound
 
-    private float boostCooldown = 12.0f; // Czas ładowania w sekundach
+    private float boostCooldown = 12.0f; // Recharge time in seconds
     private float boostTimer = 0f;
     private bool isBoostAvailable = true;
 
-    private Color defaultColor = Color.white; // Kolor początkowy
-    private Color chargedColor = new Color(0.5f, 0.8f, 1f); // Jasno niebieski kolor dla naładowanej ikony
+    private Color defaultColor = Color.white; // Initial color
+    private Color chargedColor = new Color(0.5f, 0.8f, 1f); // Light blue for fully charged icon
 
     void Start()
     {
-        boostIcon.color = defaultColor; // Ustawienie początkowego koloru
+        boostIcon.color = defaultColor; // Set initial color
     }
 
     void Update()
     {
-        // Aktywacja boosta po wciśnięciu "E", gdy jest gotowy
+        // Activate boost when "E" is pressed and it is ready
         if (Input.GetKeyDown(KeyCode.E) && isBoostAvailable)
         {
             ActivateBoost();
         }
 
-        // Aktualizacja ładowania ikony
+        // Update icon charging
         if (!isBoostAvailable)
         {
             boostTimer += Time.deltaTime;
             boostIcon.fillAmount = boostTimer / boostCooldown;
 
-            // Gdy ładowanie zakończone
+            // When charging is complete
             if (boostTimer >= boostCooldown)
             {
                 isBoostAvailable = true;
                 boostTimer = 0f;
-                boostIcon.fillAmount = 1f; // Ikona w pełni wypełniona
-                boostIcon.color = chargedColor; // Zmiana koloru na jasno niebieski
-                rechargeSound.Play(); // Odtwórz dźwięk ładowania
+                boostIcon.fillAmount = 1f; // Icon fully filled
+                boostIcon.color = chargedColor; // Change color to light blue
+                rechargeSound.Play(); // Play recharge sound
             }
         }
     }
 
     void ActivateBoost()
     {
-        // Uruchomienie boosta, reset wypełnienia ikony i koloru
+        // Activate boost, reset icon fill and color
         isBoostAvailable = false;
         boostIcon.fillAmount = 0f;
-        boostIcon.color = defaultColor; // Powrót do domyślnego koloru
+        boostIcon.color = defaultColor; // Return to default color
     }
 }

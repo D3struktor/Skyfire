@@ -1,5 +1,5 @@
-// ✅ GrappleGun.cs – PUN + FSM + SOFT TETHER (bez teleportów)
-// LPM: strzał → trzymanie = skracanie → puszczenie = odczep
+// ✅ GrappleGun.cs – PUN + FSM + SOFT TETHER (no teleportation)
+// LMB: shoot → hold = reel in → release = detach
 
 using UnityEngine;
 using Photon.Pun;
@@ -10,25 +10,25 @@ public class GrappleGun : MonoBehaviourPun
 {
     [Header("Refs")]
     public GameObject hookPrefab;          // prefab: PhotonView + Rigidbody + Collider (+ PhotonRigidbodyView/TransformView)
-    public Transform firePoint;            // u ownera: FP socket; u zdalnych: np. ręka 3P
-    public LineRenderer lineRenderer;      // rope FX (działa też u zdalnych)
+    public Transform firePoint;            // owner: FP socket; remote: e.g. 3P hand
+    public LineRenderer lineRenderer;      // rope FX (works for remote clients too)
     public Material ropeMaterial;
-    public Rigidbody playerRb;             // RB gracza (autorytet tylko u ownera)
+    public Rigidbody playerRb;             // player RB (authority only on owner)
 
     [Header("Hook Params")]
     public float hookSpeed = 200f;
-    public float maxHookDistance = 80f;    // zasięg haka
+    public float maxHookDistance = 80f;    // hook range
 
     [Header("Timing")]
-    public float reelInDelay = 0.50f;      // opóźnienie zanim wolno skracać linkę
-    public float releaseDelay = 0.15f;     // drobny delay na odklejenie (korutyny)
+    public float reelInDelay = 0.50f;      // delay before reeling in is allowed
+    public float releaseDelay = 0.15f;     // small delay for detaching (coroutines)
 
     [Header("Tether Tuning")]
-    public float autoTensionAccel = 6f;    // delikatne, stałe przyciąganie gdy jest luz
-    public float holdShortenSpeed = 6f;    // tempo skracania liny przy trzymaniu (m/s)
-    public float slackRatio = 1.02f;       // startowy luz względem dystansu po zaczepieniu (np. 2%)
-    public float tautEpsilon = 0.05f;      // próg uznania „lina napięta”
-    public bool horizontalTensionOnGroundHook = true; // gdy hak niżej, ciągnij raczej horyzontalnie
+    public float autoTensionAccel = 6f;    // gentle constant pull when slack
+    public float holdShortenSpeed = 6f;    // rope shortening speed when held (m/s)
+    public float slackRatio = 1.02f;       // initial slack relative to distance after latch (e.g., 2%)
+    public float tautEpsilon = 0.05f;      // threshold for considering the rope taut
+    public bool horizontalTensionOnGroundHook = true; // if hook is lower, pull mostly horizontally
 
     [Header("Audio")]
     public AudioClip hookFailSound;
@@ -41,10 +41,10 @@ public class GrappleGun : MonoBehaviourPun
     private Vector3 hookPoint;
     private Camera cam;
 
-    private bool canReelIn = false;        // po reelInDelay
-    private bool pulling = false;          // trzymanie LPM = skracanie
+      private bool canReelIn = false;        // after reelInDelay
+      private bool pulling = false;          // holding LMB = shortening
 
-    // Rope FX dla zdalnych (bez fizyki)
+      // Rope FX for remote clients (no physics)
     private bool ropeActiveRemote = false;
     private Vector3 remoteHookPoint;
 
@@ -56,7 +56,7 @@ public class GrappleGun : MonoBehaviourPun
         if (playerRb == null) playerRb = GetComponentInParent<Rigidbody>();
         cam = Camera.main;
 
-        // bezpieczna konfiguracja RB
+        // safe RB configuration
         if (playerRb != null)
         {
             playerRb.interpolation = RigidbodyInterpolation.Interpolate;
@@ -75,7 +75,7 @@ public class GrappleGun : MonoBehaviourPun
 
 void Update()
 {
-    // zdalni – tylko rope FX
+    // remote clients – rope FX only
     if (!photonView.IsMine)
     {
         if (ropeActiveRemote && lineRenderer != null && firePoint != null)
@@ -91,11 +91,11 @@ void Update()
             break;
 
         case GrappleState.Fired:
-            // nic – czekamy na OnHookLatched
+            // nothing – wait for OnHookLatched
             break;
 
         case GrappleState.Latched:
-            // priorytet: szybki klik = odczep
+            // priority: quick click = detach
             if (Input.GetMouseButtonDown(0))
             {
                 pulling = false;
@@ -103,7 +103,7 @@ void Update()
                 break;
             }
 
-            // trzymanie = skracanie (bez odczepu)
+            // holding = shortening (without detaching)
             if (Input.GetMouseButton(0))
             {
                 pulling = true;
@@ -116,7 +116,7 @@ void Update()
             break;
 
         case GrappleState.Pulling:
-            // puszczenie LPM = przestań skracać, ale zostań zaczepiony
+            // releasing LMB = stop shortening but stay latched
             if (!Input.GetMouseButton(0))
             {
                 pulling = false;
@@ -144,7 +144,7 @@ void Update()
 
         Vector3 dir = toHook / dist;
 
-        // === SOFT TETHER (sprężyna + tłumienie), bez teleportów ===
+        // === SOFT TETHER (spring + damping), no teleportation ===
 
         // [A] Sprężyna + tłumienie tylko gdy przekroczony „nominal” (maxDistance)
         if (dist > joint.maxDistance)
@@ -248,7 +248,7 @@ void Update()
             return;
         }
 
-        // owner – fizyka + opóźnienie reelingu
+        // owner – physics + reeling delay
         hookPoint = point;
         StartCoroutine(OwnerLatchDelayAndJoint());
     }

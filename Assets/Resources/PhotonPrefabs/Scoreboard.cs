@@ -65,22 +65,22 @@ public class Scoreboard : MonoBehaviourPunCallbacks
     }
 void AddHeader()
 {
-    // Sprawdzamy, czy prefab jest przypisany
+    // Verify that the prefab and container are assigned
     if (scoreboardItemPrefab == null || container == null)
     {
         Debug.LogError("ScoreboardItem prefab or container is not assigned!");
         return;
     }
 
-    // Tworzymy nagłówek
+    // Create header
     GameObject header = Instantiate(scoreboardItemPrefab, container);
     ScoreboardItem headerItem = header.GetComponent<ScoreboardItem>();
 
-    // Ustawiamy dane dla nagłówka
-    headerItem.Initialize(null, true); // Ustaw flagę 'isHeader' na true
+    // Set header data
+    headerItem.Initialize(null, true); // Set 'isHeader' flag to true
 
-    // Opcjonalnie dostosowujemy wygląd nagłówka
-    headerItem.background.color = new Color(0, 0, 0, 0); // Transparentne tło
+    // Optionally adjust header appearance
+    headerItem.background.color = new Color(0, 0, 0, 0); // Transparent background
 }
 
 

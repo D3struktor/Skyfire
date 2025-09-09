@@ -42,27 +42,27 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     // --- Landing guard ---
     float landingGuardTimer = 0f;
-    [SerializeField] float landingGuardTime = 0.08f;   // 80 ms po kontakcie chronimy prędkość
-    [SerializeField] float landingKeepFactor = 0.90f;  // zachowaj min 90% v z powietrza
-    [SerializeField] float landingMaxTurnDeg = 35f;    // max skręt kierunku na tick
+    [SerializeField] float landingGuardTime = 0.08f;   // protect speed for 80 ms after contact
+    [SerializeField] float landingKeepFactor = 0.90f;  // keep at least 90% of air speed
+    [SerializeField] float landingMaxTurnDeg = 35f;    // max direction turn per tick
 
 
 
     // --- smoothing ground normal ---
     Vector3 lastGroundNormal = Vector3.up;
-    [SerializeField] float groundNormalSmooth = 0.35f;   // 0..1 (większe = szybciej reaguje)
+    [SerializeField] float groundNormalSmooth = 0.35f;   // 0..1 (higher = reacts faster)
     [SerializeField] float groundProbeRadius = 0.25f;    // SphereCast
-    [SerializeField] float groundProbeSide = 0.35f;      // boczne próbki
-    [SerializeField] float slideGroundGrace = 0.20f; // ile sekund tolerujemy bycie w powietrzu
+    [SerializeField] float groundProbeSide = 0.35f;      // side samples
+    [SerializeField] float slideGroundGrace = 0.20f; // how many seconds we tolerate being airborne
     float timeSinceGrounded = 0f;
     Vector3 smoothedNormal = Vector3.up;
-    [SerializeField] float normalSmooth = 0.5f; // 0..1 (większe = szybciej reaguje)
+    [SerializeField] float normalSmooth = 0.5f; // 0..1 (higher = reacts faster)
 
 
 
     [Header("Air Gravity")]
-    [SerializeField] float airGravityMultiplier = 1.9f;   // 1.6–2.4 daje „Tribes feel”
-    [SerializeField] float airTerminalDownSpeed = 120f;   // maks. prędkość spadania (m/s)
+    [SerializeField] float airGravityMultiplier = 1.9f;   // 1.6–2.4 gives a "Tribes feel"
+    [SerializeField] float airTerminalDownSpeed = 120f;   // max falling speed (m/s)
     // [SerializeField] float airDrag = 0.0f;                // obniż na 0–0.005
 
 
@@ -80,18 +80,18 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private float slideSpeedFactor = 1.5f;
     [SerializeField] private float minSlopeAngle = 5f;
 
-    [SerializeField] private float maxSpeed = 200f; // cap i pasek prędkości
+    [SerializeField] private float maxSpeed = 200f; // speed cap and UI bar
 
     // === SKI LANDING – PARAMETRY KRZYWEJ ===
     [Header("Ski Landing (angle -> loss curve)")]
-    [Tooltip("Maks. kąt (deg) do stycznej stoku z pełnym zachowaniem prędkości.")]
-    [SerializeField] private float skiMaxFullRetainAngle = 30f;     // 0% strat do 30°
-    [Tooltip("Tłumienie składowej normalnej po lądowaniu (0..1).")]
+    [Tooltip("Maximum angle (deg) to slope tangent with full speed retention.")]
+    [SerializeField] private float skiMaxFullRetainAngle = 30f;     // 0% loss up to 30°
+    [Tooltip("Damping of the normal component after landing (0..1).")]
     [SerializeField, Range(0f, 1f)] private float skiNormalDamping = 0.05f;
-    [Tooltip("Maks. strata prędkości stycznej przy 90° (np. 0.65 = 65% straty).")]
+    [Tooltip("Max tangential speed loss at 90° (e.g., 0.65 = 65% loss).")]
     [SerializeField, Range(0f, 1f)] private float skiMaxLossAt90 = 0.65f;
-    [SerializeField] private AnimationCurve skiLossByAngle = null;   // strata (0..1) vs kąt (0..90)
-    [SerializeField] private bool rebuildLossCurveOnAwake = false; // zaznacz raz, żeby zresetować krzywą przy starcie
+    [SerializeField] private AnimationCurve skiLossByAngle = null;   // loss (0..1) vs angle (0..90)
+    [SerializeField] private bool rebuildLossCurveOnAwake = false; // check once to reset curve on start
 
     // --- Weapons ---
     public GameObject primaryWeaponPrefab;  // Primary weapon prefab
@@ -113,7 +113,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     float CurrentHealth;
 
     PlayerManager playerManager;
-    private CrosshairController crosshairController; // Referencja do CrosshairController
+    private CrosshairController crosshairController; // Reference to CrosshairController
 
     private float lastShotTime = 0f;
     private float fireCooldown = 0.7f;
@@ -179,12 +179,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
     void Awake()
     {
         if (skiLossByAngle == null || skiLossByAngle.length == 0 || rebuildLossCurveOnAwake)
-{
-    // Domyślna krzywa "straty" (0..1) w zależności od kąta (0..90°):
-    // 0°     -> 0   (brak strat)
-    // skiMaxFullRetainAngle -> 0 (wciąż brak strat do progu)
-    // 60°    -> ~0.35 (delikatny koszt przy ostrym wejściu)
-    // 90°    -> skiMaxLossAt90 (maksymalna strata)
+{ 
+    // Default loss curve (0..1) depending on angle (0..90°):
+    // 0°     -> 0   (no loss)
+    // skiMaxFullRetainAngle -> 0 (still no loss up to the threshold)
+    // 60°    -> ~0.35 (small cost for sharp entry)
+    // 90°    -> skiMaxLossAt90 (maximum loss)
     Keyframe k0  = new Keyframe(0f, 0f, 0f, 0f);
     Keyframe kA  = new Keyframe(skiMaxFullRetainAngle, 0f, 0f, 0f);
     Keyframe k60 = new Keyframe(60f, 0.35f, 0f, 0f);
@@ -194,7 +194,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
     for (int i = 0; i < skiLossByAngle.length; i++)
         skiLossByAngle.SmoothTangents(i, 0.3f);
 
-    // zgaś jednorazowy rebuild
+    // disable one-time rebuild
     rebuildLossCurveOnAwake = false;
 }
         rb = GetComponent<Rigidbody>();
@@ -214,7 +214,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
-        // Domyślna krzywa strat: 0°→0, 30°→0, 53.1301°→0.30, 90°→0.65
+        // Default loss curve: 0°→0, 30°→0, 53.1301°→0.30, 90°→0.65
         if (skiLossByAngle == null || skiLossByAngle.length == 0)
         {
             skiLossByAngle = new AnimationCurve(
@@ -428,11 +428,11 @@ void Movement()
         // tylko w powietrzu i kiedy NIE jetujesz
         if (!isColliding && !IsJetting())
         {
-            // dołóż grawitację jako przyspieszenie (niezależnie od masy)
+            // add extra gravity as acceleration (independent of mass)
             float k = Mathf.Max(1f, airGravityMultiplier);
             rb.AddForce(Physics.gravity * (k - 1f), ForceMode.Acceleration);
 
-            // terminal velocity w dół, żeby nie przesadzić
+            // limit downward terminal velocity
             Vector3 v = rb.velocity;
             if (v.y < -airTerminalDownSpeed)
             {
@@ -446,8 +446,8 @@ void Movement()
     private void UpdateAnimations(Vector2 axis)
     {
         if (!anim) return;
-        anim.SetFloat("xmove", axis.y); // przód/tył
-        anim.SetFloat("ymove", axis.x); // prawo/lewo
+          anim.SetFloat("xmove", axis.y); // forward/backward
+          anim.SetFloat("ymove", axis.x); // right/left
     }
 
     void Jump()
@@ -466,11 +466,11 @@ void HandleJetpack()
 
     if (jetOn)
     {
-        // --- NOWE: sterowanie horyzontalnym ciągiem jetpacka wejściem gracza ---
+          // NEW: control horizontal jetpack thrust with player input
         float ix = Input.GetAxisRaw("Horizontal");
         float iz = Input.GetAxisRaw("Vertical");
 
-        // siła pozioma podąża za inputem (prawo/lewo i przód/tył)
+          // horizontal force follows input (left/right and forward/backward)
         Vector3 horiz =
             transform.right   * (ix * jetpackForceX) +
             transform.forward * (iz * jetpackForceZ);
@@ -560,7 +560,7 @@ void HandleJetpack()
         isSliding = false;
         if (anim) anim.SetBool("isSliding", false);
 
-        // płynny powrót dragu
+          // smooth drag return
         float t = 0f;
         float start = rb.drag;
         while (t < dragTransitionTime)
@@ -591,7 +591,7 @@ void ApplySlidingPhysics()
     Vector3 v = rb.velocity;
     float v0 = v.magnitude;
 
-    // Zawsze deklarujemy, żeby nie było błędów
+      // Always declare to avoid errors
     Vector3 vt = Vector3.ProjectOnPlane(v, n); 
     float magB = v0;
 
@@ -641,7 +641,7 @@ void ApplySlidingPhysics()
     Vector3 right = Vector3.Cross(n, tangent).normalized;
     rb.AddForce(right * (steer * skiAcceleration * 0.6f), ForceMode.Acceleration);
 
-    // Anti-drop — nie pozwól spaść prędkości o więcej niż 15%
+      // Anti-drop — don't let speed fall by more than 15%
     float v1 = rb.velocity.magnitude;
     if (v1 < v0 * 0.85f)
     {
@@ -743,7 +743,7 @@ void TryApplySkiLanding(Vector3 groundNormal)
                                   groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
     if (!any) return false;
 
-    // 2) Dwie próbki boczne -> uśrednij normalną, żeby nie łapać ostrych krawędzi
+      // 2) Two side samples -> average the normal to avoid sharp edges
     Vector3 n = bestHit.normal;
     RaycastHit hL, hR;
     Vector3 right = Vector3.Cross(Vector3.up, transform.forward).normalized;
@@ -757,10 +757,10 @@ void TryApplySkiLanding(Vector3 groundNormal)
 
     n.Normalize();
 
-    // 3) Wygładź w czasie (eliminacja „szarpania” normalnej)
+      // 3) Smooth over time (eliminate normal "jitter")
     lastGroundNormal = Vector3.Slerp(lastGroundNormal, n, groundNormalSmooth);
 
-    // Podmień normalę w zwracanym hicie
+      // Replace the normal in the returned hit
     bestHit.normal = lastGroundNormal;
     return true;
 }
@@ -810,7 +810,7 @@ void TryApplySkiLanding(Vector3 groundNormal)
         }
     }
 
-    // ================== KOLIZJE ==================
+      // ================== COLLISIONS ==================
 
     void OnCollisionEnter(Collision collision)
     {
@@ -819,10 +819,10 @@ void TryApplySkiLanding(Vector3 groundNormal)
         isColliding = true;
         if (anim) anim.SetBool("isColliding", true);
 
-        // drag: jeśli ski trzymane lub już slajdujesz – niski
+          // drag: low if ski is held or already sliding
         rb.drag = (isSliding || Input.GetKey(slideKey)) ? slidingDrag : groundDrag;
 
-        // SKI LANDING natychmiast (na bazie v z powietrza)
+          // Immediate SKI LANDING (based on air velocity)
         if (Input.GetKey(slideKey) && !IsJetting())
         {
             Vector3 n = collision.GetContact(0).normal;
@@ -840,25 +840,25 @@ void TryApplySkiLanding(Vector3 groundNormal)
 
         if (!isSliding) rb.drag = groundDrag;
 
-        if (landingGuardTimer > 0f && (isSliding || Input.GetKey(slideKey)))
-        {
-            Vector3 n = collision.GetContact(0).normal;
-            Vector3 vAir = lastAirVelocity.sqrMagnitude > 1e-6f ? lastAirVelocity : rb.velocity;
-            Vector3 vt = Vector3.ProjectOnPlane(vAir, n);
-            if (vt.sqrMagnitude < 1e-6f) vt = Vector3.ProjectOnPlane(vAir + transform.forward * 0.01f, n);
-            Vector3 vn = Vector3.Project(vAir, n);
+          if (landingGuardTimer > 0f && (isSliding || Input.GetKey(slideKey)))
+          {
+              Vector3 n = collision.GetContact(0).normal;
+              Vector3 vAir = lastAirVelocity.sqrMagnitude > 1e-6f ? lastAirVelocity : rb.velocity;
+              Vector3 vt = Vector3.ProjectOnPlane(vAir, n);
+              if (vt.sqrMagnitude < 1e-6f) vt = Vector3.ProjectOnPlane(vAir + transform.forward * 0.01f, n);
+              Vector3 vn = Vector3.Project(vAir, n);
 
-            float angle = Vector3.Angle(vAir, vt.normalized);
-            float loss  = Mathf.Clamp01(skiLossByAngle.Evaluate(Mathf.Clamp(angle, 0f, 90f)));
-            float retain = 1f - loss;
+              float angle = Vector3.Angle(vAir, vt.normalized);
+              float loss  = Mathf.Clamp01(skiLossByAngle.Evaluate(Mathf.Clamp(angle, 0f, 90f)));
+              float retain = 1f - loss;
 
-            float slopeAngle = Vector3.Angle(n, Vector3.up);
-            float normalDamp = (slopeAngle < 10f) ? 0f : skiNormalDamping;
+              float slopeAngle = Vector3.Angle(n, Vector3.up);
+              float normalDamp = (slopeAngle < 10f) ? 0f : skiNormalDamping;
 
-            Vector3 candidate = vt.normalized * (vt.magnitude * retain) + vn * normalDamp;
+              Vector3 candidate = vt.normalized * (vt.magnitude * retain) + vn * normalDamp;
 
-            SafeSetVelocity(vAir, candidate, landingKeepFactor, landingMaxTurnDeg);
-        }
+              SafeSetVelocity(vAir, candidate, landingKeepFactor, landingMaxTurnDeg);
+          }
     }
 
 
@@ -872,11 +872,11 @@ void TryApplySkiLanding(Vector3 groundNormal)
         rb.drag = airDrag;
     }
 
-    // ================== PHOTON: WŁAŚCIWOŚCI / UI BRONI ==================
+      // ================== PHOTON: PROPERTIES / WEAPON UI ==================
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
     {
-        // (scalone z Twoich dwóch metod)
+          // (merged from your two methods)
         if (changedProps.ContainsKey("itemIndex") && targetPlayer == PV.Owner)
         {
             if (!PV.IsMine)
@@ -952,7 +952,7 @@ void TryApplySkiLanding(Vector3 groundNormal)
             PhotonNetwork.Destroy(currentWeapon);
         }
 
-        // Wybór prefabu broni na podstawie slotu
+          // Choose weapon prefab based on slot
         GameObject weaponPrefab = slot switch
         {
             1 => primaryWeaponPrefab,
@@ -968,17 +968,17 @@ void TryApplySkiLanding(Vector3 groundNormal)
             return;
         }
 
-        // Tworzenie broni
+          // Create weapon
         currentWeapon = PhotonNetwork.Instantiate(weaponPrefab.name, playerCamera.transform.position + playerCamera.transform.forward * 0.5f, playerCamera.transform.rotation);
 
-        // Dołączenie broni do gracza lokalnie
+          // Attach weapon to the local player
         AttachWeaponToPlayer();
 
-        // Synchronizacja WeaponIK
+          // Synchronize WeaponIK
         WeaponIK weaponIK = GetComponentInChildren<WeaponIK>();
         weaponIK?.ChangeWeapon(currentWeapon.transform);
 
-        // Aktualizacja komponentów broni
+          // Update weapon components
         ConfigureWeaponComponents(slot);
         UpdateAmmoUI();
     }
@@ -1142,7 +1142,7 @@ void TryApplySkiLanding(Vector3 groundNormal)
 
         if (currentHealth <= 0)
         {
-            Debug.Log($"Gracz {PhotonNetwork.LocalPlayer.NickName} zginął. Zabójca: {killer?.NickName ?? "brak"}.");
+            Debug.Log($"Player {PhotonNetwork.LocalPlayer.NickName} died. Killer: {killer?.NickName ?? "none"}.");
             Die();
             playerManager.RecordDeath(killer);
         }
@@ -1349,13 +1349,13 @@ void TryApplySkiLanding(Vector3 groundNormal)
                     }
                     else
                     {
-                        Debug.LogWarning($"Nie można sparsować prędkości z tekstu: {speedText}");
+                  Debug.LogWarning($"Unable to parse speed from text: {speedText}");
                     }
                     return;
                 }
             }
 
-            Debug.LogWarning("Nie znaleziono linii z 'Speed:' w playerSpeedText.");
+              Debug.LogWarning("Could not find a line with 'Speed:' in playerSpeedText.");
         }
         else
         {
@@ -1373,7 +1373,7 @@ void TryApplySkiLanding(Vector3 groundNormal)
             }
             else
             {
-                Debug.LogWarning("Brak próbek prędkości. Średnia prędkość wynosi 0.");
+                  Debug.LogWarning("No speed samples. Average speed is 0.");
                 return 0f;
             }
         }

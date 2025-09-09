@@ -21,7 +21,7 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] GameObject startGameButton;
     [SerializeField] GameObject startGameTDMButton;
 
-    // Nowe elementy dla ustawień
+    // New elements for settings
     [SerializeField] GameObject settingsPanel;
     [SerializeField] GameObject howPanel;
     [SerializeField] Slider volumeSlider;
@@ -29,14 +29,14 @@ public class Launcher : MonoBehaviourPunCallbacks
     [SerializeField] Slider sfxVolumeSlider;
     [SerializeField] AudioMixer SFXMixer;
 
-    // Elementy do ekranu ładowania
-    [SerializeField] private GameObject loadingScreen;  // Panel dla ekranu ładowania
-    [SerializeField] private Image loadingImage;        // Obraz JPG na ekranie ładowania
-    [SerializeField] private TMP_Text loadingText;      // Tekst wyświetlający stan ładowania
-    [SerializeField] private Slider loadingSlider;      // Pasek ładowania
+    // Elements for loading screen
+    [SerializeField] private GameObject loadingScreen;  // Panel for loading screen
+    [SerializeField] private Image loadingImage;        // JPG displayed on loading screen
+    [SerializeField] private TMP_Text loadingText;      // Text showing loading status
+    [SerializeField] private Slider loadingSlider;      // Loading bar
 
-    // Symulowane ładowanie
-    [SerializeField] private float fakeLoadingTime = 6.0f;  // Czas trwania symulowanego ładowania
+    // Simulated loading
+    [SerializeField] private float fakeLoadingTime = 6.0f;  // Duration of simulated loading
 
     // Declare savedVolume and savedSFXVolume
     private float savedVolume;
@@ -133,7 +133,7 @@ public void StartGame()
 
     // RPC to set game mode for all players
     photonView.RPC("SetGameMode", RpcTarget.All, "DM");
-        // Zamknij pokój i ustaw go jako niewidoczny
+        // Close the room and make it invisible
     if (PhotonNetwork.CurrentRoom != null)
     {
         PhotonNetwork.CurrentRoom.IsOpen = false;    // Zamknięcie pokoju - gracze nie mogą dołączyć
@@ -154,7 +154,7 @@ public void StartGameTDM()
     // RPC to set game mode for all players
     photonView.RPC("SetGameMode", RpcTarget.All, "TDM");
 
-    // Zamknij pokój i ustaw go jako niewidoczny
+    // Close the room and make it invisible
     if (PhotonNetwork.CurrentRoom != null)
     {
         PhotonNetwork.CurrentRoom.IsOpen = false;    // Zamknięcie pokoju - gracze nie mogą dołączyć
@@ -196,7 +196,7 @@ private void SetLocalGameMode(string mode)
 
         if (loadingText != null)
         {
-            loadingText.text = "Ładowanie... 0%";
+            loadingText.text = "Loading... 0%";
         }
     }
 
@@ -224,7 +224,7 @@ private IEnumerator FakeLoadingProgress(int sceneIndex)
         // Aktualizacja tekstu ładowania
         if (loadingText != null)
         {
-            loadingText.text = "Ładowanie... " + (progress * 100f).ToString("F0") + "%";
+            loadingText.text = "Loading... " + (progress * 100f).ToString("F0") + "%";
         }
 
         yield return null;  // Czekaj do następnej klatki
@@ -258,7 +258,7 @@ public override void OnRoomListUpdate(List<RoomInfo> roomList)
 
     for (int i = 0; i < roomList.Count; i++)
     {
-        // Pomijaj pokoje, które są pełne lub usunięte z listy
+        // Skip rooms that are full or removed from the list
         if (roomList[i].RemovedFromList || roomList[i].PlayerCount >= roomList[i].MaxPlayers)
         {
             continue;
@@ -274,10 +274,10 @@ public override void OnPlayerEnteredRoom(Player newPlayer)
     Instantiate(PlayerListItemPrefab, playerListContent).GetComponent<PlayerListItem>().SetUp(newPlayer);
 
 
-    //sprawdz czy maks players
+    // check if room reached max players
         if (PhotonNetwork.CurrentRoom.PlayerCount >= PhotonNetwork.CurrentRoom.MaxPlayers)
     {
-        PhotonNetwork.CurrentRoom.IsVisible = false; // Ukryj pokój z listy
+        PhotonNetwork.CurrentRoom.IsVisible = false; // Hide room from the list
         Debug.Log("Launcher: Room is now full and has been hidden from the lobby.");
     }
 

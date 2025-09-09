@@ -4,14 +4,14 @@ using UnityEngine;
 
 public class SpawnpointTDM : MonoBehaviour
 {
-    // Enum dla kolorów drużyn
+    // Enum for team colors
     public enum TeamColor
     {
         Red,
         Blue
     }
 
-    // Publiczna zmienna typu enum, która będzie wyświetlana jako rozwijana lista w edytorze Unity
+    // Public enum variable that will be shown as a dropdown in the Unity editor
     [SerializeField] public TeamColor teamColor; 
 
     [SerializeField] private GameObject graphics;
